@@ -39,3 +39,14 @@ resource "nuodbaas_project" "nuodb" {
     expires_in="1d"
   }
 }
+
+resource "nuodbaas_project" "nuodb" {
+  organization=var.dbaas_credentials.organization
+  name="dassault"
+  sla="dev"
+  tier="n1.small"
+
+  maintenance = {
+    expires_in="5d"
+  }
+}

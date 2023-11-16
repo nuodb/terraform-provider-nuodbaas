@@ -67,6 +67,9 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 				Optional: true,
 				Description: "The base URL for the server, including the protocol",
 			},
+			"host": schema.StringAttribute{
+				Optional: true,
+			},
 		},
 	}
 }
@@ -113,6 +116,15 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 			"Unknown url type",
 			"The provider cannot create the NuoDB Dbaas API client as there is an unknown configuration value for the Url. "+
                 "Either target apply the source of the value first, set the value statically in the configuration, or use the NUODB_CP_URL_BASE environment variable.",
+		)
+	}
+
+	if config.Host.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("host"),
+			"Unknown Host type",
+			"The provider cannot create the NuoDB Dbaas API client as there is an unknown configuration value for the Host. "+
+                "Either target apply the source of the value first, set the value statically in the configuration, or use the NUODBAAS_HOST environment variable.",
 		)
 	}
 
