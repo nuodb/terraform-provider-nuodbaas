@@ -29,3 +29,13 @@ resource "nuodbaas_project" "nuodb" {
   sla="dev"
   tier="n1.small"
 }
+
+resource "nuodbaas_project" "nuodb" {
+  organization=var.dbaas_credentials.organization
+  name="nuodb"
+  sla="dev"
+  tier="n0.nano"
+  maintenance = {
+    expires_in="1d"
+  }
+}
