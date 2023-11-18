@@ -42,11 +42,7 @@ resource "nuodbaas_project" "nuodb" {
 
 resource "nuodbaas_project" "nuodb" {
   organization=var.dbaas_credentials.organization
-  name="dassault"
+  name="nuodb"
   sla="dev"
   tier="n1.small"
-
-  maintenance = {
-    expires_in="5d"
-  }
 }
