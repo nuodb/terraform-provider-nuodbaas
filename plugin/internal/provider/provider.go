@@ -202,6 +202,7 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 func (p *NuoDbaasProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource {
 		NewProjectResource,
+		NewDatabaseResource,
 	}
 }
 

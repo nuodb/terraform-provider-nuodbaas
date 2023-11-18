@@ -34,15 +34,25 @@ resource "nuodbaas_project" "nuodb" {
   organization=var.dbaas_credentials.organization
   name="nuodb"
   sla="dev"
-  tier="n0.nano"
+  tier="n0.small"
+
   maintenance = {
-    expires_in="1d"
+    expires_in="5d"
   }
 }
 
-resource "nuodbaas_project" "nuodb" {
+resource "nuodbaas_database" "nuodb" {
   organization=var.dbaas_credentials.organization
+  project=nuodbaas_project.nuodb.name
   name="nuodb"
-  sla="dev"
   tier="n1.small"
+  password="helloworld"
+  maintenance = {
+    expires_in="2d"
+  }
+
+  # archive_disk_size = "15Gi"
+  # journal_disk_size = "10Gi"
+
+  # properties = {}
 }
