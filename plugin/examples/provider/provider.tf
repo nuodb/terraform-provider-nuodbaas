@@ -45,13 +45,13 @@ resource "nuodbaas_database" "nuodb" {
   organization=var.dbaas_credentials.organization
   project=nuodbaas_project.nuodb.name
   name="nuodb"
-  tier="n1.small"
+  tier="n0.nano"
   password="helloworld"
   maintenance = {
     expires_in="2d"
   }
 
-  # archive_disk_size = "15Gi"
+  archive_disk_size = "15Gi"
   # journal_disk_size = "10Gi"
 
   # properties = {}

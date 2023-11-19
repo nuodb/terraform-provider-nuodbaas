@@ -6,6 +6,8 @@ package provider
 import (
 	"context"
 	"fmt"
+	nuodbaas_client "terraform-provider-nuodbaas/internal/client"
+	"terraform-provider-nuodbaas/internal/model"
 
 	openapi "github.com/GIT_USER_ID/GIT_REPO_ID"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -33,22 +35,9 @@ type DatabaseResource struct {
 	client *openapi.APIClient
 }
 
-type databaseResourceModel struct {
-	Organization    types.String `tfsdk:"organization"`
-	Name            types.String `tfsdk:"name"`
-	Project         types.String `tfsdk:"project"`
-	Password        types.String `tfsdk:"password"`
-	Tier            types.String `tfsdk:"tier"`
-	ArchiveDiskSize	types.String `tfsdk:"archive_disk_size"`
-	JournalDiskSize types.String `tfsdk:"journal_disk_size"`
-	ResourceVersion types.String `tfsdk:"resource_version"`
-	Maintenance     types.Object `tfsdk:"maintenance"`
-}
+type databaseResourceModel = model.DatabaseResourceModel
 
-type propertiesResourceModel struct {
-	ArchiveDiskSize	types.String `tfsdk:"archive_disk_size"`
-	JournalDiskSize types.String `tfsdk:"journal_disk_size"`
-}
+type propertiesResourceModel = model.DatabasePropertiesResourceModel
 
 func (r *DatabaseResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_database"
@@ -174,31 +163,22 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 	// resp.Diagnostics.Append(state.Properties.As(ctx,&propertiesModel,  basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-	apiRequestObject := r.client.DatabasesAPI.CreateDatabase(ctx, state.Organization.ValueString(),state.Project.ValueString(),state.Name.ValueString())
-
-	var databaseModel = openapi.NewDatabaseCreateUpdateModel()
-	databaseModel.SetDbaPassword(state.Password.ValueString())
-	databaseModel.SetTier(state.Tier.ValueString())
-	var openApiMaintenanceModel = openapi.MaintenanceModel{}
-	if !maintenanceModel.ExpiresIn.IsNull() {
-		openApiMaintenanceModel.ExpiresIn = maintenanceModel.ExpiresIn.ValueStringPointer()
-	}
-	if !maintenanceModel.IsDisabled.IsNull() {
-		openApiMaintenanceModel.IsDisabled = maintenanceModel.IsDisabled.ValueBoolPointer()
-	}
-
-	var openApiDatabasePropertiesModel = openapi.DatabasePropertiesModel{}
+	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
+	var archiveDiskSize, journalDiskSize string = "", ""
 	if !state.ArchiveDiskSize.IsNull() && !state.ArchiveDiskSize.IsUnknown() {
-		openApiDatabasePropertiesModel.ArchiveDiskSize = state.ArchiveDiskSize.ValueStringPointer()
+		archiveDiskSize = state.ArchiveDiskSize.ValueString()
 	}
 	if !state.JournalDiskSize.IsNull() {
-		openApiDatabasePropertiesModel.JournalDiskSize = state.JournalDiskSize.ValueStringPointer()
+		journalDiskSize = state.JournalDiskSize.ValueString()
+	}
+	databaseBody := model.DatabaseCreateUpdateModel{
+		Password: state.Password.ValueString(),
+		Tier: state.Tier.ValueString(),
+		ArchiveDiskSize: archiveDiskSize,
+		JournalDiskSize: journalDiskSize,
 	}
 
-	databaseModel.SetMaintenance(openApiMaintenanceModel)
-	databaseModel.SetProperties(openApiDatabasePropertiesModel)
-	apiRequestObject= apiRequestObject.DatabaseCreateUpdateModel(*databaseModel)
-	_, err := r.client.DatabasesAPI.CreateDatabaseExecute(apiRequestObject)
+	_, err := databaseClient.CreateDatabase(maintenanceModel,databaseBody)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -208,8 +188,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	apiGetRequestObject := r.client.DatabasesAPI.GetDatabase(ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	getDatabaseModel, _, err := r.client.DatabasesAPI.GetDatabaseExecute(apiGetRequestObject)
+	getDatabaseModel, _, err := databaseClient.GetDatabase()
 
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -219,7 +198,6 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	tflog.Debug(ctx, "TAGGER resource version is " + *getDatabaseModel.ResourceVersion)
 	state.ResourceVersion = types.StringValue(*getDatabaseModel.ResourceVersion)
 
 	if getDatabaseModel.Properties.ArchiveDiskSize != nil {
@@ -263,9 +241,7 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	apiRequestObject := r.client.DatabasesAPI.GetDatabase(ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	databaseModel, _, err := r.client.DatabasesAPI.GetDatabaseExecute(apiRequestObject)
+	databaseModel, _, err := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).GetDatabase()
 
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -331,39 +307,22 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 	// resp.Diagnostics.Append(state.Properties.As(ctx, &propertiesModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-	apiRequestObject := r.client.DatabasesAPI.CreateDatabase(ctx, state.Organization.ValueString(),state.Project.ValueString(),state.Name.ValueString())
-	
-	var databaseModel = openapi.NewDatabaseCreateUpdateModel()
-	// databaseModel.SetDbaPassword(state.Password.ValueString())
-	databaseModel.SetTier(state.Tier.ValueString())
-	var openApiMaintenanceModel = openapi.MaintenanceModel{}
-	if !maintenanceModel.ExpiresIn.IsNull() {
-		openApiMaintenanceModel.ExpiresIn = maintenanceModel.ExpiresIn.ValueStringPointer()
-	}
-	if !maintenanceModel.IsDisabled.IsNull() {
-		openApiMaintenanceModel.IsDisabled = maintenanceModel.IsDisabled.ValueBoolPointer()
-	}
-
-	var openApiDatabasePropertiesModel = openapi.DatabasePropertiesModel{}
-	if !state.ArchiveDiskSize.IsNull() && !state.ArchiveDiskSize.IsUnknown(){
-		openApiDatabasePropertiesModel.ArchiveDiskSize = state.ArchiveDiskSize.ValueStringPointer()
+	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
+	var archiveDiskSize, journalDiskSize string = "", ""
+	if !state.ArchiveDiskSize.IsNull() && !state.ArchiveDiskSize.IsUnknown() {
+		archiveDiskSize = state.ArchiveDiskSize.ValueString()
 	}
 	if !state.JournalDiskSize.IsNull() {
-		openApiDatabasePropertiesModel.JournalDiskSize = state.JournalDiskSize.ValueStringPointer()
+		journalDiskSize = state.JournalDiskSize.ValueString()
+	}
+	databaseBody := model.DatabaseCreateUpdateModel{
+		Password: state.Password.ValueString(),
+		Tier: state.Tier.ValueString(),
+		ArchiveDiskSize: archiveDiskSize,
+		JournalDiskSize: journalDiskSize,
 	}
 
-	databaseModel.SetMaintenance(openApiMaintenanceModel)
-	databaseModel.SetProperties(openApiDatabasePropertiesModel)
-
-	if !state.ResourceVersion.IsNull() {
-		databaseModel.SetResourceVersion(state.ResourceVersion.ValueString())
-	}
-
-	tflog.Debug(ctx, fmt.Sprintf("%+v", databaseModel))
-
-
-	apiRequestObject= apiRequestObject.DatabaseCreateUpdateModel(*databaseModel)
-	_, err := r.client.DatabasesAPI.CreateDatabaseExecute(apiRequestObject)
+	_, err := databaseClient.UpdateDatabase(maintenanceModel,databaseBody, state.ResourceVersion.ValueString())
 
 	if err != nil {
 		resp.Diagnostics.AddError(
