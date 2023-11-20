@@ -8,6 +8,7 @@ import (
 	"fmt"
 	nuodbaas_client "terraform-provider-nuodbaas/internal/client"
 	"terraform-provider-nuodbaas/internal/model"
+	"time"
 
 	openapi "github.com/GIT_USER_ID/GIT_REPO_ID"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -188,19 +189,30 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	getDatabaseModel, _, err := databaseClient.GetDatabase()
+	var getDatabaseModel *openapi.DatabaseModel
 
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error Reading Project",
-			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + err.Error(),
-		)
-		return
+	for i := 0;i<15; i++ {
+		databaseModel, _, err := databaseClient.GetDatabase()
+		getDatabaseModel = databaseModel
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Reading Database",
+				"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + err.Error(),
+			)
+			return
+		}
+
+		if *getDatabaseModel.Status.Ready {
+			break
+		}
+		tflog.Debug(ctx, "TAGGER database will be called again")
+		time.Sleep(10 * time.Second)
 	}
 
 	state.ResourceVersion = types.StringValue(*getDatabaseModel.ResourceVersion)
 
 	if getDatabaseModel.Properties.ArchiveDiskSize != nil {
+		tflog.Debug(ctx, "TAGGER database is ready to use")
 		state.ArchiveDiskSize = types.StringValue(*getDatabaseModel.Properties.ArchiveDiskSize)
 	}
 
