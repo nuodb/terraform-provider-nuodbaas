@@ -30,18 +30,7 @@ resource "nuodbaas_project" "nuodb" {
   tier="n1.small"
 }
 
-resource "nuodbaas_project" "nuodb" {
-  organization=var.dbaas_credentials.organization
-  name="nuodb"
-  sla="dev"
-  tier="n0.small"
-
-  maintenance = {
-    expires_in="5d"
-  }
-}
-
-resource "nuodbaas_database" "nuodb" {
+resource "nuodbaas_database" "nuodb" { 
   organization=var.dbaas_credentials.organization
   project=nuodbaas_project.nuodb.name
   name="nuodb"
@@ -51,8 +40,8 @@ resource "nuodbaas_database" "nuodb" {
     expires_in="2d"
   }
 
-  archive_disk_size = "15Gi"
-  # journal_disk_size = "10Gi"
-
-  # properties = {}
+  properties = {
+    archive_disk_size = "20Gi"
+  }
 }
+

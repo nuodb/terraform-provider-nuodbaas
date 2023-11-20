@@ -11,6 +11,7 @@ import (
 	"time"
 
 	openapi "github.com/GIT_USER_ID/GIT_REPO_ID"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -39,6 +40,11 @@ type DatabaseResource struct {
 type databaseResourceModel = model.DatabaseResourceModel
 
 type propertiesResourceModel = model.DatabasePropertiesResourceModel
+
+var propertiesType = map[string]attr.Type{
+	"archive_disk_size" : types.StringType,
+	"journal_disk_size" : types.StringType,
+}
 
 func (r *DatabaseResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_database"
@@ -99,31 +105,20 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
                     stringplanmodifier.UseStateForUnknown(),
                 },
 			},
-			"archive_disk_size": schema.StringAttribute{
-				MarkdownDescription: "The size of the archive volumes for the database. Can be only updated to increase the volume size",
-				Computed: true,
-				Optional: true,
+			"properties": schema.SingleNestedAttribute{
+				Required: true,
+				Attributes: map[string]schema.Attribute{
+					"archive_disk_size": schema.StringAttribute{
+						MarkdownDescription: "The size of the archive volumes for the database. Can be only updated to increase the volume size",
+						Optional: true,
+						Computed: true,
+					},
+					"journal_disk_size": schema.StringAttribute{
+						MarkdownDescription: "The size of the journal volumes for the database. Can be only updated to increase the volume size.",
+						Optional: true,
+					},
+				},
 			},
-			"journal_disk_size": schema.StringAttribute{
-				MarkdownDescription: "The size of the journal volumes for the database. Can be only updated to increase the volume size.",
-				Optional: true,
-			},
-
-			// "properties": schema.SingleNestedAttribute{
-			// 	Optional: true,
-			// 	Computed: true,
-			// 	Attributes: map[string]schema.Attribute{
-			// 		"archive_disk_size": schema.StringAttribute{
-			// 			MarkdownDescription: "The size of the archive volumes for the database. Can be only updated to increase the volume size",
-			// 			Optional: true,
-			// 		},
-			// 		"journal_disk_size": schema.StringAttribute{
-			// 			MarkdownDescription: "The size of the journal volumes for the database. Can be only updated to increase the volume size.",
-			// 			Optional: true,
-			// 		},
-			// 	},
-			// },
-			
 		},
 	}
 }
@@ -152,34 +147,25 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &state)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// var propertiesModel propertiesResourceModel
+	var propertiesModel propertiesResourceModel
 	var maintenanceModel maintenanceModel
+
 	resp.Diagnostics.Append(state.Maintenance.As(ctx, &maintenanceModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// resp.Diagnostics.Append(state.Properties.As(ctx,&propertiesModel,  basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	var archiveDiskSize, journalDiskSize string = "", ""
-	if !state.ArchiveDiskSize.IsNull() && !state.ArchiveDiskSize.IsUnknown() {
-		archiveDiskSize = state.ArchiveDiskSize.ValueString()
-	}
-	if !state.JournalDiskSize.IsNull() {
-		journalDiskSize = state.JournalDiskSize.ValueString()
-	}
-	databaseBody := model.DatabaseCreateUpdateModel{
-		Password: state.Password.ValueString(),
-		Tier: state.Tier.ValueString(),
-		ArchiveDiskSize: archiveDiskSize,
-		JournalDiskSize: journalDiskSize,
-	}
 
-	_, err := databaseClient.CreateDatabase(maintenanceModel,databaseBody)
+	resp.Diagnostics.Append(state.Properties.As(ctx, &propertiesModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	
+	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
+	_, err := databaseClient.CreateDatabase(state, maintenanceModel, propertiesModel)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -190,7 +176,6 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	var getDatabaseModel *openapi.DatabaseModel
-
 	for i := 0;i<15; i++ {
 		databaseModel, _, err := databaseClient.GetDatabase()
 		getDatabaseModel = databaseModel
@@ -211,30 +196,21 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 
 	state.ResourceVersion = types.StringValue(*getDatabaseModel.ResourceVersion)
 
-	if getDatabaseModel.Properties.ArchiveDiskSize != nil {
-		tflog.Debug(ctx, "TAGGER database is ready to use")
-		state.ArchiveDiskSize = types.StringValue(*getDatabaseModel.Properties.ArchiveDiskSize)
+	propertiesValue := propertiesResourceModel{
+		ArchiveDiskSize : types.StringValue(*getDatabaseModel.Properties.ArchiveDiskSize),
 	}
 
 	if getDatabaseModel.Properties.JournalDiskSize != nil {
-		state.JournalDiskSize = types.StringValue(*getDatabaseModel.Properties.JournalDiskSize)
+		propertiesValue.JournalDiskSize = types.StringValue(*getDatabaseModel.Properties.JournalDiskSize)
 	}
-	// propertiesType := map[string]attr.Type{
-	// 	"archive_disk_size" : types.StringType,
-	// 	"journal_disk_size" : types.StringType,
-	// }
 
-	// propertiesValue := propertiesResourceModel{
-	// 	ArchiveDiskSize : types.StringValue(archive_disk_size),
-	// 	JournalDiskSize : types.StringValue(journal_disk_size),
-	// }
+	objVal, diag := types.ObjectValueFrom(ctx, propertiesType, propertiesValue)
+	resp.Diagnostics.Append(diag...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	state.Properties = objVal
 
-	// objVal, diag := types.ObjectValueFrom(ctx, propertiesType, propertiesValue)
-	// resp.Diagnostics.Append(diag...)
-	// if resp.Diagnostics.HasError() {
-	// 	tflog.Debug(ctx, "TAGGER error while converting to objVal")
-	// 	return
-	// }
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 
@@ -275,24 +251,18 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 		journal_disk_size = *databaseModel.Properties.JournalDiskSize
 	}
 
-	// propertiesType := map[string]attr.Type{
-	// 	"archive_disk_size" : types.StringType,
-	// 	"journal_disk_size" : types.StringType,
-	// }
+	propertiesValue := propertiesResourceModel{
+		ArchiveDiskSize : types.StringValue(archive_disk_size),
+		JournalDiskSize : types.StringValue(journal_disk_size),
+	}
 
-	// propertiesValue := propertiesResourceModel{
-	// 	ArchiveDiskSize : types.StringValue(archive_disk_size),
-	// 	JournalDiskSize : types.StringValue(journal_disk_size),
-	// }
-
-	// objVal, diag := types.ObjectValueFrom(ctx, propertiesType,propertiesValue)
-	// resp.Diagnostics.Append(diag...)
-	// if resp.Diagnostics.HasError() {
-	// 	tflog.Debug(ctx, "TAGGER error while converting to objVal read")
-	// 	return
-	// }
-	state.ArchiveDiskSize = types.StringValue(archive_disk_size)
-	state.JournalDiskSize = types.StringValue(journal_disk_size)
+	objVal, diag := types.ObjectValueFrom(ctx, propertiesType, propertiesValue)
+	resp.Diagnostics.Append(diag...)
+	if resp.Diagnostics.HasError() {
+		tflog.Debug(ctx, "TAGGER error while converting to objVal read")
+		return
+	}
+	state.Properties = objVal
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -312,29 +282,20 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	// var propertiesModel propertiesResourceModel
+	var propertiesModel propertiesResourceModel
 	var maintenanceModel maintenanceModel
 	resp.Diagnostics.Append(state.Maintenance.As(ctx, &maintenanceModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// resp.Diagnostics.Append(state.Properties.As(ctx, &propertiesModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	var archiveDiskSize, journalDiskSize string = "", ""
-	if !state.ArchiveDiskSize.IsNull() && !state.ArchiveDiskSize.IsUnknown() {
-		archiveDiskSize = state.ArchiveDiskSize.ValueString()
-	}
-	if !state.JournalDiskSize.IsNull() {
-		journalDiskSize = state.JournalDiskSize.ValueString()
-	}
-	databaseBody := model.DatabaseCreateUpdateModel{
-		Password: state.Password.ValueString(),
-		Tier: state.Tier.ValueString(),
-		ArchiveDiskSize: archiveDiskSize,
-		JournalDiskSize: journalDiskSize,
+
+	resp.Diagnostics.Append(state.Properties.As(ctx, &propertiesModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	_, err := databaseClient.UpdateDatabase(maintenanceModel,databaseBody, state.ResourceVersion.ValueString())
+	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
+	_, err := databaseClient.UpdateDatabase(state, maintenanceModel, propertiesModel)
 
 	if err != nil {
 		resp.Diagnostics.AddError(

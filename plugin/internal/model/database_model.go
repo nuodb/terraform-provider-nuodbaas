@@ -8,8 +8,7 @@ type DatabaseResourceModel struct {
 	Project         types.String `tfsdk:"project"`
 	Password        types.String `tfsdk:"password"`
 	Tier            types.String `tfsdk:"tier"`
-	ArchiveDiskSize types.String `tfsdk:"archive_disk_size"`
-	JournalDiskSize types.String `tfsdk:"journal_disk_size"`
+	Properties      types.Object `tfsdk:"properties"`
 	ResourceVersion types.String `tfsdk:"resource_version"`
 	Maintenance     types.Object `tfsdk:"maintenance"`
 }

@@ -17,20 +17,18 @@ type nuodbaasDatabaseClient struct {
 	databaseName 	string
 }
 
-func (client *nuodbaasDatabaseClient) CreateDatabase(maintenanceModel model.MaintenanceModel, body model.DatabaseCreateUpdateModel) (*http.Response, error) {
+func (client *nuodbaasDatabaseClient) CreateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel model.MaintenanceModel, propertiesResourceModel model.DatabasePropertiesResourceModel)  (*http.Response, error) {
 	databaseModel := openapi.NewDatabaseCreateUpdateModel()
-	return client.createDatabase(databaseModel, maintenanceModel, body, false)
+	return client.createDatabase(databaseModel, databaseResourceModel, maintenanceModel, propertiesResourceModel, false)
 }
 
-
-func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *openapi.DatabaseCreateUpdateModel,  maintenanceModel model.MaintenanceModel, body model.DatabaseCreateUpdateModel, isUpdate bool) (*http.Response, error) {
+func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *openapi.DatabaseCreateUpdateModel, databaseResourceModel model.DatabaseResourceModel,
+	 maintenanceModel model.MaintenanceModel, propertiesResourceModel model.DatabasePropertiesResourceModel, isUpdate bool)  (*http.Response, error) {
 	apiRequestObject := client.client.DatabasesAPI.CreateDatabase(client.ctx, client.org, client.projectName, client.databaseName)
-
 	if isUpdate==false {
-		databaseModel.SetDbaPassword(body.Password)
+		databaseModel.SetDbaPassword(databaseResourceModel.Password.ValueString())
 	}
-	
-	databaseModel.SetTier(body.Tier)
+	databaseModel.SetTier(databaseResourceModel.Tier.ValueString())
 	var openApiMaintenanceModel = openapi.MaintenanceModel{}
 	if !maintenanceModel.ExpiresIn.IsNull() {
 		openApiMaintenanceModel.ExpiresIn = maintenanceModel.ExpiresIn.ValueStringPointer()
@@ -40,11 +38,11 @@ func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *openapi.Data
 	}
 
 	var openApiDatabasePropertiesModel = openapi.DatabasePropertiesModel{}
-	if len(body.ArchiveDiskSize) > 0 {
-		openApiDatabasePropertiesModel.ArchiveDiskSize = &body.ArchiveDiskSize
+	if len(propertiesResourceModel.ArchiveDiskSize.ValueString()) > 0 {
+		openApiDatabasePropertiesModel.ArchiveDiskSize = propertiesResourceModel.ArchiveDiskSize.ValueStringPointer()
 	}
-	if len(body.JournalDiskSize) > 0 {
-		openApiDatabasePropertiesModel.JournalDiskSize = &body.JournalDiskSize
+	if len(propertiesResourceModel.JournalDiskSize.ValueString()) > 0 {
+		openApiDatabasePropertiesModel.JournalDiskSize = propertiesResourceModel.JournalDiskSize.ValueStringPointer()
 	}
 
 	databaseModel.SetMaintenance(openApiMaintenanceModel)
@@ -53,13 +51,13 @@ func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *openapi.Data
 	return client.client.DatabasesAPI.CreateDatabaseExecute(apiRequestObject)
 }
 
-func (client *nuodbaasDatabaseClient) UpdateDatabase(maintenanceModel model.MaintenanceModel, body model.DatabaseCreateUpdateModel, resourceVersion string) (*http.Response, error) {
-	if len(resourceVersion) == 0 {
+func (client *nuodbaasDatabaseClient) UpdateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel model.MaintenanceModel, propertiesResourceModel model.DatabasePropertiesResourceModel) (*http.Response, error) {
+	if len(databaseResourceModel.ResourceVersion.ValueString()) == 0 {
 		return nil, errors.New("cannot update the project. Resource version is missing")
 	}
 	databaseModel := openapi.NewDatabaseCreateUpdateModel()
-	databaseModel.SetResourceVersion(resourceVersion)
-	return client.createDatabase(databaseModel, maintenanceModel, body, true)
+	databaseModel.SetResourceVersion(databaseResourceModel.ResourceVersion.ValueString())
+	return client.createDatabase(databaseModel, databaseResourceModel, maintenanceModel, propertiesResourceModel, true)
 }
 
 func (client *nuodbaasDatabaseClient) GetDatabase() (*openapi.DatabaseModel, *http.Response, error) {
