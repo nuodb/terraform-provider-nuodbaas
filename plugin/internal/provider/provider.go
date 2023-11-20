@@ -69,6 +69,7 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 			},
 			"host": schema.StringAttribute{
 				Optional: true,
+				Description: "Host name used to connect to Dbaas Client",
 			},
 		},
 	}
@@ -119,7 +120,7 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 		)
 	}
 
-	if config.Host.IsUnknown() {
+	if config.BaseUrl.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("host"),
 			"Unknown Host type",
@@ -218,9 +219,7 @@ func (p *NuoDbaasProvider) Resources(ctx context.Context) []func() resource.Reso
 }
 
 func (p *NuoDbaasProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource {
-        NewExampleDataSource,
-    }
+	return nil
 }
 
 func New(version string) func() provider.Provider {

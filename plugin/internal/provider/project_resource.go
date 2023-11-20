@@ -7,8 +7,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	nuodbaas_client "terraform-provider-nuodbaas/internal/client"
-	"terraform-provider-nuodbaas/internal/model"
 
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
 
