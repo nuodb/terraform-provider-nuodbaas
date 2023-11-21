@@ -6,11 +6,14 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"terraform-provider-nuodbaas/helper"
 	nuodbaas_client "terraform-provider-nuodbaas/internal/client"
 	"terraform-provider-nuodbaas/internal/model"
 	"time"
 
 	openapi "github.com/GIT_USER_ID/GIT_REPO_ID"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -120,6 +123,11 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"timeouts": timeouts.Block(ctx, timeouts.Opts {
+				Create: true,
+			}),
+		},
 	}
 }
 
@@ -164,29 +172,39 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 	
+	createTimeout, diags:= state.Timeouts.Create(ctx, 30*time.Minute)
+	resp.Diagnostics.Append(diags...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, createTimeout)
+
+	defer cancel()
+	
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	_, err := databaseClient.CreateDatabase(state, maintenanceModel, propertiesModel)
+	httpResponse, err := databaseClient.CreateDatabase(state, maintenanceModel, propertiesModel)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating database",
-			"Could not create database, unexpected error: "+ err.Error(),
+			"Could not create database, unexpected error: "+ helper.GetHttpResponseErrorMessage(httpResponse, err),
 		)
 		return
 	}
 
 	var getDatabaseModel *openapi.DatabaseModel
 	for i := 0;i<15; i++ {
-		databaseModel, _, err := databaseClient.GetDatabase()
+		databaseModel, httpResponse, err := databaseClient.GetDatabase()
 		getDatabaseModel = databaseModel
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error Reading Database",
-				"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + err.Error(),
+				"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err),
 			)
 			return
 		}
-
 		if *getDatabaseModel.Status.Ready {
 			break
 		}
@@ -229,17 +247,18 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	databaseModel, _, err := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).GetDatabase()
+	databaseModel, httpResponse, err := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).GetDatabase()
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading Project",
-			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + err.Error(),
+			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err),
 		)
 		return
 	}
 
 	state.ResourceVersion = types.StringValue(*databaseModel.ResourceVersion)
+	state.Tier = types.StringValue(*databaseModel.Tier)
 
 	journal_disk_size, archive_disk_size  := "" , ""
 
@@ -259,10 +278,10 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	objVal, diag := types.ObjectValueFrom(ctx, propertiesType, propertiesValue)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
-		tflog.Debug(ctx, "TAGGER error while converting to objVal read")
 		return
 	}
 	state.Properties = objVal
+	tflog.Debug(ctx, fmt.Sprintf("TAGGER the obj is %+v", state))
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -295,12 +314,23 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	_, err := databaseClient.UpdateDatabase(state, maintenanceModel, propertiesModel)
+	httpResponse, err := databaseClient.UpdateDatabase(state, maintenanceModel, propertiesModel)
+
+	if httpResponse.StatusCode == 409 {
+		updateResponseObj, retryError, isUpdated := r.retryUpdate(ctx, state, maintenanceModel, propertiesModel)
+		tflog.Debug(ctx, fmt.Sprintf("TAGGER response is %v %v", retryError, isUpdated))
+		if !isUpdated {
+			if retryError != nil {
+				err = retryError
+				httpResponse = updateResponseObj
+			}
+		}
+	}
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating database",
-			fmt.Sprintf("Could not update database, unexpected error: %+v", err.Error()),
+			fmt.Sprintf("Could not update database, unexpected error: %+v", helper.GetHttpResponseErrorMessage(httpResponse, err)),
 		)
 		return
 	}
@@ -331,6 +361,25 @@ func (r *DatabaseResource) Delete(ctx context.Context, req resource.DeleteReques
 			state.Name.ValueString(), err.Error()))
 		return
 	}
+}
+
+func (r *DatabaseResource) retryUpdate(ctx context.Context, state databaseResourceModel, maintenanceModel maintenanceModel, propertiesModel model.DatabasePropertiesResourceModel) (*http.Response, error, bool) {
+	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
+	databaseModel, httpResponse, err := databaseClient.GetDatabase()
+	if err != nil {
+		return httpResponse, err, false
+	}
+	if *databaseModel.ResourceVersion != state.ResourceVersion.ValueString() {
+		state.ResourceVersion = types.StringValue(*databaseModel.ResourceVersion)
+		httpResponse, err = databaseClient.UpdateDatabase(state, maintenanceModel, propertiesModel)
+		if err != nil {
+			return httpResponse, err, false
+		} else {
+			return nil, nil, true
+		}
+	}
+	tflog.Debug(ctx, "TAGGER resource version was same")
+	return nil, nil, false
 }
 
 func (r *DatabaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
