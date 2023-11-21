@@ -120,15 +120,6 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 		)
 	}
 
-	if config.BaseUrl.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("host"),
-			"Unknown Host type",
-			"The provider cannot create the NuoDB Dbaas API client as there is an unknown configuration value for the Host. "+
-                "Either target apply the source of the value first, set the value statically in the configuration, or use the NUODBAAS_HOST environment variable.",
-		)
-	}
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
