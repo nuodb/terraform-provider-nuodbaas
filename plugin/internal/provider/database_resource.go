@@ -27,7 +27,6 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var (
-	_ resource.Resource = &DatabaseResource{}
 	_ resource.ResourceWithImportState = &DatabaseResource{}
 )
 
@@ -81,13 +80,16 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 				
 			},
-			"password": schema.StringAttribute{
-				MarkdownDescription: "The name of the project for which database is created",
+			"dba_password": schema.StringAttribute{
+				MarkdownDescription: "Database password. Cannot be updated once database is created",
 				Required:            true,
 				Sensitive: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"tier": schema.StringAttribute{
-				MarkdownDescription: "The Tier for the project. Cannot be updated once the project is created.",
+				MarkdownDescription: "The Tier for the project. Cannot be updated once the database is created.",
 				Required:            true,
 			},
 			"maintenance": schema.SingleNestedAttribute{

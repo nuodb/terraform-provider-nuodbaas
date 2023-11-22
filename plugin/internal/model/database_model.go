@@ -9,7 +9,7 @@ type DatabaseResourceModel struct {
 	Organization    types.String 	`tfsdk:"organization"`
 	Name            types.String 	`tfsdk:"name"`
 	Project         types.String 	`tfsdk:"project"`
-	Password        types.String 	`tfsdk:"password"`
+	Password        types.String 	`tfsdk:"dba_password"`
 	Tier            types.String 	`tfsdk:"tier"`
 	Properties      types.Object 	`tfsdk:"properties"`
 	ResourceVersion types.String 	`tfsdk:"resource_version"`
