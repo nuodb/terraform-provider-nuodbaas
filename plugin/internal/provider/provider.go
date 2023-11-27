@@ -67,10 +67,6 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 				Optional: true,
 				Description: "The base URL for the server, including the protocol",
 			},
-			"host": schema.StringAttribute{
-				Optional: true,
-				Description: "Host name used to connect to Dbaas Client",
-			},
 		},
 	}
 }

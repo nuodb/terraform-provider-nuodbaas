@@ -28,7 +28,7 @@ var (
 	_ resource.ResourceWithImportState = &ProjectResource{}
 )
 
-func NewProjectResource() resource.Resource {
+func NewProjectResource() resource.ResourceWithImportState {
 	return &ProjectResource{}
 }
 

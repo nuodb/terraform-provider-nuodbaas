@@ -14,12 +14,20 @@ if [ "$git_host" = "" ]; then
 fi
 
 if [ "$git_user_id" = "" ]; then
+<<<<<<< HEAD
     git_user_id="nuodb"
+=======
+    git_user_id="GIT_USER_ID"
+>>>>>>> 40c1902 (Out folder renamed, modifyscript updated)
     echo "[INFO] No command line input provided. Set \$git_user_id to $git_user_id"
 fi
 
 if [ "$git_repo_id" = "" ]; then
+<<<<<<< HEAD
     git_repo_id="nuodbaas-tf-plugin/generated_client"
+=======
+    git_repo_id="GIT_REPO_ID"
+>>>>>>> 40c1902 (Out folder renamed, modifyscript updated)
     echo "[INFO] No command line input provided. Set \$git_repo_id to $git_repo_id"
 fi
 

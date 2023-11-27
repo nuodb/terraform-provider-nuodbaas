@@ -44,4 +44,11 @@ model_maintenance_model.go
 model_project_model.go
 model_project_status_model.go
 response.go
+<<<<<<< HEAD
+=======
+test/api_databases_test.go
+test/api_healthz_test.go
+test/api_projects_test.go
+test/api_users_test.go
+>>>>>>> 40c1902 (Out folder renamed, modifyscript updated)
 utils.go
