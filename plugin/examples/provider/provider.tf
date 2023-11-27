@@ -35,7 +35,7 @@ resource "nuodbaas_database" "nuodb" {
   project=nuodbaas_project.nuodb.name
   name="nuodb"
   tier="n0.nano"
-  password="helloworld"
+  dba_password="helloworld"
   maintenance = {
     expires_in="2d"
   }
@@ -43,5 +43,13 @@ resource "nuodbaas_database" "nuodb" {
   properties = {
     archive_disk_size = "20Gi"
   }
+}
+
+data "nuodbaas_projects" "projectsList" {
+  organization=var.dbaas_credentials.organization
+}
+
+output "projectsList" {
+  value = data.nuodbaas_projects.projectsList
 }
 

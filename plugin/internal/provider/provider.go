@@ -207,7 +207,9 @@ func (p *NuoDbaasProvider) Resources(ctx context.Context) []func() resource.Reso
 }
 
 func (p *NuoDbaasProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource {
+        NewProjectDataSource,
+    }
 }
 
 func New(version string) func() provider.Provider {
