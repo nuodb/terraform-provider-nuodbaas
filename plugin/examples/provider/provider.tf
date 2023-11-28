@@ -30,14 +30,14 @@ resource "nuodbaas_project" "nuodb" {
   tier="n1.small"
 }
 
-resource "nuodbaas_database" "nuodb" { 
-  organization=var.dbaas_credentials.organization
-  project=nuodbaas_project.nuodb.name
-  name="nuodb"
-  tier="n0.nano"
-  dba_password="helloworld"
+resource "nuodbaas_database" "nuodb" {
+  organization = var.dbaas_credentials.organization
+  project      = nuodbaas_project.nuodb.name
+  name         = "nuodb"
+  tier         = "n0.nano"
+  dba_password = "helloworld"
   maintenance = {
-    expires_in="2d"
+    expires_in = "2d"
   }
 
   properties = {
@@ -46,10 +46,20 @@ resource "nuodbaas_database" "nuodb" {
 }
 
 data "nuodbaas_projects" "projectsList" {
-  organization=var.dbaas_credentials.organization
+  organization = var.dbaas_credentials.organization
 }
 
 output "projectsList" {
   value = data.nuodbaas_projects.projectsList
+}
+
+data "nuodbaas_databases" "databaseList" {
+  organization = var.dbaas_credentials.organization
+  project      = nuodbaas_database.nuodb.name
+}
+
+
+output "databaseList" {
+  value = data.nuodbaas_databases.databaseList
 }
 

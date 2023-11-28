@@ -22,7 +22,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -100,12 +99,14 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 						Optional: true,
 					},
 					"is_disabled": schema.BoolAttribute{
+						MarkdownDescription: "Whether the project or database should be shutdown",
 						Optional: true,
 					},
 				},
 			},
 			"resource_version": schema.StringAttribute{
 				Computed: true,
+				MarkdownDescription: "The version of the resource. When specified in a PUT request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
 				PlanModifiers: []planmodifier.String{
                     stringplanmodifier.UseStateForUnknown(),
                 },
@@ -202,7 +203,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		getDatabaseModel = databaseModel
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Error Reading Database",
+				"Error reading Database",
 				"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err),
 			)
 			return
@@ -234,7 +235,6 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 
 	if resp.Diagnostics.HasError() {
-		tflog.Debug(ctx, "TAGGER Last me error")
 		return
 	}
 }
@@ -277,7 +277,6 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 	state.Properties = objVal
-	tflog.Debug(ctx, fmt.Sprintf("TAGGER the obj is %+v", state))
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -314,7 +313,6 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 
 	if httpResponse.StatusCode == 409 {
 		updateResponseObj, retryError, isUpdated := r.retryUpdate(ctx, state, maintenanceModel, propertiesModel)
-		tflog.Debug(ctx, fmt.Sprintf("TAGGER response is %v %v", retryError, isUpdated))
 		if !isUpdated {
 			if retryError != nil {
 				err = retryError
@@ -374,7 +372,6 @@ func (r *DatabaseResource) retryUpdate(ctx context.Context, state databaseResour
 			return nil, nil, true
 		}
 	}
-	tflog.Debug(ctx, "TAGGER resource version was same")
 	return nil, nil, false
 }
 

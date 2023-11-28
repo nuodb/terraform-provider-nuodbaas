@@ -73,7 +73,6 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 
 	if resp.Diagnostics.HasError() {
-		tflog.Debug(ctx, "TAGGER Last me error")
 		return
 	}
 
