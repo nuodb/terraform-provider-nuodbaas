@@ -210,7 +210,6 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		if *getDatabaseModel.Status.Ready {
 			break
 		}
-		tflog.Debug(ctx, "TAGGER database will be called again")
 		time.Sleep(10 * time.Second)
 	}
 
@@ -262,19 +261,14 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	state.ResourceVersion = types.StringValue(*databaseModel.ResourceVersion)
 	state.Tier = types.StringValue(*databaseModel.Tier)
 
-	journal_disk_size, archive_disk_size  := "" , ""
+	propertiesValue := propertiesResourceModel{}
 
 	if databaseModel.Properties.ArchiveDiskSize != nil {
-		archive_disk_size = *databaseModel.Properties.ArchiveDiskSize
+		propertiesValue.ArchiveDiskSize = types.StringValue(*databaseModel.Properties.ArchiveDiskSize)
 	}
 
 	if databaseModel.Properties.JournalDiskSize != nil {
-		journal_disk_size = *databaseModel.Properties.JournalDiskSize
-	}
-
-	propertiesValue := propertiesResourceModel{
-		ArchiveDiskSize : types.StringValue(archive_disk_size),
-		JournalDiskSize : types.StringValue(journal_disk_size),
+		propertiesValue.JournalDiskSize = types.StringValue(*databaseModel.Properties.JournalDiskSize)
 	}
 
 	objVal, diag := types.ObjectValueFrom(ctx, propertiesType, propertiesValue)
