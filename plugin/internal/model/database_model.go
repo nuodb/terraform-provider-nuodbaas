@@ -29,3 +29,14 @@ type DatabaseCreateUpdateModel struct {
 	ArchiveDiskSize string
 	JournalDiskSize string
 }
+
+
+type DatabaseDataSourceModel struct {
+	Organization    types.String 						`tfsdk:"organization"`
+	Name            types.String 						`tfsdk:"name"`
+	Project         types.String 						`tfsdk:"project"`
+	Tier            types.String 						`tfsdk:"tier"`
+	Properties      *DatabasePropertiesResourceModel	`tfsdk:"properties"`
+	ResourceVersion types.String 						`tfsdk:"resource_version"`
+	Maintenance     *MaintenanceModel 					`tfsdk:"maintenance"`
+}

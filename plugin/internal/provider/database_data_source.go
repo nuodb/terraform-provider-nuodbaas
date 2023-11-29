@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"terraform-provider-nuodbaas/helper"
+	"terraform-provider-nuodbaas/internal/model"
 
-	openapi "github.com/GIT_USER_ID/GIT_REPO_ID"
+	nuodbaas "github.com/GIT_USER_ID/GIT_REPO_ID"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 var _ datasource.DataSourceWithConfigure = &databaseDataSource{}
@@ -19,12 +20,17 @@ func NewDatabaseDataSource() datasource.DataSource {
 }
 
 type databaseDataSource struct {
-	client *openapi.APIClient
+	client *nuodbaas.APIClient
 }
 
-type databasesModel struct {
+type databaseModel struct {
+	Filter		types.Object   					`tfsdk:"filter"`
+	Name        types.String   					`tfsdk:"name"`
+	Database    *model.DatabaseDataSourceModel  `tfsdk:"database"`
+}
+
+type databaseFilterModel struct {
 	Organization 	types.String   	`tfsdk:"organization"`
-	Databases     	[]types.String  `tfsdk:"databases"`
 	Project      	types.String	`tfsdk:"project"`
 }
 
@@ -32,15 +38,70 @@ type databasesModel struct {
 func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"databases": schema.ListAttribute{
+			"filter" : schema.SingleNestedAttribute{
+				Required: true,
+				Attributes: map[string]schema.Attribute{
+					"organization" : schema.StringAttribute{
+						Required: true,
+					},
+					"project" : schema.StringAttribute{
+						Required: true,
+					},
+				},
+			},
+			"name": schema.StringAttribute{
+				Required: true,
+			},
+			"database": schema.SingleNestedAttribute{
 				Computed: true,
-				ElementType: types.StringType,
-			},
-			"organization" : schema.StringAttribute{
-				Required: true,
-			},
-			"project" : schema.StringAttribute{
-				Required: true,
+				Attributes: map[string]schema.Attribute{
+					"organization": schema.StringAttribute{
+						MarkdownDescription: "Name of the organization for which project is created",
+						Optional: true,
+					},
+					"name": schema.StringAttribute{
+						MarkdownDescription: "Name of the database",
+						Optional: true,
+					},
+					"project": schema.StringAttribute{
+						MarkdownDescription: "The name of the project for which database is created",
+						Optional:            true,
+					},
+					"tier": schema.StringAttribute{
+						MarkdownDescription: "The Tier for the project. Cannot be updated once the database is created.",
+						Optional:            true,
+					},
+					"maintenance": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"expires_in": schema.StringAttribute{
+								MarkdownDescription: "The time until the project or database is disabled, e.g. 1d",
+								Optional: true,
+							},
+							"is_disabled": schema.BoolAttribute{
+								MarkdownDescription: "Whether the project or database should be shutdown",
+								Optional: true,
+							},
+						},
+					},
+					"resource_version": schema.StringAttribute{
+						Computed: true,
+						MarkdownDescription: "The version of the resource. When specified in a PUT request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
+					},
+					"properties": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"archive_disk_size": schema.StringAttribute{
+								MarkdownDescription: "The size of the archive volumes for the database. Can be only updated to increase the volume size",
+								Optional: true,
+							},
+							"journal_disk_size": schema.StringAttribute{
+								MarkdownDescription: "The size of the journal volumes for the database. Can be only updated to increase the volume size.",
+								Optional: true,
+							},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -48,30 +109,67 @@ func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 
 // Metadata implements datasource.DataSource.
 func (d *databaseDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_databases"
+	resp.TypeName = req.ProviderTypeName + "_database"
 }
 
 // Read implements datasource.DataSource.
 func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var state databasesModel
+	var state databaseModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	databases, httpResponse, err := d.client.DatabasesAPI.GetDatabases(ctx, state.Organization.ValueString(), state.Project.ValueString()).Execute()
-	if err != nil {
+
+	var filterModel databaseFilterModel
+
+	resp.Diagnostics.Append(state.Filter.As(ctx, &filterModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	databaseResponseModel, httpResponse, err :=  d.client.DatabasesAPI.GetDatabase(ctx, filterModel.Organization.ValueString(), filterModel.Project.ValueString(), state.Name.ValueString()).Execute()
+
+	if err!=nil {
 		resp.Diagnostics.AddError(
-			"Error getting databases",
-			"Could not get databases, unexpected error: "+ helper.GetHttpResponseErrorMessage(httpResponse, err),
+			"Error updating database",
+			fmt.Sprintf("Could not update database, unexpected error: %+v", helper.GetHttpResponseErrorMessage(httpResponse, err)),
 		)
 		return
 	}
-	tflog.Debug(ctx, fmt.Sprintf("TAGGER projects are %+v", databases))
-
-	for _, database := range databases.Items {
-		state.Databases = append(state.Databases, types.StringValue(database))
+	
+	propertiesModel := &model.DatabasePropertiesResourceModel{}
+	maintenanceModel := &model.MaintenanceModel{
 	}
+
+	if databaseResponseModel.Properties.ArchiveDiskSize != nil {
+		propertiesModel.ArchiveDiskSize = types.StringValue(*databaseResponseModel.Properties.ArchiveDiskSize)
+	}
+
+	if databaseResponseModel.Properties.JournalDiskSize != nil {
+		propertiesModel.JournalDiskSize = types.StringValue(*databaseResponseModel.Properties.JournalDiskSize)
+	}
+
+	if databaseResponseModel.Maintenance.ExpiresIn != nil {
+		maintenanceModel.ExpiresIn =  types.StringValue(*databaseResponseModel.Maintenance.ExpiresIn)
+	}
+
+	if databaseResponseModel.Maintenance.IsDisabled != nil {
+		maintenanceModel.IsDisabled =  types.BoolValue(*databaseResponseModel.Maintenance.IsDisabled)
+	}
+
+	var databaseResp = model.DatabaseDataSourceModel{
+		Organization: types.StringValue(*databaseResponseModel.Organization),
+		Name: types.StringValue(*databaseResponseModel.Name),
+		Tier: types.StringValue(*databaseResponseModel.Tier),
+		ResourceVersion: types.StringValue(*databaseResponseModel.ResourceVersion),
+		Project: types.StringValue(*databaseResponseModel.Project),
+		Properties: propertiesModel,
+		Maintenance: maintenanceModel,
+	}
+
+	state.Database = &databaseResp
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 
@@ -87,7 +185,7 @@ func (d *databaseDataSource) Configure(_ context.Context, req datasource.Configu
 		return
 	}
 
-	client, ok := req.ProviderData.(*openapi.APIClient)
+	client, ok := req.ProviderData.(*nuodbaas.APIClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(

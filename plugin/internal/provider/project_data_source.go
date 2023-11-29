@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"terraform-provider-nuodbaas/helper"
 
-	openapi "github.com/GIT_USER_ID/GIT_REPO_ID"
+	nuodbaas "github.com/GIT_USER_ID/GIT_REPO_ID"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -19,12 +20,16 @@ func NewProjectDataSource() datasource.DataSource {
 }
 
 type projectDataSource struct {
-	client *openapi.APIClient
+	client *nuodbaas.APIClient
 }
 
 type projectsModel struct {
-	Organization types.String   `tfsdk:"organization"`
+	Filter		 types.Object     `tfsdk:"filter"`
 	Projects     []types.String   `tfsdk:"projects"`
+}
+
+type projectFilterModel struct {
+	Organization types.String     `tfsdk:"organization"`
 }
 
 // Schema implements datasource.DataSource.
@@ -35,9 +40,14 @@ func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaReque
 				Computed: true,
 				ElementType: types.StringType,
 			},
-			"organization" : schema.StringAttribute{
+			"filter" : schema.SingleNestedAttribute{
 				Required: true,
-			},
+				Attributes: map[string]schema.Attribute{
+					"organization" : schema.StringAttribute{
+						Required: true,
+					},
+				},
+			}, 
 		},
 	}
 }
@@ -56,7 +66,16 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	projects, httpResponse, err := d.client.ProjectsAPI.GetProjects(ctx, state.Organization.ValueString()).Execute()
+	var filter projectFilterModel
+
+	resp.Diagnostics.Append(state.Filter.As(ctx, &filter, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	projects, httpResponse, err := d.client.ProjectsAPI.GetProjects(ctx, filter.Organization.ValueString()).Execute()
+	
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error getting projects",
@@ -84,7 +103,7 @@ func (d *projectDataSource) Configure(_ context.Context, req datasource.Configur
 		return
 	}
 
-	client, ok := req.ProviderData.(*openapi.APIClient)
+	client, ok := req.ProviderData.(*nuodbaas.APIClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -96,4 +115,3 @@ func (d *projectDataSource) Configure(_ context.Context, req datasource.Configur
 
 	d.client = client
 }
-

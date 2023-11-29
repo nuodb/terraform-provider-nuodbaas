@@ -12,7 +12,7 @@ import (
 	"terraform-provider-nuodbaas/internal/model"
 	"time"
 
-	openapi "github.com/GIT_USER_ID/GIT_REPO_ID"
+	nuodbaas "github.com/GIT_USER_ID/GIT_REPO_ID"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -35,7 +35,7 @@ func NewDatabaseResource() resource.Resource {
 
 // DatabaseResource defines the resource implementation.
 type DatabaseResource struct {
-	client *openapi.APIClient
+	client *nuodbaas.APIClient
 }
 
 type databaseResourceModel = model.DatabaseResourceModel
@@ -140,7 +140,7 @@ func (r *DatabaseResource) Configure(ctx context.Context, req resource.Configure
 		return
 	}
 
-	client, ok := req.ProviderData.(*openapi.APIClient)
+	client, ok := req.ProviderData.(*nuodbaas.APIClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -197,7 +197,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	var getDatabaseModel *openapi.DatabaseModel
+	var getDatabaseModel *nuodbaas.DatabaseModel
 	for i := 0;i<15; i++ {
 		databaseModel, httpResponse, err := databaseClient.GetDatabase()
 		getDatabaseModel = databaseModel
