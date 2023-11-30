@@ -2,7 +2,9 @@ package helper
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"terraform-provider-nuodbaas/internal/model"
 )
@@ -28,3 +30,12 @@ func GetHttpResponseErrorMessage(httpResponse *http.Response, err error) string 
 	} 
 	return errorModel.Detail
 }
+
+
+func IsTimeoutError(err error) bool {
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+	  return true
+	}
+   return false
+   }

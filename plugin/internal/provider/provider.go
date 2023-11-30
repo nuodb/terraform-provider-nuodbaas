@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/helper"
 
@@ -183,7 +184,18 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 	configuration.DefaultHeader["Authorization"] = fmt.Sprintf("Basic %s", basicAuth(basicUsername, password))
 	configuration.Servers = serverConfig
 	apiClient := nuodbaas.NewAPIClient(configuration)
-	httpsRes, error := apiClient.HealthzAPI.GetHealth(context.Background()).Execute()
+	ctx, cancel := context.WithTimeout(ctx, time.Second * 30)
+	defer cancel()
+	httpsRes, error := apiClient.HealthzAPI.GetHealth(ctx).Execute()
+
+	if helper.IsTimeoutError(error) {
+		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Unable to connect with %+v", host))
+	}
+
+	if error!=nil {
+		resp.Diagnostics.AddError("Something went wrong", fmt.Sprintf("Something went wrong %s", error.Error()))
+		return
+	}
 	if httpsRes.StatusCode != 403 && httpsRes.StatusCode >= 300 {
 		resp.Diagnostics.AddError(
             "Something went wrong",
