@@ -192,7 +192,7 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Unable to connect with %+v", host))
 	}
 
-	if error!=nil {
+	if httpsRes==nil && error!=nil {
 		resp.Diagnostics.AddError("Something went wrong", fmt.Sprintf("Something went wrong %s", error.Error()))
 		return
 	}
