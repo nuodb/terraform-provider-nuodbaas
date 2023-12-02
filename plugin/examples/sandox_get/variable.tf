@@ -5,15 +5,10 @@ variable "dbaas_credentials" {
     password     = string
   })
 
-  # default = {
-  #   organization = "system"
-  #   username     = "admin"
-  #   password     = "SnwFnWhh9gptfOPR"
-  # }
-
   default = {
     organization = "system"
     username     = "admin"
     password     = "fJ_Mck1RsR"
   }
+  
 }

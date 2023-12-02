@@ -41,7 +41,7 @@ resource "nuodbaas_database" "nuodb" {
   }
 
   properties = {
-    # archive_disk_size = "1Gi"
+    archive_disk_size = "1Gi"
   }
 }
 
