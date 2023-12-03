@@ -9,6 +9,7 @@ Name | Type | Description | Notes
 **Ready** | Pointer to **bool** | Whether the database is ready | [optional] 
 **Shutdown** | Pointer to **bool** | Whether the database has shutdown | [optional] 
 **Message** | Pointer to **string** | Message summarizing the state of the database | [optional] 
+**State** | Pointer to **string** | The state of the database:   * &#x60;Available&#x60; - The database is ready to accept SQL connections   * &#x60;Creating&#x60; - The database is being created and not yet available   * &#x60;Modifying&#x60; - The database is being modified   * &#x60;Stopping&#x60; - Shutdown is in progress for this database   * &#x60;Stopped&#x60; - The database has been stopped   * &#x60;Expired&#x60; - The database has expired   * &#x60;Failed&#x60; - The database has failed to achieve a usable state   * &#x60;Deleting&#x60; - The database has been marked for deletion, which is in progress | [optional] 
 
 ## Methods
 
@@ -153,6 +154,31 @@ SetMessage sets Message field to given value.
 `func (o *DatabaseStatusModel) HasMessage() bool`
 
 HasMessage returns a boolean if a field has been set.
+
+### GetState
+
+`func (o *DatabaseStatusModel) GetState() string`
+
+GetState returns the State field if non-nil, zero value otherwise.
+
+### GetStateOk
+
+`func (o *DatabaseStatusModel) GetStateOk() (*string, bool)`
+
+GetStateOk returns a tuple with the State field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetState
+
+`func (o *DatabaseStatusModel) SetState(v string)`
+
+SetState sets State field to given value.
+
+### HasState
+
+`func (o *DatabaseStatusModel) HasState() bool`
+
+HasState returns a boolean if a field has been set.
 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

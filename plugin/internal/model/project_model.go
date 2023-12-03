@@ -14,3 +14,9 @@ type ProjectResourceModel struct {
 type MaintenanceModel struct {
 	IsDisabled types.Bool   `tfsdk:"is_disabled"`
 }
+
+
+type ProjectDataSourceResponseModel struct {
+	Organization types.String `tfsdk:"organization"`
+	Name		 types.String `tfsdk:"name"`	
+}

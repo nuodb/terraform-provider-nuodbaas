@@ -3,7 +3,7 @@ NuoDB Control Plane REST API
 
 NuoDB Control Plane (CP) allows users to create and manage NuoDB databases remotely using a Database as a Service (DBaaS) model.
 
-API version: 2.2.0
+API version: 2.3.0
 Contact: NuoDB.Support@3ds.com
 */
 
@@ -28,6 +28,7 @@ type ProjectModel struct {
 	// The service tier for the project
 	Tier string `json:"tier"`
 	Maintenance *MaintenanceModel `json:"maintenance,omitempty"`
+	Properties *ProjectPropertiesModel `json:"properties,omitempty"`
 	// The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.
 	ResourceVersion *string `json:"resourceVersion,omitempty"`
 	Status *ProjectStatusModel `json:"status,omitempty"`
@@ -198,6 +199,38 @@ func (o *ProjectModel) SetMaintenance(v MaintenanceModel) {
 	o.Maintenance = &v
 }
 
+// GetProperties returns the Properties field value if set, zero value otherwise.
+func (o *ProjectModel) GetProperties() ProjectPropertiesModel {
+	if o == nil || IsNil(o.Properties) {
+		var ret ProjectPropertiesModel
+		return ret
+	}
+	return *o.Properties
+}
+
+// GetPropertiesOk returns a tuple with the Properties field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ProjectModel) GetPropertiesOk() (*ProjectPropertiesModel, bool) {
+	if o == nil || IsNil(o.Properties) {
+		return nil, false
+	}
+	return o.Properties, true
+}
+
+// HasProperties returns a boolean if a field has been set.
+func (o *ProjectModel) HasProperties() bool {
+	if o != nil && !IsNil(o.Properties) {
+		return true
+	}
+
+	return false
+}
+
+// SetProperties gets a reference to the given ProjectPropertiesModel and assigns it to the Properties field.
+func (o *ProjectModel) SetProperties(v ProjectPropertiesModel) {
+	o.Properties = &v
+}
+
 // GetResourceVersion returns the ResourceVersion field value if set, zero value otherwise.
 func (o *ProjectModel) GetResourceVersion() string {
 	if o == nil || IsNil(o.ResourceVersion) {
@@ -282,6 +315,9 @@ func (o ProjectModel) ToMap() (map[string]interface{}, error) {
 	toSerialize["tier"] = o.Tier
 	if !IsNil(o.Maintenance) {
 		toSerialize["maintenance"] = o.Maintenance
+	}
+	if !IsNil(o.Properties) {
+		toSerialize["properties"] = o.Properties
 	}
 	if !IsNil(o.ResourceVersion) {
 		toSerialize["resourceVersion"] = o.ResourceVersion

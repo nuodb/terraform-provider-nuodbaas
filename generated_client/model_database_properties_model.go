@@ -3,7 +3,7 @@ NuoDB Control Plane REST API
 
 NuoDB Control Plane (CP) allows users to create and manage NuoDB databases remotely using a Database as a Service (DBaaS) model.
 
-API version: 2.2.0
+API version: 2.3.0
 Contact: NuoDB.Support@3ds.com
 */
 
@@ -24,6 +24,8 @@ type DatabasePropertiesModel struct {
 	ArchiveDiskSize *string `json:"archiveDiskSize,omitempty"`
 	// The size of the journal volumes for the database. Can be only updated to increase the volume size.
 	JournalDiskSize *string `json:"journalDiskSize,omitempty"`
+	// Opaque parameters supplied to database service tier.
+	TierParameters *map[string]string `json:"tierParameters,omitempty"`
 }
 
 // NewDatabasePropertiesModel instantiates a new DatabasePropertiesModel object
@@ -107,6 +109,38 @@ func (o *DatabasePropertiesModel) SetJournalDiskSize(v string) {
 	o.JournalDiskSize = &v
 }
 
+// GetTierParameters returns the TierParameters field value if set, zero value otherwise.
+func (o *DatabasePropertiesModel) GetTierParameters() map[string]string {
+	if o == nil || IsNil(o.TierParameters) {
+		var ret map[string]string
+		return ret
+	}
+	return *o.TierParameters
+}
+
+// GetTierParametersOk returns a tuple with the TierParameters field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *DatabasePropertiesModel) GetTierParametersOk() (*map[string]string, bool) {
+	if o == nil || IsNil(o.TierParameters) {
+		return nil, false
+	}
+	return o.TierParameters, true
+}
+
+// HasTierParameters returns a boolean if a field has been set.
+func (o *DatabasePropertiesModel) HasTierParameters() bool {
+	if o != nil && !IsNil(o.TierParameters) {
+		return true
+	}
+
+	return false
+}
+
+// SetTierParameters gets a reference to the given map[string]string and assigns it to the TierParameters field.
+func (o *DatabasePropertiesModel) SetTierParameters(v map[string]string) {
+	o.TierParameters = &v
+}
+
 func (o DatabasePropertiesModel) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -122,6 +156,9 @@ func (o DatabasePropertiesModel) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.JournalDiskSize) {
 		toSerialize["journalDiskSize"] = o.JournalDiskSize
+	}
+	if !IsNil(o.TierParameters) {
+		toSerialize["tierParameters"] = o.TierParameters
 	}
 	return toSerialize, nil
 }

@@ -3,7 +3,7 @@ NuoDB Control Plane REST API
 
 NuoDB Control Plane (CP) allows users to create and manage NuoDB databases remotely using a Database as a Service (DBaaS) model.
 
-API version: 2.2.0
+API version: 2.3.0
 Contact: NuoDB.Support@3ds.com
 */
 
@@ -42,13 +42,19 @@ var (
 	queryDescape    = strings.NewReplacer( "%5B", "[", "%5D", "]" )
 )
 
-// APIClient manages communication with the NuoDB Control Plane REST API API v2.2.0
+// APIClient manages communication with the NuoDB Control Plane REST API API v2.3.0
 // In most cases there should be only one, shared, APIClient.
 type APIClient struct {
 	cfg    *Configuration
 	common service // Reuse a single struct instead of allocating one for each service on the heap.
 
 	// API Services
+
+	ClusterDatabasequotasAPI *ClusterDatabasequotasAPIService
+
+	ClusterHelmfeaturesAPI *ClusterHelmfeaturesAPIService
+
+	ClusterServicetiersAPI *ClusterServicetiersAPIService
 
 	DatabasesAPI *DatabasesAPIService
 
@@ -75,6 +81,9 @@ func NewAPIClient(cfg *Configuration) *APIClient {
 	c.common.client = c
 
 	// API Services
+	c.ClusterDatabasequotasAPI = (*ClusterDatabasequotasAPIService)(&c.common)
+	c.ClusterHelmfeaturesAPI = (*ClusterHelmfeaturesAPIService)(&c.common)
+	c.ClusterServicetiersAPI = (*ClusterServicetiersAPIService)(&c.common)
 	c.DatabasesAPI = (*DatabasesAPIService)(&c.common)
 	c.HealthzAPI = (*HealthzAPIService)(&c.common)
 	c.ProjectsAPI = (*ProjectsAPIService)(&c.common)

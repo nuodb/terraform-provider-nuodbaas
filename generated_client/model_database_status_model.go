@@ -3,7 +3,7 @@ NuoDB Control Plane REST API
 
 NuoDB Control Plane (CP) allows users to create and manage NuoDB databases remotely using a Database as a Service (DBaaS) model.
 
-API version: 2.2.0
+API version: 2.3.0
 Contact: NuoDB.Support@3ds.com
 */
 
@@ -30,6 +30,8 @@ type DatabaseStatusModel struct {
 	Shutdown *bool `json:"shutdown,omitempty"`
 	// Message summarizing the state of the database
 	Message *string `json:"message,omitempty"`
+	// The state of the database:   * `Available` - The database is ready to accept SQL connections   * `Creating` - The database is being created and not yet available   * `Modifying` - The database is being modified   * `Stopping` - Shutdown is in progress for this database   * `Stopped` - The database has been stopped   * `Expired` - The database has expired   * `Failed` - The database has failed to achieve a usable state   * `Deleting` - The database has been marked for deletion, which is in progress
+	State *string `json:"state,omitempty"`
 }
 
 // NewDatabaseStatusModel instantiates a new DatabaseStatusModel object
@@ -209,6 +211,38 @@ func (o *DatabaseStatusModel) SetMessage(v string) {
 	o.Message = &v
 }
 
+// GetState returns the State field value if set, zero value otherwise.
+func (o *DatabaseStatusModel) GetState() string {
+	if o == nil || IsNil(o.State) {
+		var ret string
+		return ret
+	}
+	return *o.State
+}
+
+// GetStateOk returns a tuple with the State field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *DatabaseStatusModel) GetStateOk() (*string, bool) {
+	if o == nil || IsNil(o.State) {
+		return nil, false
+	}
+	return o.State, true
+}
+
+// HasState returns a boolean if a field has been set.
+func (o *DatabaseStatusModel) HasState() bool {
+	if o != nil && !IsNil(o.State) {
+		return true
+	}
+
+	return false
+}
+
+// SetState gets a reference to the given string and assigns it to the State field.
+func (o *DatabaseStatusModel) SetState(v string) {
+	o.State = &v
+}
+
 func (o DatabaseStatusModel) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -233,6 +267,9 @@ func (o DatabaseStatusModel) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.Message) {
 		toSerialize["message"] = o.Message
+	}
+	if !IsNil(o.State) {
+		toSerialize["state"] = o.State
 	}
 	return toSerialize, nil
 }

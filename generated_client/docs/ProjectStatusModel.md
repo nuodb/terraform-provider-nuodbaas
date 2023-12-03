@@ -8,6 +8,7 @@ Name | Type | Description | Notes
 **Ready** | Pointer to **bool** | Whether the project is ready | [optional] 
 **Shutdown** | Pointer to **bool** | Whether the project and all of its databases have shutdown | [optional] 
 **Message** | Pointer to **string** | Message summarizing the state of the project | [optional] 
+**State** | Pointer to **string** | The state of the project:   * &#x60;Available&#x60; - The project is available   * &#x60;Creating&#x60; - The project is being created and not yet available   * &#x60;Modifying&#x60; - The project is being modified   * &#x60;Stopping&#x60; - Shutdown is in progress for this project   * &#x60;Stopped&#x60; - The project and its databases have been stopped   * &#x60;Expired&#x60; - The project and its databases have expired   * &#x60;Failed&#x60; - The project has failed to achieve a usable state   * &#x60;Deleting&#x60; - The project has been marked for deletion, which is in progress | [optional] 
 
 ## Methods
 
@@ -127,6 +128,31 @@ SetMessage sets Message field to given value.
 `func (o *ProjectStatusModel) HasMessage() bool`
 
 HasMessage returns a boolean if a field has been set.
+
+### GetState
+
+`func (o *ProjectStatusModel) GetState() string`
+
+GetState returns the State field if non-nil, zero value otherwise.
+
+### GetStateOk
+
+`func (o *ProjectStatusModel) GetStateOk() (*string, bool)`
+
+GetStateOk returns a tuple with the State field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetState
+
+`func (o *ProjectStatusModel) SetState(v string)`
+
+SetState sets State field to given value.
+
+### HasState
+
+`func (o *ProjectStatusModel) HasState() bool`
+
+HasState returns a boolean if a field has been set.
 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

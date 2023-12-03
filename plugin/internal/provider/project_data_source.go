@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"terraform-provider-nuodbaas/helper"
+	nuodbaas_client "terraform-provider-nuodbaas/internal/client"
+	"terraform-provider-nuodbaas/internal/model"
 
 	nuodbaas "github.com/GIT_USER_ID/GIT_REPO_ID"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -24,8 +25,8 @@ type projectDataSource struct {
 }
 
 type projectsModel struct {
-	Filter		 types.Object     `tfsdk:"filter"`
-	Projects     []types.String   `tfsdk:"projects"`
+	Filter		 *projectFilterModel     				 `tfsdk:"filter"`
+	Projects     []model.ProjectDataSourceResponseModel  `tfsdk:"projects"`
 }
 
 type projectFilterModel struct {
@@ -36,15 +37,25 @@ type projectFilterModel struct {
 func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"projects": schema.ListAttribute{
+			"projects": schema.ListNestedAttribute{
 				Computed: true,
-				ElementType: types.StringType,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes : map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Computed: true,
+						},
+						"organization": schema.StringAttribute{
+							Computed: true,
+						},
+					},
+
+				},
 			},
 			"filter" : schema.SingleNestedAttribute{
-				Required: true,
+				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"organization" : schema.StringAttribute{
-						Required: true,
+						Optional: true,
 					},
 				},
 			}, 
@@ -66,15 +77,25 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	var filter projectFilterModel
+	filter := state.Filter
 
-	resp.Diagnostics.Append(state.Filter.As(ctx, &filter, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
+	// resp.Diagnostics.Append(state.Filter.As(ctx, &filter, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	projects, httpResponse, err := d.client.ProjectsAPI.GetProjects(ctx, filter.Organization.ValueString()).Execute()
+	var organization = ""
+
+	if filter != nil && !filter.Organization.IsNull() {
+		organization = filter.Organization.ValueString()
+	}
+
+	projectClient := nuodbaas_client.NewProjectClient(d.client,ctx,organization,"")
+
+	projects, httpResponse, err := projectClient.GetProjects()
+
+	projectDataSourceResponseList := helper.GetProjectDataSourceResponse(projects)
 	
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -85,9 +106,11 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	}
 	tflog.Debug(ctx, fmt.Sprintf("TAGGER projects are %+v", projects))
 
-	for _, project := range projects.Items {
-		state.Projects = append(state.Projects, types.StringValue(project))
-	}
+	// for _, project := range projects.Items {
+	// 	state.Projects = append(state.Projects, types.StringValue(project))
+	// }
+
+	state.Projects = projectDataSourceResponseList
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 

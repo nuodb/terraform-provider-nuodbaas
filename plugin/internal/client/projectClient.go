@@ -3,6 +3,7 @@ package nuodbaas_client
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
@@ -48,6 +49,25 @@ func (client *nuodbaasProjectClient) UpdateProject(projectResourceModel model.Pr
 func (client *nuodbaasProjectClient) GetProject() (*nuodbaas.ProjectModel, *http.Response, error) {
 	apiGetRequestObject := client.client.ProjectsAPI.GetProject(client.ctx, client.org, client.projectName)
 	return client.client.ProjectsAPI.GetProjectExecute(apiGetRequestObject)
+}
+
+func (client *nuodbaasProjectClient) GetProjects() (*nuodbaas.ItemListString, *http.Response, error) {
+	itemList, response, err := client.client.ProjectsAPI.GetProjects(client.ctx, client.org).Execute()
+	if err != nil {
+		return nil, response, err
+	}
+	newListItems := make([]string, 0)
+	if len(client.org) > 0 {
+		for _, item := range itemList.GetItems() {
+			newListItems = append(newListItems, fmt.Sprintf("%s/%s", client.org, item))
+		}
+	}
+	if len(newListItems) > 0 {
+		itemList.SetItems(newListItems)
+	}
+
+	return itemList, response, err
+
 }
 
 func (client *nuodbaasProjectClient) DeleteProject() (*http.Response, error) {

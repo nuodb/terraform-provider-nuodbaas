@@ -1,11 +1,12 @@
 # \UsersAPI
 
-All URIs are relative to *https://example.nuodb.com*
+All URIs are relative to *http://}*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**CreateUser**](UsersAPI.md#CreateUser) | **Put** /users/{organization}/{user} | Create or update a user
 [**DeleteUser**](UsersAPI.md#DeleteUser) | **Delete** /users/{organization}/{user} | Delete an existing user
+[**GetAllUsers**](UsersAPI.md#GetAllUsers) | **Get** /users | List the users in the cluster
 [**GetUser**](UsersAPI.md#GetUser) | **Get** /users/{organization}/{user} | Get an existing user
 [**GetUsers**](UsersAPI.md#GetUsers) | **Get** /users/{organization} | List the users in an organization
 [**PatchUser**](UsersAPI.md#PatchUser) | **Patch** /users/{organization}/{user} | Update an existing user
@@ -87,7 +88,7 @@ Name | Type | Description  | Notes
 
 ## DeleteUser
 
-> DeleteUser(ctx, organization, user).Execute()
+> DeleteUser(ctx, organization, user).TimeoutSeconds(timeoutSeconds).Execute()
 
 Delete an existing user
 
@@ -106,10 +107,11 @@ import (
 func main() {
     organization := "organization_example" // string | 
     user := "user_example" // string | 
+    timeoutSeconds := int32(56) // int32 | The number of seconds to wait for the deletion to be finalized, unless 0 is specified which indicates not to wait (optional) (default to 0)
 
     configuration := openapiclient.NewConfiguration()
     apiClient := openapiclient.NewAPIClient(configuration)
-    r, err := apiClient.UsersAPI.DeleteUser(context.Background(), organization, user).Execute()
+    r, err := apiClient.UsersAPI.DeleteUser(context.Background(), organization, user).TimeoutSeconds(timeoutSeconds).Execute()
     if err != nil {
         fmt.Fprintf(os.Stderr, "Error when calling `UsersAPI.DeleteUser``: %v\n", err)
         fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
@@ -135,10 +137,75 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
 
 
+ **timeoutSeconds** | **int32** | The number of seconds to wait for the deletion to be finalized, unless 0 is specified which indicates not to wait | [default to 0]
 
 ### Return type
 
  (empty response body)
+
+### Authorization
+
+[basicAuth](../README.md#basicAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
+## GetAllUsers
+
+> ItemListString GetAllUsers(ctx).ListAccessible(listAccessible).Execute()
+
+List the users in the cluster
+
+### Example
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "os"
+    openapiclient "github.com/GIT_USER_ID/GIT_REPO_ID"
+)
+
+func main() {
+    listAccessible := true // bool | Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level (optional) (default to false)
+
+    configuration := openapiclient.NewConfiguration()
+    apiClient := openapiclient.NewAPIClient(configuration)
+    resp, r, err := apiClient.UsersAPI.GetAllUsers(context.Background()).ListAccessible(listAccessible).Execute()
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Error when calling `UsersAPI.GetAllUsers``: %v\n", err)
+        fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+    }
+    // response from `GetAllUsers`: ItemListString
+    fmt.Fprintf(os.Stdout, "Response from `UsersAPI.GetAllUsers`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiGetAllUsersRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **listAccessible** | **bool** | Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level | [default to false]
+
+### Return type
+
+[**ItemListString**](ItemListString.md)
 
 ### Authorization
 
@@ -227,7 +294,7 @@ Name | Type | Description  | Notes
 
 ## GetUsers
 
-> ItemListString GetUsers(ctx, organization).Execute()
+> ItemListString GetUsers(ctx, organization).ListAccessible(listAccessible).Execute()
 
 List the users in an organization
 
@@ -245,10 +312,11 @@ import (
 
 func main() {
     organization := "organization_example" // string | 
+    listAccessible := true // bool | Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level (optional) (default to false)
 
     configuration := openapiclient.NewConfiguration()
     apiClient := openapiclient.NewAPIClient(configuration)
-    resp, r, err := apiClient.UsersAPI.GetUsers(context.Background(), organization).Execute()
+    resp, r, err := apiClient.UsersAPI.GetUsers(context.Background(), organization).ListAccessible(listAccessible).Execute()
     if err != nil {
         fmt.Fprintf(os.Stderr, "Error when calling `UsersAPI.GetUsers``: %v\n", err)
         fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
@@ -274,6 +342,7 @@ Other parameters are passed through a pointer to a apiGetUsersRequest struct via
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
 
+ **listAccessible** | **bool** | Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level | [default to false]
 
 ### Return type
 

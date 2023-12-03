@@ -1,6 +1,6 @@
 # \HealthzAPI
 
-All URIs are relative to *https://example.nuodb.com*
+All URIs are relative to *http://}*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
