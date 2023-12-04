@@ -49,16 +49,16 @@ output "projectsList" {
   value = data.nuodbaas_projects.projectsList
 }
 
-# data "nuodbaas_databases" "databaseList" {
-#   filter = {
-#     organization = var.dbaas_credentials.organization
-#     project      = nuodbaas_project.nuodb.name
-#   }
-# }
+data "nuodbaas_databases" "databaseList" {
+  filter = {
+    organization = var.dbaas_credentials.organization
+    project      = "nuodb"
+  }
+}
 
-# output "databaseList" {
-#   value = data.nuodbaas_databases.databaseList
-# }
+output "databaseList" {
+  value = data.nuodbaas_databases.databaseList
+}
 
 # data "nuodbaas_database" "databaseDetail" {
 #   depends_on = []

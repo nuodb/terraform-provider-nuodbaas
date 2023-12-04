@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"terraform-provider-nuodbaas/helper"
+	nuodbaas_client "terraform-provider-nuodbaas/internal/client"
+	"terraform-provider-nuodbaas/internal/model"
 
 	nuodbaas "github.com/GIT_USER_ID/GIT_REPO_ID"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 var _ datasource.DataSourceWithConfigure = &databasesDataSource{}
@@ -23,8 +23,8 @@ type databasesDataSource struct {
 }
 
 type databasesModel struct {
-	Filter		types.Object   `tfsdk:"filter"`
-	Databases   []types.String  `tfsdk:"databases"`
+	Filter		*databaseFilterModel   `tfsdk:"filter"`
+	Databases   []model.DatabasesDataSourceResponseModel  `tfsdk:"databases"`
 }
 
 // Schema implements datasource.DataSource.
@@ -32,19 +32,32 @@ func (d *databasesDataSource) Schema(_ context.Context, req datasource.SchemaReq
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"filter" : schema.SingleNestedAttribute{
-				Required: true,
+				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"organization" : schema.StringAttribute{
-						Required: true,
+						Optional: true,
 					},
 					"project" : schema.StringAttribute{
-						Required: true,
+						Optional: true,
 					},
 				},
 			},
-			"databases": schema.ListAttribute{
-				ElementType: types.StringType,
-				Optional: true,
+			"databases": schema.ListNestedAttribute{
+				Computed: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes : map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Computed: true,
+						},
+						"organization": schema.StringAttribute{
+							Computed: true,
+						},
+						"project": schema.StringAttribute{
+							Computed: true,
+						},
+					},
+
+				},
 			},
 		},
 	}
@@ -64,15 +77,30 @@ func (d *databasesDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	var filterModel databaseFilterModel
+	var (
+		organization = ""
+		project = ""
+	)
 
-	resp.Diagnostics.Append(state.Filter.As(ctx, &filterModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-
-	if resp.Diagnostics.HasError() {
+	if state.Filter != nil && state.Filter.Organization.IsNull() && !state.Filter.Project.IsNull() {
+		resp.Diagnostics.AddError(
+			"Organization Missing",
+			"Organization is required with project name to get databases",
+		)
 		return
 	}
 
-	databases, httpResponse, err := d.client.DatabasesAPI.GetDatabases(ctx, filterModel.Organization.ValueString(), filterModel.Project.ValueString()).Execute()
+	if state.Filter != nil && !state.Filter.Organization.IsNull() {
+		organization = state.Filter.Organization.ValueString()
+	}
+
+	if state.Filter != nil && !state.Filter.Project.IsNull() {
+		project = state.Filter.Project.ValueString()
+	}
+
+	databaseClient := nuodbaas_client.NewDatabaseClient(d.client,ctx, organization, project, "")
+
+	databases, httpResponse, err := databaseClient.GetDatabases()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error getting databases",
@@ -82,9 +110,7 @@ func (d *databasesDataSource) Read(ctx context.Context, req datasource.ReadReque
 	}
 	// tflog.Debug(ctx, fmt.Sprintf("TAGGER projects are %+v", databases))
 
-	for _, database := range databases.Items {
-		state.Databases = append(state.Databases, types.StringValue(database))
-	}
+	state.Databases = helper.GetDatabaseDataSourceResponse(databases)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 

@@ -20,3 +20,17 @@ func GetProjectDataSourceResponse(list *nuodbaas.ItemListString) []model.Project
 	}
 	return projectDataSourceList
 }
+
+func GetDatabaseDataSourceResponse(list *nuodbaas.ItemListString) []model.DatabasesDataSourceResponseModel {
+	var databaseDataSourceList []model.DatabasesDataSourceResponseModel
+
+	for _, item := range list.GetItems() {
+		splitArr := strings.Split(item, "/")
+		databaseDataSourceList = append(databaseDataSourceList, model.DatabasesDataSourceResponseModel{
+			Organization: types.StringValue(splitArr[0]),
+			Project:         types.StringValue(splitArr[1]),
+			Name:		types.StringValue(splitArr[2]),
+		})
+	}
+	return databaseDataSourceList
+}

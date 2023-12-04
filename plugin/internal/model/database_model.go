@@ -40,3 +40,9 @@ type DatabaseDataSourceModel struct {
 	ResourceVersion types.String 						`tfsdk:"resource_version"`
 	Maintenance     *MaintenanceModel 					`tfsdk:"maintenance"`
 }
+
+type DatabasesDataSourceResponseModel struct {
+	Organization types.String `tfsdk:"organization"`
+	Project      types.String `tfsdk:"project"`
+	Name		 types.String `tfsdk:"name"`	
+}

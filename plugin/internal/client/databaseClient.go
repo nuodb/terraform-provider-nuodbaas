@@ -3,6 +3,7 @@ package nuodbaas_client
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"terraform-provider-nuodbaas/internal/model"
 
@@ -67,6 +68,40 @@ func (client *nuodbaasDatabaseClient) GetDatabase() (*openapi.DatabaseModel, *ht
 
 func (client *nuodbaasDatabaseClient) DeleteDatabase() (*http.Response, error) {
 	return client.client.ProjectsAPI.DeleteProject(client.ctx, client.org, client.projectName).Execute()
+}
+
+func (client *nuodbaasDatabaseClient) GetDatabases() (*openapi.ItemListString, *http.Response, error) {
+	var (
+		itemList *openapi.ItemListString
+		httpResponse *http.Response
+		err error
+	)
+	if len(client.org) == 0 && len(client.projectName) == 0 {
+		itemList, httpResponse, err = client.client.DatabasesAPI.GetAllDatabases(client.ctx).Execute()
+	} else {
+		itemList, httpResponse, err = client.client.DatabasesAPI.GetDatabases(client.ctx, client.org, client.projectName).Execute()
+	}
+
+	if err != nil {
+		return nil, httpResponse, err
+	}
+
+	newListItems := itemList.Items
+	if len(client.projectName) > 0 {
+		for index, item := range itemList.GetItems() {
+			newListItems[index] =  fmt.Sprintf("%s/%s", client.projectName, item)
+		}
+	}
+
+	if len(client.org) > 0 {
+		for index, item := range itemList.GetItems() {
+			newListItems[index] =  fmt.Sprintf("%s/%s", client.org, item)
+		}
+	}
+
+	itemList.SetItems(newListItems)
+	return itemList, httpResponse, err
+	
 }
 
 func NewDatabaseClient(client *openapi.APIClient, ctx context.Context, org string, projectName string, databaseName string) *nuodbaasDatabaseClient {
