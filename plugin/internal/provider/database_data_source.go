@@ -26,11 +26,6 @@ type databaseDataSource struct {
 
 type databaseModel = model.DatabaseDataSourceModel
 
-type databaseFilterModel struct {
-	Organization 	types.String   	`tfsdk:"organization"`
-	Project      	types.String	`tfsdk:"project"`
-}
-
 // Schema implements datasource.DataSource.
 func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
@@ -81,6 +76,19 @@ func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 					},
 				},
 			},
+			"status": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"sql_end_point": schema.StringAttribute{
+						MarkdownDescription: "The endpoint for SQL clients to connect to",
+						Optional: true,
+					},
+					"ca_pem": schema.StringAttribute{
+						MarkdownDescription: "The PEM-encoded certificate for SQL clients to verify database servers",
+						Optional: true,
+					},
+				},
+			},
 		},
 	}
 }
@@ -109,24 +117,6 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 	
-	propertiesModel := &model.DatabasePropertiesResourceModel{}
-	maintenanceModel := &model.MaintenanceModel{}
-
-	if databaseResponseModel.Properties.ArchiveDiskSize != nil {
-		propertiesModel.ArchiveDiskSize = types.StringValue(*databaseResponseModel.Properties.ArchiveDiskSize)
-	}
-
-	if databaseResponseModel.Properties.JournalDiskSize != nil {
-		propertiesModel.JournalDiskSize = types.StringValue(*databaseResponseModel.Properties.JournalDiskSize)
-	}
-
-	if databaseResponseModel.Maintenance.ExpiresIn != nil {
-		maintenanceModel.ExpiresIn =  types.StringValue(*databaseResponseModel.Maintenance.ExpiresIn)
-	}
-
-	if databaseResponseModel.Maintenance.IsDisabled != nil {
-		maintenanceModel.IsDisabled =  types.BoolValue(*databaseResponseModel.Maintenance.IsDisabled)
-	}
 
 	var databaseResp = model.DatabaseDataSourceModel{
 		Organization: types.StringValue(*databaseResponseModel.Organization),
@@ -134,8 +124,40 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 		Tier: types.StringValue(*databaseResponseModel.Tier),
 		ResourceVersion: types.StringValue(*databaseResponseModel.ResourceVersion),
 		Project: types.StringValue(*databaseResponseModel.Project),
-		Properties: propertiesModel,
-		Maintenance: maintenanceModel,
+	}
+
+	if databaseResponseModel.Properties != nil {
+		propertiesModel := &model.DatabasePropertiesResourceModel{}
+		if databaseResponseModel.Properties.ArchiveDiskSize != nil {
+			propertiesModel.ArchiveDiskSize = types.StringValue(*databaseResponseModel.Properties.ArchiveDiskSize)
+		}
+		if databaseResponseModel.Properties.JournalDiskSize != nil {
+			propertiesModel.JournalDiskSize = types.StringValue(*databaseResponseModel.Properties.JournalDiskSize)
+		}
+		databaseResp.Properties = propertiesModel
+	}
+
+	if databaseResponseModel.Maintenance != nil {
+		maintenanceModel := &model.MaintenanceModel{}
+		if databaseResponseModel.Maintenance.ExpiresIn != nil {
+			maintenanceModel.ExpiresIn =  types.StringValue(*databaseResponseModel.Maintenance.ExpiresIn)
+		}
+		if databaseResponseModel.Maintenance.IsDisabled != nil {
+			maintenanceModel.IsDisabled =  types.BoolValue(*databaseResponseModel.Maintenance.IsDisabled)
+		}
+		databaseResp.Maintenance = maintenanceModel
+
+	}
+
+	if databaseResponseModel.Status != nil {
+		statusModel := &model.StatusModel{}
+		if databaseResponseModel.Status.SqlEndpoint != nil {
+			statusModel.SqlEndPoint = types.StringValue(*databaseResponseModel.Status.SqlEndpoint)
+		}
+		if databaseResponseModel.Status.CaPem != nil {
+			statusModel.CaPem = types.StringValue(*databaseResponseModel.Status.CaPem)
+		}
+		databaseResp.Status = statusModel
 	}
 
 	state = databaseResp

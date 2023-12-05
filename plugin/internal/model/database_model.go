@@ -39,10 +39,16 @@ type DatabaseDataSourceModel struct {
 	Properties      *DatabasePropertiesResourceModel	`tfsdk:"properties"`
 	ResourceVersion types.String 						`tfsdk:"resource_version"`
 	Maintenance     *MaintenanceModel 					`tfsdk:"maintenance"`
+	Status			*StatusModel                        `tfsdk:"status"`	
 }
 
 type DatabasesDataSourceResponseModel struct {
 	Organization types.String `tfsdk:"organization"`
 	Project      types.String `tfsdk:"project"`
 	Name		 types.String `tfsdk:"name"`	
+}
+
+type StatusModel struct {
+	SqlEndPoint 	types.String 	`tfsdk:"sql_end_point"`
+	CaPem			types.String    `tfsdk:"ca_pem"`
 }

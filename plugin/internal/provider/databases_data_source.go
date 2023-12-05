@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
@@ -23,6 +24,11 @@ func NewDatabasesDataSource() datasource.DataSource {
 
 type databasesDataSource struct {
 	client *nuodbaas.APIClient
+}
+
+type databaseFilterModel struct {
+	Organization 	types.String   	`tfsdk:"organization"`
+	Project      	types.String	`tfsdk:"project"`
 }
 
 type databasesModel struct {

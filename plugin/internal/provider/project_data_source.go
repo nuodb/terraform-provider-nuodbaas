@@ -88,12 +88,6 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	// resp.Diagnostics.Append(state.Filter.As(ctx, &filter, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	projectClient := nuodbaas_client.NewProjectClient(d.client,ctx,state.Organization.ValueString(),state.Name.ValueString())
 
 	project, httpResponse, err := projectClient.GetProject()
@@ -106,23 +100,24 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	maintenanceModel := model.MaintenanceModel{}
-
-	if project.Maintenance.ExpiresIn != nil {
-		maintenanceModel.ExpiresIn = types.StringValue(*project.Maintenance.ExpiresIn)
-	}
-
-	if project.Maintenance.IsDisabled != nil {
-		maintenanceModel.IsDisabled = types.BoolValue(*project.Maintenance.IsDisabled)
-	}
-
 	projectStateModel := model.ProjectResourceModel{
 		Organization: types.StringValue(*project.Organization),
 		Name: types.StringValue(*project.Name),
 		Sla: types.StringValue(project.Sla),
 		Tier: types.StringValue(project.Tier),
 		ResourceVersion: types.StringValue(*project.ResourceVersion),
-		Maintenance: &maintenanceModel,
+	}
+
+	if project.Maintenance != nil {
+		maintenanceModel := model.MaintenanceModel{}
+		if project.Maintenance.ExpiresIn != nil {
+			maintenanceModel.ExpiresIn = types.StringValue(*project.Maintenance.ExpiresIn)
+		}
+	
+		if project.Maintenance.IsDisabled != nil {
+			maintenanceModel.IsDisabled = types.BoolValue(*project.Maintenance.IsDisabled)
+		}
+		projectStateModel.Maintenance = &maintenanceModel
 	}
 
 	state = projectStateModel
