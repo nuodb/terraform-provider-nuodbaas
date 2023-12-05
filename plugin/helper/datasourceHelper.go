@@ -2,10 +2,11 @@ package helper
 
 import (
 	"strings"
-	"terraform-provider-nuodbaas/internal/model"
 
-	nuodbaas "github.com/GIT_USER_ID/GIT_REPO_ID"
+	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 func GetProjectDataSourceResponse(list *nuodbaas.ItemListString) []model.ProjectDataSourceResponseModel {

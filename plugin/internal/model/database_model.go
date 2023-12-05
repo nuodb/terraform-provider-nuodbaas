@@ -6,15 +6,15 @@ import (
 )
 
 type DatabaseResourceModel struct {
-	Organization    types.String 	`tfsdk:"organization"`
-	Name            types.String 	`tfsdk:"name"`
-	Project         types.String 	`tfsdk:"project"`
-	Password        types.String 	`tfsdk:"dba_password"`
-	Tier            types.String 	`tfsdk:"tier"`
-	Properties      types.Object 	`tfsdk:"properties"`
-	ResourceVersion types.String 	`tfsdk:"resource_version"`
-	Maintenance     types.Object 	`tfsdk:"maintenance"`
-	Timeouts		timeouts.Value 	`tfsdk:"timeouts"`
+	Organization    types.String 						`tfsdk:"organization"`
+	Name            types.String 						`tfsdk:"name"`
+	Project         types.String 						`tfsdk:"project"`
+	Password        types.String 						`tfsdk:"dba_password"`
+	Tier            types.String 						`tfsdk:"tier"`
+	Properties      *DatabasePropertiesResourceModel 	`tfsdk:"properties"`
+	ResourceVersion types.String 						`tfsdk:"resource_version"`
+	Maintenance     types.Object 						`tfsdk:"maintenance"`
+	Timeouts		timeouts.Value 						`tfsdk:"timeouts"`
 }
 
 type DatabasePropertiesResourceModel struct {

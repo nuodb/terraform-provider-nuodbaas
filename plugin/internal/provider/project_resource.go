@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/helper"
+
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
 
 	nuodbaas_client "github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/client"
@@ -18,14 +20,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var (
-	_ resource.Resource = &ProjectResource{}
-	_ resource.ResourceWithImportState = &ProjectResource{}
 )
 
 func NewProjectResource() resource.Resource {
@@ -90,6 +89,15 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
                     stringplanmodifier.UseStateForUnknown(),
                 },
 			},
+			"properties": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"tier_parameters": schema.MapAttribute{
+						Optional: true,
+						ElementType: types.StringType,
+					},
+				},
+			},
 		},
 	}
 }
@@ -123,13 +131,8 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	var maintenanceModel maintenanceModel
-	resp.Diagnostics.Append(state.Maintenance.As(ctx, &maintenanceModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 	projectClient := nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString())
-	_, err := projectClient.CreateProject(state, maintenanceModel)
+	_, err := projectClient.CreateProject(state, *state.Maintenance)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -195,15 +198,9 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	var maintenanceModel maintenanceModel
-	resp.Diagnostics.Append(data.Maintenance.As(ctx, &maintenanceModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 	
 	projectClient := nuodbaas_client.NewProjectClient(r.client, ctx, data.Organization.ValueString(), data.Name.ValueString())
-	_, err := projectClient.UpdateProject(data, maintenanceModel)
+	_, err := projectClient.UpdateProject(data, *data.Maintenance)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -231,12 +228,12 @@ func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	_, err :=  nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString()).DeleteProject()
+	httpResponse, err :=  nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString()).DeleteProject()
 
 	if err!=nil {
 		resp.Diagnostics.AddError("Error deleting project", 
 			fmt.Sprintf("Unable to delete project %s, unexpected error: %v", 
-			state.Name.ValueString(), err.Error()))
+			state.Name.ValueString(), helper.GetHttpResponseErrorMessage(httpResponse, err)))
 		return
 	}
 }

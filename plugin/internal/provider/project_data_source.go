@@ -3,15 +3,18 @@ package provider
 import (
 	"context"
 	"fmt"
-	"terraform-provider-nuodbaas/helper"
-	nuodbaas_client "terraform-provider-nuodbaas/internal/client"
-	"terraform-provider-nuodbaas/internal/model"
 
-	nuodbaas "github.com/GIT_USER_ID/GIT_REPO_ID"
+	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/helper"
+
+	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
+
+	nuodbaas_client "github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/client"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 var _ datasource.DataSourceWithConfigure = &projectDataSource{}
@@ -51,14 +54,15 @@ func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaReque
 
 				},
 			},
-			"filter" : schema.SingleNestedAttribute{
-				Optional: true,
-				Attributes: map[string]schema.Attribute{
+		},
+		Blocks: map[string]schema.Block{
+			"filter" : schema.SingleNestedBlock{
+				Attributes:  map[string]schema.Attribute{
 					"organization" : schema.StringAttribute{
 						Optional: true,
 					},
 				},
-			}, 
+			},
 		},
 	}
 }

@@ -7,14 +7,15 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"terraform-provider-nuodbaas/helper"
-	nuodbaas_client "terraform-provider-nuodbaas/internal/client"
-	"terraform-provider-nuodbaas/internal/model"
 	"time"
 
-	nuodbaas "github.com/GIT_USER_ID/GIT_REPO_ID"
+	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/helper"
+
+	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
+
+	nuodbaas_client "github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/client"
+
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -22,6 +23,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -41,11 +44,6 @@ type DatabaseResource struct {
 type databaseResourceModel = model.DatabaseResourceModel
 
 type propertiesResourceModel = model.DatabasePropertiesResourceModel
-
-var propertiesType = map[string]attr.Type{
-	"archive_disk_size" : types.StringType,
-	"journal_disk_size" : types.StringType,
-}
 
 func (r *DatabaseResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_database"
@@ -112,7 +110,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
                 },
 			},
 			"properties": schema.SingleNestedAttribute{
-				Required: true,
+				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"archive_disk_size": schema.StringAttribute{
 						MarkdownDescription: "The size of the archive volumes for the database. Can be only updated to increase the volume size",
@@ -162,7 +160,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	var propertiesModel propertiesResourceModel
+	var propertiesModel *propertiesResourceModel = state.Properties
 	var maintenanceModel maintenanceModel
 
 	resp.Diagnostics.Append(state.Maintenance.As(ctx, &maintenanceModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
@@ -170,10 +168,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	resp.Diagnostics.Append(state.Properties.As(ctx, &propertiesModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+	tflog.Debug(ctx, fmt.Sprintf("State value is"))
 	
 	createTimeout, diags:= state.Timeouts.Create(ctx, 30*time.Minute)
 	resp.Diagnostics.Append(diags...)
@@ -198,38 +193,51 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	var getDatabaseModel *nuodbaas.DatabaseModel
-	for i := 0;i<15; i++ {
-		databaseModel, httpResponse, err := databaseClient.GetDatabase()
-		getDatabaseModel = databaseModel
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error reading Database",
-				"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err),
-			)
-			return
-		}
-		if *getDatabaseModel.Status.Ready {
-			break
-		}
-		time.Sleep(10 * time.Second)
-	}
+	databaseModel, httpResponse, err := databaseClient.GetDatabase()
+	getDatabaseModel = databaseModel
+	// for i := 0;i<15; i++ {
+	// 	databaseModel, httpResponse, err := databaseClient.GetDatabase()
+	// 	getDatabaseModel = databaseModel
+	// 	if err != nil {
+	// 		resp.Diagnostics.AddError(
+	// 			"Error reading Database",
+	// 			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err),
+	// 		)
+	// 		return
+	// 	}
+	// 	if *getDatabaseModel.Status.Ready {
+	// 		break
+	// 	}
+	// 	time.Sleep(10 * time.Second)
+	// }
 
 	state.ResourceVersion = types.StringValue(*getDatabaseModel.ResourceVersion)
+	tflog.Debug(ctx, "TAGGER idhar tak aaya")
+
 
 	propertiesValue := propertiesResourceModel{
-		ArchiveDiskSize : types.StringValue(*getDatabaseModel.Properties.ArchiveDiskSize),
+		ArchiveDiskSize: types.StringValue(*getDatabaseModel.Properties.ArchiveDiskSize),
 	}
 
 	if getDatabaseModel.Properties.JournalDiskSize != nil {
 		propertiesValue.JournalDiskSize = types.StringValue(*getDatabaseModel.Properties.JournalDiskSize)
 	}
 
-	objVal, diag := types.ObjectValueFrom(ctx, propertiesType, propertiesValue)
-	resp.Diagnostics.Append(diag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	state.Properties = objVal
+	// if getDatabaseModel.Properties.TierParameters != nil {
+	// 	tierParameters := map[string]attr.Value{}
+	// 	for k,v := range *getDatabaseModel.Properties.TierParameters {
+	// 		tierParameters[k] = types.StringValue(v)
+	// 	}
+	// 	mapValue, diags := types.MapValue(types.StringType, tierParameters)
+	// 	tflog.Debug(ctx, fmt.Sprintf("TAGGER idhar tak aaya again %+v", mapValue))
+	// 	resp.Diagnostics.Append(diags...)
+	// 	if resp.Diagnostics.HasError() {
+	// 		return
+	// 	}
+	// 	propertiesValue.TierParameters = mapValue
+	// }
+
+	state.Properties = &propertiesValue
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -271,12 +279,20 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 		propertiesValue.JournalDiskSize = types.StringValue(*databaseModel.Properties.JournalDiskSize)
 	}
 
-	objVal, diag := types.ObjectValueFrom(ctx, propertiesType, propertiesValue)
-	resp.Diagnostics.Append(diag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	state.Properties = objVal
+	// if databaseModel.Properties.TierParameters != nil {
+	// 	tierParameters := map[string]attr.Value{}
+	// 	for k,v := range *databaseModel.Properties.TierParameters {
+	// 		tierParameters[k] = types.StringValue(v)
+	// 	}
+	// 	mapValue, diags := types.MapValue(types.StringType, tierParameters)
+	// 	resp.Diagnostics.Append(diags...)
+	// 	if resp.Diagnostics.HasError() {
+	// 		return
+	// 	}
+	// 	propertiesValue.TierParameters = mapValue
+	// }
+
+	state.Properties = &propertiesValue
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -296,14 +312,9 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	var propertiesModel propertiesResourceModel
+	var propertiesModel *propertiesResourceModel = state.Properties
 	var maintenanceModel maintenanceModel
 	resp.Diagnostics.Append(state.Maintenance.As(ctx, &maintenanceModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	resp.Diagnostics.Append(state.Properties.As(ctx, &propertiesModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -347,17 +358,17 @@ func (r *DatabaseResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	_, err := r.client.DatabasesAPI.DeleteDatabase(ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).Execute()
+	httpResponse, err := r.client.DatabasesAPI.DeleteDatabase(ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).Execute()
 
 	if err!=nil {
-		resp.Diagnostics.AddError("Unable to delete project", 
-			fmt.Sprintf("Unable to delete project %s, unexpected error: %v", 
-			state.Name.ValueString(), err.Error()))
+		resp.Diagnostics.AddError("Unable to delete database", 
+			fmt.Sprintf("Unable to database project %s, unexpected error: %v", 
+			state.Name.ValueString(), helper.GetHttpResponseErrorMessage(httpResponse, err)))
 		return
 	}
 }
 
-func (r *DatabaseResource) retryUpdate(ctx context.Context, state databaseResourceModel, maintenanceModel maintenanceModel, propertiesModel model.DatabasePropertiesResourceModel) (*http.Response, error, bool) {
+func (r *DatabaseResource) retryUpdate(ctx context.Context, state databaseResourceModel, maintenanceModel maintenanceModel, propertiesModel *model.DatabasePropertiesResourceModel) (*http.Response, error, bool) {
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
 	databaseModel, httpResponse, err := databaseClient.GetDatabase()
 	if err != nil {

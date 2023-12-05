@@ -3,14 +3,15 @@ package provider
 import (
 	"context"
 	"fmt"
-	"terraform-provider-nuodbaas/helper"
-	"terraform-provider-nuodbaas/internal/model"
 
-	nuodbaas "github.com/GIT_USER_ID/GIT_REPO_ID"
+	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/helper"
+
+	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 var _ datasource.DataSourceWithConfigure = &databaseDataSource{}
@@ -23,11 +24,7 @@ type databaseDataSource struct {
 	client *nuodbaas.APIClient
 }
 
-type databaseModel struct {
-	Filter		types.Object   					`tfsdk:"filter"`
-	Name        types.String   					`tfsdk:"name"`
-	Database    *model.DatabaseDataSourceModel  `tfsdk:"database"`
-}
+type databaseModel = model.DatabaseDataSourceModel
 
 type databaseFilterModel struct {
 	Organization 	types.String   	`tfsdk:"organization"`
@@ -38,68 +35,49 @@ type databaseFilterModel struct {
 func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"filter" : schema.SingleNestedAttribute{
+			"organization": schema.StringAttribute{
+				MarkdownDescription: "Name of the organization for which project is created",
 				Required: true,
+			},
+			"name": schema.StringAttribute{
+				MarkdownDescription: "Name of the database",
+				Required: true,
+			},
+			"project": schema.StringAttribute{
+				MarkdownDescription: "The name of the project for which database is created",
+				Required: true,
+			},
+			"tier": schema.StringAttribute{
+				MarkdownDescription: "The Tier for the project. Cannot be updated once the database is created.",
+				Optional: true,
+			},
+			"maintenance": schema.SingleNestedAttribute{
+				Optional: true,
 				Attributes: map[string]schema.Attribute{
-					"organization" : schema.StringAttribute{
-						Required: true,
+					"expires_in": schema.StringAttribute{
+						MarkdownDescription: "The time until the project or database is disabled, e.g. 1d",
+						Optional: true,
 					},
-					"project" : schema.StringAttribute{
-						Required: true,
+					"is_disabled": schema.BoolAttribute{
+						MarkdownDescription: "Whether the project or database should be shutdown",
+						Optional: true,
 					},
 				},
 			},
-			"name": schema.StringAttribute{
-				Required: true,
-			},
-			"database": schema.SingleNestedAttribute{
+			"resource_version": schema.StringAttribute{
 				Computed: true,
+				MarkdownDescription: "The version of the resource. When specified in a PUT request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
+			},
+			"properties": schema.SingleNestedAttribute{
+				Optional: true,
 				Attributes: map[string]schema.Attribute{
-					"organization": schema.StringAttribute{
-						MarkdownDescription: "Name of the organization for which project is created",
+					"archive_disk_size": schema.StringAttribute{
+						MarkdownDescription: "The size of the archive volumes for the database. Can be only updated to increase the volume size",
 						Optional: true,
 					},
-					"name": schema.StringAttribute{
-						MarkdownDescription: "Name of the database",
+					"journal_disk_size": schema.StringAttribute{
+						MarkdownDescription: "The size of the journal volumes for the database. Can be only updated to increase the volume size.",
 						Optional: true,
-					},
-					"project": schema.StringAttribute{
-						MarkdownDescription: "The name of the project for which database is created",
-						Optional:            true,
-					},
-					"tier": schema.StringAttribute{
-						MarkdownDescription: "The Tier for the project. Cannot be updated once the database is created.",
-						Optional:            true,
-					},
-					"maintenance": schema.SingleNestedAttribute{
-						Optional: true,
-						Attributes: map[string]schema.Attribute{
-							"expires_in": schema.StringAttribute{
-								MarkdownDescription: "The time until the project or database is disabled, e.g. 1d",
-								Optional: true,
-							},
-							"is_disabled": schema.BoolAttribute{
-								MarkdownDescription: "Whether the project or database should be shutdown",
-								Optional: true,
-							},
-						},
-					},
-					"resource_version": schema.StringAttribute{
-						Computed: true,
-						MarkdownDescription: "The version of the resource. When specified in a PUT request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
-					},
-					"properties": schema.SingleNestedAttribute{
-						Optional: true,
-						Attributes: map[string]schema.Attribute{
-							"archive_disk_size": schema.StringAttribute{
-								MarkdownDescription: "The size of the archive volumes for the database. Can be only updated to increase the volume size",
-								Optional: true,
-							},
-							"journal_disk_size": schema.StringAttribute{
-								MarkdownDescription: "The size of the journal volumes for the database. Can be only updated to increase the volume size.",
-								Optional: true,
-							},
-						},
 					},
 				},
 			},
@@ -121,15 +99,7 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	var filterModel databaseFilterModel
-
-	resp.Diagnostics.Append(state.Filter.As(ctx, &filterModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	databaseResponseModel, httpResponse, err :=  d.client.DatabasesAPI.GetDatabase(ctx, filterModel.Organization.ValueString(), filterModel.Project.ValueString(), state.Name.ValueString()).Execute()
+	databaseResponseModel, httpResponse, err :=  d.client.DatabasesAPI.GetDatabase(ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).Execute()
 
 	if err!=nil {
 		resp.Diagnostics.AddError(
@@ -140,8 +110,7 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 	}
 	
 	propertiesModel := &model.DatabasePropertiesResourceModel{}
-	maintenanceModel := &model.MaintenanceModel{
-	}
+	maintenanceModel := &model.MaintenanceModel{}
 
 	if databaseResponseModel.Properties.ArchiveDiskSize != nil {
 		propertiesModel.ArchiveDiskSize = types.StringValue(*databaseResponseModel.Properties.ArchiveDiskSize)
@@ -169,7 +138,7 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 		Maintenance: maintenanceModel,
 	}
 
-	state.Database = &databaseResp
+	state = databaseResp
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 

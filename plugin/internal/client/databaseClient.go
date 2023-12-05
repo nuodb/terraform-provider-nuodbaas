@@ -18,13 +18,13 @@ type nuodbaasDatabaseClient struct {
 	databaseName 	string
 }
 
-func (client *nuodbaasDatabaseClient) CreateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel model.MaintenanceModel, propertiesResourceModel model.DatabasePropertiesResourceModel)  (*http.Response, error) {
+func (client *nuodbaasDatabaseClient) CreateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel)  (*http.Response, error) {
 	databaseModel := openapi.NewDatabaseCreateUpdateModel()
 	return client.createDatabase(databaseModel, databaseResourceModel, maintenanceModel, propertiesResourceModel, false)
 }
 
 func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *openapi.DatabaseCreateUpdateModel, databaseResourceModel model.DatabaseResourceModel,
-	 maintenanceModel model.MaintenanceModel, propertiesResourceModel model.DatabasePropertiesResourceModel, isUpdate bool)  (*http.Response, error) {
+	 maintenanceModel model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel, isUpdate bool)  (*http.Response, error) {
 	apiRequestObject := client.client.DatabasesAPI.CreateDatabase(client.ctx, client.org, client.projectName, client.databaseName)
 	if isUpdate==false {
 		databaseModel.SetDbaPassword(databaseResourceModel.Password.ValueString())
@@ -39,12 +39,15 @@ func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *openapi.Data
 	}
 
 	var openApiDatabasePropertiesModel = openapi.DatabasePropertiesModel{}
-	if len(propertiesResourceModel.ArchiveDiskSize.ValueString()) > 0 {
-		openApiDatabasePropertiesModel.ArchiveDiskSize = propertiesResourceModel.ArchiveDiskSize.ValueStringPointer()
+	if propertiesResourceModel != nil {
+		if len(propertiesResourceModel.ArchiveDiskSize.ValueString()) > 0 {
+			openApiDatabasePropertiesModel.ArchiveDiskSize = propertiesResourceModel.ArchiveDiskSize.ValueStringPointer()
+		}
+		if len(propertiesResourceModel.JournalDiskSize.ValueString()) > 0 {
+			openApiDatabasePropertiesModel.JournalDiskSize = propertiesResourceModel.JournalDiskSize.ValueStringPointer()
+		}
 	}
-	if len(propertiesResourceModel.JournalDiskSize.ValueString()) > 0 {
-		openApiDatabasePropertiesModel.JournalDiskSize = propertiesResourceModel.JournalDiskSize.ValueStringPointer()
-	}
+	
 
 	databaseModel.SetMaintenance(openApiMaintenanceModel)
 	databaseModel.SetProperties(openApiDatabasePropertiesModel)
@@ -52,7 +55,7 @@ func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *openapi.Data
 	return client.client.DatabasesAPI.CreateDatabaseExecute(apiRequestObject)
 }
 
-func (client *nuodbaasDatabaseClient) UpdateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel model.MaintenanceModel, propertiesResourceModel model.DatabasePropertiesResourceModel) (*http.Response, error) {
+func (client *nuodbaasDatabaseClient) UpdateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel) (*http.Response, error) {
 	if len(databaseResourceModel.ResourceVersion.ValueString()) == 0 {
 		return nil, errors.New("cannot update the project. Resource version is missing")
 	}
