@@ -34,17 +34,6 @@ type databasesModel struct {
 func (d *databasesDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			// "filter" : schema.SingleNestedAttribute{
-			// 	Optional: true,
-			// 	Attributes: map[string]schema.Attribute{
-			// 		"organization" : schema.StringAttribute{
-			// 			Optional: true,
-			// 		},
-			// 		"project" : schema.StringAttribute{
-			// 			Optional: true,
-			// 		},
-			// 	},
-			// },
 			"databases": schema.ListNestedAttribute{
 				Computed: true,
 				NestedObject: schema.NestedAttributeObject{

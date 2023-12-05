@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
@@ -27,39 +26,47 @@ type projectDataSource struct {
 	client *nuodbaas.APIClient
 }
 
-type projectsModel struct {
-	Filter		 *projectFilterModel     				 `tfsdk:"filter"`
-	Projects     []model.ProjectDataSourceResponseModel  `tfsdk:"projects"`
-}
-
-type projectFilterModel struct {
-	Organization types.String     `tfsdk:"organization"`
-}
-
 // Schema implements datasource.DataSource.
 func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"projects": schema.ListNestedAttribute{
-				Computed: true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes : map[string]schema.Attribute{
-						"name": schema.StringAttribute{
-							Computed: true,
-						},
-						"organization": schema.StringAttribute{
-							Computed: true,
-						},
+			"organization": schema.StringAttribute{
+				MarkdownDescription: "Name of the organization for which project is created",
+				Required: true,
+			},
+			"name": schema.StringAttribute{
+				MarkdownDescription: "Name of the project",
+				Required: true,
+			},
+			"sla": schema.StringAttribute{
+				MarkdownDescription: "The SLA for the project. Cannot be updated once the project is created.",
+				Optional: true,
+			},
+			"tier": schema.StringAttribute{
+				MarkdownDescription: "The Tier for the project. Cannot be updated once the project is created.",
+				Optional: true,
+			},
+			"maintenance": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"expires_in": schema.StringAttribute{
+						MarkdownDescription: "The time until the project or database is disabled, e.g. 1d",
+						Optional: true,
 					},
-
+					"is_disabled": schema.BoolAttribute{
+						Optional: true,
+					},
 				},
 			},
-		},
-		Blocks: map[string]schema.Block{
-			"filter" : schema.SingleNestedBlock{
-				Attributes:  map[string]schema.Attribute{
-					"organization" : schema.StringAttribute{
+			"resource_version": schema.StringAttribute{
+				Computed: true,
+			},
+			"properties": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"tier_parameters": schema.MapAttribute{
 						Optional: true,
+						ElementType: types.StringType,
 					},
 				},
 			},
@@ -69,19 +76,17 @@ func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaReque
 
 // Metadata implements datasource.DataSource.
 func (d *projectDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_projects"
+	resp.TypeName = req.ProviderTypeName + "_project"
 }
 
 // Read implements datasource.DataSource.
 func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var state projectsModel
+	var state model.ProjectResourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	filter := state.Filter
 
 	// resp.Diagnostics.Append(state.Filter.As(ctx, &filter, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
 
@@ -89,17 +94,9 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	var organization = ""
+	projectClient := nuodbaas_client.NewProjectClient(d.client,ctx,state.Organization.ValueString(),state.Name.ValueString())
 
-	if filter != nil && !filter.Organization.IsNull() {
-		organization = filter.Organization.ValueString()
-	}
-
-	projectClient := nuodbaas_client.NewProjectClient(d.client,ctx,organization,"")
-
-	projects, httpResponse, err := projectClient.GetProjects()
-
-	projectDataSourceResponseList := helper.GetProjectDataSourceResponse(projects)
+	project, httpResponse, err := projectClient.GetProject()
 	
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -108,13 +105,27 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		)
 		return
 	}
-	tflog.Debug(ctx, fmt.Sprintf("TAGGER projects are %+v", projects))
 
-	// for _, project := range projects.Items {
-	// 	state.Projects = append(state.Projects, types.StringValue(project))
-	// }
+	maintenanceModel := model.MaintenanceModel{}
 
-	state.Projects = projectDataSourceResponseList
+	if project.Maintenance.ExpiresIn != nil {
+		maintenanceModel.ExpiresIn = types.StringValue(*project.Maintenance.ExpiresIn)
+	}
+
+	if project.Maintenance.IsDisabled != nil {
+		maintenanceModel.IsDisabled = types.BoolValue(*project.Maintenance.IsDisabled)
+	}
+
+	projectStateModel := model.ProjectResourceModel{
+		Organization: types.StringValue(*project.Organization),
+		Name: types.StringValue(*project.Name),
+		Sla: types.StringValue(project.Sla),
+		Tier: types.StringValue(project.Tier),
+		ResourceVersion: types.StringValue(*project.ResourceVersion),
+		Maintenance: &maintenanceModel,
+	}
+
+	state = projectStateModel
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 

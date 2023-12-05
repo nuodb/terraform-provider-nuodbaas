@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
@@ -167,8 +166,6 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	tflog.Debug(ctx, fmt.Sprintf("State value is"))
 	
 	createTimeout, diags:= state.Timeouts.Create(ctx, 30*time.Minute)
 	resp.Diagnostics.Append(diags...)
@@ -193,26 +190,23 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	var getDatabaseModel *nuodbaas.DatabaseModel
-	databaseModel, httpResponse, err := databaseClient.GetDatabase()
-	getDatabaseModel = databaseModel
-	// for i := 0;i<15; i++ {
-	// 	databaseModel, httpResponse, err := databaseClient.GetDatabase()
-	// 	getDatabaseModel = databaseModel
-	// 	if err != nil {
-	// 		resp.Diagnostics.AddError(
-	// 			"Error reading Database",
-	// 			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err),
-	// 		)
-	// 		return
-	// 	}
-	// 	if *getDatabaseModel.Status.Ready {
-	// 		break
-	// 	}
-	// 	time.Sleep(10 * time.Second)
-	// }
+	for i := 0;i<15; i++ {
+		databaseModel, httpResponse, err := databaseClient.GetDatabase()
+		getDatabaseModel = databaseModel
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error reading Database",
+				"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err),
+			)
+			return
+		}
+		if *getDatabaseModel.Status.Ready {
+			break
+		}
+		time.Sleep(10 * time.Second)
+	}
 
 	state.ResourceVersion = types.StringValue(*getDatabaseModel.ResourceVersion)
-	tflog.Debug(ctx, "TAGGER idhar tak aaya")
 
 
 	propertiesValue := propertiesResourceModel{

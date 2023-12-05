@@ -51,6 +51,23 @@ output "projectsList" {
   value = data.nuodbaas_projects.projectsList
 }
 
+locals {
+  project_names = {
+    for project in data.nuodbaas_projects.projectsList.projects :
+    project.name => project
+  }
+}
+
+data "nuodbaas_project" "projectDetail" {
+  for_each = local.project_names
+  organization = var.dbaas_credentials.organization
+  name = "${each.key}"
+}
+
+output "projectDetail" {
+  value = data.nuodbaas_project.projectDetail
+}
+
 data "nuodbaas_databases" "databaseList" {
   filter {
     organization = var.dbaas_credentials.organization

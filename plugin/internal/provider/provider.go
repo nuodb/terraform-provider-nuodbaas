@@ -221,6 +221,7 @@ func (p *NuoDbaasProvider) Resources(ctx context.Context) []func() resource.Reso
 func (p *NuoDbaasProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource {
         NewProjectDataSource,
+		NewProjectsDataSource,
 		NewDatabasesDataSource,
 		NewDatabaseDataSource,
     }
