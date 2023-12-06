@@ -8,6 +8,7 @@ import (
 	"terraform-provider-nuodbaas/internal/model"
 
 	openapi "github.com/GIT_USER_ID/GIT_REPO_ID"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 type nuodbaasDatabaseClient struct {
@@ -26,7 +27,7 @@ func (client *nuodbaasDatabaseClient) CreateDatabase(databaseResourceModel model
 func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *openapi.DatabaseCreateUpdateModel, databaseResourceModel model.DatabaseResourceModel,
 	 maintenanceModel model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel, isUpdate bool)  (*http.Response, error) {
 	apiRequestObject := client.client.DatabasesAPI.CreateDatabase(client.ctx, client.org, client.projectName, client.databaseName)
-	if isUpdate==false {
+	if !isUpdate {
 		databaseModel.SetDbaPassword(databaseResourceModel.Password.ValueString())
 	}
 	databaseModel.SetTier(databaseResourceModel.Tier.ValueString())
@@ -45,6 +46,15 @@ func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *openapi.Data
 		}
 		if len(propertiesResourceModel.JournalDiskSize.ValueString()) > 0 {
 			openApiDatabasePropertiesModel.JournalDiskSize = propertiesResourceModel.JournalDiskSize.ValueStringPointer()
+		}
+		if !propertiesResourceModel.TierParameters.IsNull() {
+			elements := propertiesResourceModel.TierParameters.Elements()
+			var tierParamters = map[string]string{}
+			for key, element := range elements {
+				tflog.Debug(client.ctx,fmt.Sprintf("TAGGER string value is %+v", element.String()))
+				tierParamters[key] = element.String()
+			}
+			openApiDatabasePropertiesModel.TierParameters = &tierParamters
 		}
 	}
 	

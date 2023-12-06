@@ -20,6 +20,7 @@ type DatabaseResourceModel struct {
 type DatabasePropertiesResourceModel struct {
 	ArchiveDiskSize types.String `tfsdk:"archive_disk_size"`
 	JournalDiskSize types.String `tfsdk:"journal_disk_size"`
+	TierParameters  types.Map    `tfsdk:"tier_parameters"`
 }
 
 

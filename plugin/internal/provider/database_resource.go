@@ -16,6 +16,7 @@ import (
 	nuodbaas_client "github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/client"
 
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -23,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
@@ -120,6 +122,11 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 						MarkdownDescription: "The size of the journal volumes for the database. Can be only updated to increase the volume size.",
 						Optional: true,
 					},
+					"tier_parameters": schema.MapAttribute{
+						ElementType: types.StringType,
+						Optional: true,
+						// Default: mapdefault.StaticValue(basetypes.NewMapNull(types.StringType)),
+					},
 				},
 			},
 		},
@@ -161,7 +168,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 
 	var propertiesModel *propertiesResourceModel = state.Properties
 	var maintenanceModel maintenanceModel
-
+	tflog.Debug(ctx, fmt.Sprintf("TAGGER prop values are %+v", propertiesModel))
 	resp.Diagnostics.Append(state.Maintenance.As(ctx, &maintenanceModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -200,6 +207,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 			)
 			return
 		}
+		tflog.Debug(ctx, fmt.Sprintf("TAGGER database properties are %+v", *getDatabaseModel.Properties))
 		if *getDatabaseModel.Status.Ready {
 			break
 		}
@@ -211,28 +219,28 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 
 	propertiesValue := propertiesResourceModel{
 		ArchiveDiskSize: types.StringValue(*getDatabaseModel.Properties.ArchiveDiskSize),
+		TierParameters: types.MapNull(types.StringType),
 	}
 
 	if getDatabaseModel.Properties.JournalDiskSize != nil {
 		propertiesValue.JournalDiskSize = types.StringValue(*getDatabaseModel.Properties.JournalDiskSize)
 	}
 
-	// if getDatabaseModel.Properties.TierParameters != nil {
-	// 	tierParameters := map[string]attr.Value{}
-	// 	for k,v := range *getDatabaseModel.Properties.TierParameters {
-	// 		tierParameters[k] = types.StringValue(v)
-	// 	}
-	// 	mapValue, diags := types.MapValue(types.StringType, tierParameters)
-	// 	tflog.Debug(ctx, fmt.Sprintf("TAGGER idhar tak aaya again %+v", mapValue))
-	// 	resp.Diagnostics.Append(diags...)
-	// 	if resp.Diagnostics.HasError() {
-	// 		return
-	// 	}
-	// 	propertiesValue.TierParameters = mapValue
-	// }
+	if getDatabaseModel.Properties.TierParameters != nil {
+		tierParameters := map[string]attr.Value{}
+		for k,v := range *getDatabaseModel.Properties.TierParameters {
+			tierParameters[k] = types.StringValue(v)
+		}
+		mapValue, diags := types.MapValue(types.StringType, tierParameters)
+		tflog.Debug(ctx, fmt.Sprintf("TAGGER idhar tak aaya again %+v", mapValue))
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		propertiesValue.TierParameters = mapValue
+	}
 
 	state.Properties = &propertiesValue
-
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 
@@ -250,6 +258,7 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	tflog.Debug(ctx, fmt.Sprintf("TAGGER db READ called"))
 	databaseModel, httpResponse, err := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).GetDatabase()
 
 	if err != nil {
@@ -263,7 +272,9 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	state.ResourceVersion = types.StringValue(*databaseModel.ResourceVersion)
 	state.Tier = types.StringValue(*databaseModel.Tier)
 
-	propertiesValue := propertiesResourceModel{}
+	propertiesValue := propertiesResourceModel{
+		TierParameters: types.MapNull(types.StringType),
+	}
 
 	if databaseModel.Properties.ArchiveDiskSize != nil {
 		propertiesValue.ArchiveDiskSize = types.StringValue(*databaseModel.Properties.ArchiveDiskSize)
@@ -273,18 +284,18 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 		propertiesValue.JournalDiskSize = types.StringValue(*databaseModel.Properties.JournalDiskSize)
 	}
 
-	// if databaseModel.Properties.TierParameters != nil {
-	// 	tierParameters := map[string]attr.Value{}
-	// 	for k,v := range *databaseModel.Properties.TierParameters {
-	// 		tierParameters[k] = types.StringValue(v)
-	// 	}
-	// 	mapValue, diags := types.MapValue(types.StringType, tierParameters)
-	// 	resp.Diagnostics.Append(diags...)
-	// 	if resp.Diagnostics.HasError() {
-	// 		return
-	// 	}
-	// 	propertiesValue.TierParameters = mapValue
-	// }
+	if databaseModel.Properties.TierParameters != nil {
+		tierParameters := map[string]attr.Value{}
+		for k,v := range *databaseModel.Properties.TierParameters {
+			tierParameters[k] = types.StringValue(v)
+		}
+		mapValue, diags := types.MapValue(types.StringType, tierParameters)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		propertiesValue.TierParameters = mapValue
+	}
 
 	state.Properties = &propertiesValue
 
