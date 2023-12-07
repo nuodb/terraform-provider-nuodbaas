@@ -5,10 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
+	"terraform-provider-nuodbaas/helper"
 	"terraform-provider-nuodbaas/internal/model"
 
 	openapi "github.com/GIT_USER_ID/GIT_REPO_ID"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 type nuodbaasDatabaseClient struct {
@@ -51,8 +52,7 @@ func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *openapi.Data
 			elements := propertiesResourceModel.TierParameters.Elements()
 			var tierParamters = map[string]string{}
 			for key, element := range elements {
-				tflog.Debug(client.ctx,fmt.Sprintf("TAGGER string value is %+v", element.String()))
-				tierParamters[key] = element.String()
+				tierParamters[key] = strings.ReplaceAll(helper.RemoveDoubleQuotes(element.String()), "\\\"", "\"")
 			}
 			openApiDatabasePropertiesModel.TierParameters = &tierParamters
 		}

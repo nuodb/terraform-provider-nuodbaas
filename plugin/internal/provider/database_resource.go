@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
@@ -168,7 +167,6 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 
 	var propertiesModel *propertiesResourceModel = state.Properties
 	var maintenanceModel maintenanceModel
-	tflog.Debug(ctx, fmt.Sprintf("TAGGER prop values are %+v", propertiesModel))
 	resp.Diagnostics.Append(state.Maintenance.As(ctx, &maintenanceModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -207,7 +205,6 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 			)
 			return
 		}
-		tflog.Debug(ctx, fmt.Sprintf("TAGGER database properties are %+v", *getDatabaseModel.Properties))
 		if *getDatabaseModel.Status.Ready {
 			break
 		}
@@ -232,7 +229,6 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 			tierParameters[k] = types.StringValue(v)
 		}
 		mapValue, diags := types.MapValue(types.StringType, tierParameters)
-		tflog.Debug(ctx, fmt.Sprintf("TAGGER idhar tak aaya again %+v", mapValue))
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
@@ -258,7 +254,6 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, fmt.Sprintf("TAGGER db READ called"))
 	databaseModel, httpResponse, err := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).GetDatabase()
 
 	if err != nil {

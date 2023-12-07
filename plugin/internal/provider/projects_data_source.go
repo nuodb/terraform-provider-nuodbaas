@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var _ datasource.DataSourceWithConfigure = &projectsDataSource{}
@@ -105,7 +104,7 @@ func (d *projectsDataSource) Read(ctx context.Context, req datasource.ReadReques
 		)
 		return
 	}
-	tflog.Debug(ctx, fmt.Sprintf("TAGGER projects are %+v", projects))
+	// tflog.Debug(ctx, fmt.Sprintf("TAGGER projects are %+v", projects))
 
 	// for _, project := range projects.Items {
 	// 	state.Projects = append(state.Projects, types.StringValue(project))

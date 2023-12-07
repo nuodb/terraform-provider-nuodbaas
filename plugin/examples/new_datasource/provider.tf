@@ -38,6 +38,12 @@ resource "nuodbaas_database" "dbaas" {
 
   properties = {
     archive_disk_size = "1Gi"
+    tier_parameters = {
+      smReplicas = 1
+      teReplicas = 2
+      zones = jsonencode([ "us-east-2a", "us-east-2c" ])
+      capacityType = jsonencode("spot")
+    }
   }
 }
 

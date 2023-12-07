@@ -8,6 +8,7 @@ import (
 
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -74,6 +75,10 @@ func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 						MarkdownDescription: "The size of the journal volumes for the database. Can be only updated to increase the volume size.",
 						Optional: true,
 					},
+					"tier_parameters": schema.MapAttribute{
+						Optional: true,
+						ElementType: types.StringType,
+					},
 				},
 			},
 			"status": schema.SingleNestedAttribute{
@@ -127,12 +132,28 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 	}
 
 	if databaseResponseModel.Properties != nil {
-		propertiesModel := &model.DatabasePropertiesResourceModel{}
+		propertiesModel := &model.DatabasePropertiesResourceModel{
+			TierParameters: types.MapNull(types.StringType),
+		}
 		if databaseResponseModel.Properties.ArchiveDiskSize != nil {
 			propertiesModel.ArchiveDiskSize = types.StringValue(*databaseResponseModel.Properties.ArchiveDiskSize)
 		}
 		if databaseResponseModel.Properties.JournalDiskSize != nil {
 			propertiesModel.JournalDiskSize = types.StringValue(*databaseResponseModel.Properties.JournalDiskSize)
+		}
+
+		if databaseResponseModel.Properties.TierParameters != nil {
+			tierParameters := map[string]attr.Value{}
+			for k,v := range *databaseResponseModel.Properties.TierParameters {
+				tierParameters[k] = types.StringValue(v)
+			}
+			mapValue, diags := types.MapValue(types.StringType, tierParameters)
+			// tflog.Debug(ctx, fmt.Sprintf("TAGGER idhar tak aaya again %+v", mapValue))
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			propertiesModel.TierParameters = mapValue
 		}
 		databaseResp.Properties = propertiesModel
 	}
