@@ -56,6 +56,9 @@ func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaReque
 					"is_disabled": schema.BoolAttribute{
 						Optional: true,
 					},
+					"expires_at_time": schema.StringAttribute{
+						Optional: true,
+					},
 				},
 			},
 			"resource_version": schema.StringAttribute{
@@ -116,6 +119,10 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	
 		if project.Maintenance.IsDisabled != nil {
 			maintenanceModel.IsDisabled = types.BoolValue(*project.Maintenance.IsDisabled)
+		}
+
+		if project.Maintenance.ExpiresAtTime != nil {
+			maintenanceModel.ExpiresAtTime = types.StringValue(project.Maintenance.ExpiresAtTime.String())
 		}
 		projectStateModel.Maintenance = &maintenanceModel
 	}

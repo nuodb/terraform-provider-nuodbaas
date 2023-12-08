@@ -81,6 +81,9 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 					"is_disabled": schema.BoolAttribute{
 						Optional: true,
 					},
+					"expires_at_time": schema.StringAttribute{
+						Optional: true,
+					},
 				},
 			},
 			"resource_version": schema.StringAttribute{

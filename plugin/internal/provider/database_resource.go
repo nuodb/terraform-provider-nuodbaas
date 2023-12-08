@@ -99,6 +99,9 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 						MarkdownDescription: "Whether the project or database should be shutdown",
 						Optional: true,
 					},
+					"expires_at_time": schema.StringAttribute{
+						Optional: true,
+					},
 				},
 			},
 			"resource_version": schema.StringAttribute{
