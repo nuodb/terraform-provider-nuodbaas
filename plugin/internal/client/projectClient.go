@@ -19,7 +19,7 @@ type nuodbaasProjectClient struct {
 }
 
 
-func (client *nuodbaasProjectClient) createUpdateProject(projectModel *nuodbaas.ProjectModel, projectResourceModel model.ProjectResourceModel, maintenanceModel model.MaintenanceModel) (*http.Response, error) {
+func (client *nuodbaasProjectClient) createUpdateProject(projectModel *nuodbaas.ProjectModel, projectResourceModel model.ProjectResourceModel, maintenanceModel *model.MaintenanceModel) (*http.Response, error) {
 	apiRequestObject := client.client.ProjectsAPI.CreateProject(client.ctx,client.org, client.projectName)
 	projectModel.SetSla(projectResourceModel.Sla.ValueString())
 	projectModel.SetTier(projectResourceModel.Tier.ValueString())
@@ -32,14 +32,14 @@ func (client *nuodbaasProjectClient) createUpdateProject(projectModel *nuodbaas.
 	return client.client.ProjectsAPI.CreateProjectExecute(apiRequestObject)
 }
 
-func (client *nuodbaasProjectClient) CreateProject(projectResourceModel model.ProjectResourceModel,  maintenanceModel model.MaintenanceModel) (*http.Response, error) {
+func (client *nuodbaasProjectClient) CreateProject(projectResourceModel model.ProjectResourceModel,  maintenanceModel *model.MaintenanceModel) (*http.Response, error) {
 	projectModel := nuodbaas.NewProjectModelWithDefaults()
 	return client.createUpdateProject(projectModel, projectResourceModel, maintenanceModel)
 }
 
-func (client *nuodbaasProjectClient) UpdateProject(projectResourceModel model.ProjectResourceModel,  maintenanceModel model.MaintenanceModel) (*http.Response, error) {
+func (client *nuodbaasProjectClient) UpdateProject(projectResourceModel model.ProjectResourceModel,  maintenanceModel *model.MaintenanceModel) (*http.Response, error) {
 	if len(projectResourceModel.ResourceVersion.ValueString()) == 0 {
-		return nil, errors.New("Cannot update the project. Resource version is missing")
+		return nil, errors.New("cannot update the project. Resource version is missing")
 	}
 	projectModel := nuodbaas.NewProjectModelWithDefaults()
 	projectModel.SetResourceVersion(projectResourceModel.ResourceVersion.ValueString())

@@ -13,7 +13,7 @@ type DatabaseResourceModel struct {
 	Tier            types.String 						`tfsdk:"tier"`
 	Properties      *DatabasePropertiesResourceModel 	`tfsdk:"properties"`
 	ResourceVersion types.String 						`tfsdk:"resource_version"`
-	Maintenance     types.Object 						`tfsdk:"maintenance"`
+	Maintenance     *MaintenanceModel 					`tfsdk:"maintenance"`
 	Timeouts		timeouts.Value 						`tfsdk:"timeouts"`
 }
 

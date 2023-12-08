@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
@@ -166,11 +165,6 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	var propertiesModel *propertiesResourceModel = state.Properties
-	var maintenanceModel maintenanceModel
-	resp.Diagnostics.Append(state.Maintenance.As(ctx, &maintenanceModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 	
 	createTimeout, diags:= state.Timeouts.Create(ctx, 30*time.Minute)
 	resp.Diagnostics.Append(diags...)
@@ -184,7 +178,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	defer cancel()
 	
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	httpResponse, err := databaseClient.CreateDatabase(state, maintenanceModel, propertiesModel)
+	httpResponse, err := databaseClient.CreateDatabase(state, state.Maintenance, propertiesModel)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -313,17 +307,12 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	var propertiesModel *propertiesResourceModel = state.Properties
-	var maintenanceModel maintenanceModel
-	resp.Diagnostics.Append(state.Maintenance.As(ctx, &maintenanceModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	httpResponse, err := databaseClient.UpdateDatabase(state, maintenanceModel, propertiesModel)
+	httpResponse, err := databaseClient.UpdateDatabase(state, state.Maintenance, propertiesModel)
 
 	if httpResponse.StatusCode == 409 {
-		updateResponseObj, retryError, isUpdated := r.retryUpdate(ctx, state, maintenanceModel, propertiesModel)
+		updateResponseObj, retryError, isUpdated := r.retryUpdate(ctx, state, state.Maintenance, propertiesModel)
 		if !isUpdated {
 			if retryError != nil {
 				err = retryError
@@ -368,7 +357,7 @@ func (r *DatabaseResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 }
 
-func (r *DatabaseResource) retryUpdate(ctx context.Context, state databaseResourceModel, maintenanceModel maintenanceModel, propertiesModel *model.DatabasePropertiesResourceModel) (*http.Response, error, bool) {
+func (r *DatabaseResource) retryUpdate(ctx context.Context, state databaseResourceModel, maintenanceModel *maintenanceModel, propertiesModel *model.DatabasePropertiesResourceModel) (*http.Response, error, bool) {
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
 	databaseModel, httpResponse, err := databaseClient.GetDatabase()
 	if err != nil {

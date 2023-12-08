@@ -20,25 +20,29 @@ type nuodbaasDatabaseClient struct {
 	databaseName 	string
 }
 
-func (client *nuodbaasDatabaseClient) CreateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel)  (*http.Response, error) {
+func (client *nuodbaasDatabaseClient) CreateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel *model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel)  (*http.Response, error) {
 	databaseModel := openapi.NewDatabaseCreateUpdateModel()
 	return client.createDatabase(databaseModel, databaseResourceModel, maintenanceModel, propertiesResourceModel, false)
 }
 
 func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *openapi.DatabaseCreateUpdateModel, databaseResourceModel model.DatabaseResourceModel,
-	 maintenanceModel model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel, isUpdate bool)  (*http.Response, error) {
+	 maintenanceModel *model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel, isUpdate bool)  (*http.Response, error) {
 	apiRequestObject := client.client.DatabasesAPI.CreateDatabase(client.ctx, client.org, client.projectName, client.databaseName)
 	if !isUpdate {
 		databaseModel.SetDbaPassword(databaseResourceModel.Password.ValueString())
 	}
 	databaseModel.SetTier(databaseResourceModel.Tier.ValueString())
 	var openApiMaintenanceModel = openapi.MaintenanceModel{}
-	if !maintenanceModel.ExpiresIn.IsNull() {
-		openApiMaintenanceModel.ExpiresIn = maintenanceModel.ExpiresIn.ValueStringPointer()
+	if maintenanceModel != nil {
+		if !maintenanceModel.ExpiresIn.IsNull() {
+			openApiMaintenanceModel.ExpiresIn = maintenanceModel.ExpiresIn.ValueStringPointer()
+		}
+		if !maintenanceModel.IsDisabled.IsNull() {
+			openApiMaintenanceModel.IsDisabled = maintenanceModel.IsDisabled.ValueBoolPointer()
+		}
+		databaseModel.SetMaintenance(openApiMaintenanceModel)
 	}
-	if !maintenanceModel.IsDisabled.IsNull() {
-		openApiMaintenanceModel.IsDisabled = maintenanceModel.IsDisabled.ValueBoolPointer()
-	}
+	
 
 	var openApiDatabasePropertiesModel = openapi.DatabasePropertiesModel{}
 	if propertiesResourceModel != nil {
@@ -58,14 +62,12 @@ func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *openapi.Data
 		}
 	}
 	
-
-	databaseModel.SetMaintenance(openApiMaintenanceModel)
 	databaseModel.SetProperties(openApiDatabasePropertiesModel)
 	apiRequestObject= apiRequestObject.DatabaseCreateUpdateModel(*databaseModel)
 	return client.client.DatabasesAPI.CreateDatabaseExecute(apiRequestObject)
 }
 
-func (client *nuodbaasDatabaseClient) UpdateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel) (*http.Response, error) {
+func (client *nuodbaasDatabaseClient) UpdateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel *model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel) (*http.Response, error) {
 	if len(databaseResourceModel.ResourceVersion.ValueString()) == 0 {
 		return nil, errors.New("cannot update the project. Resource version is missing")
 	}

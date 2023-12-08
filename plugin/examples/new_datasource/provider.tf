@@ -18,11 +18,12 @@ resource "nuodbaas_project" "nuodb" {
   name         = "nuodb"
   sla          = "dev"
   tier         = "nx.small"
-  maintenance = {
-    expires_in = "5d"
-  }
+  maintenance = null
+  # maintenance = {
+  #   expires_in = "5d"
+  # }
 
-  properties = {}
+  # properties = {}
 }
 
 
@@ -47,58 +48,58 @@ resource "nuodbaas_database" "dbaas" {
   }
 }
 
-data "nuodbaas_projects" "projectsList" {
-  filter {
-    organization = var.dbaas_credentials.organization
-  }
-}
+# data "nuodbaas_projects" "projectsList" {
+#   filter {
+#     organization = var.dbaas_credentials.organization
+#   }
+# }
 
-output "projectsList" {
-  value = data.nuodbaas_projects.projectsList
-}
+# output "projectsList" {
+#   value = data.nuodbaas_projects.projectsList
+# }
 
-locals {
-  project_names = {
-    for project in data.nuodbaas_projects.projectsList.projects :
-    project.name => project
-  }
-}
+# locals {
+#   project_names = {
+#     for project in data.nuodbaas_projects.projectsList.projects :
+#     project.name => project
+#   }
+# }
 
-data "nuodbaas_project" "projectDetail" {
-  for_each = local.project_names
-  organization = var.dbaas_credentials.organization
-  name = "${each.key}"
-}
+# data "nuodbaas_project" "projectDetail" {
+#   for_each = local.project_names
+#   organization = var.dbaas_credentials.organization
+#   name = "${each.key}"
+# }
 
-output "projectDetail" {
-  value = data.nuodbaas_project.projectDetail
-}
+# output "projectDetail" {
+#   value = data.nuodbaas_project.projectDetail
+# }
 
-data "nuodbaas_databases" "databaseList" {
-  filter {
-    organization = var.dbaas_credentials.organization
-    project      = "nuodb"
-  }
-}
+# data "nuodbaas_databases" "databaseList" {
+#   filter {
+#     organization = var.dbaas_credentials.organization
+#     project      = "nuodb"
+#   }
+# }
 
-output "databaseList" {
-  value = data.nuodbaas_databases.databaseList
-}
-locals {
-  database_names = {
-    for database in data.nuodbaas_databases.databaseList.databases :
-    database.name => database
-  }
-}
+# output "databaseList" {
+#   value = data.nuodbaas_databases.databaseList
+# }
+# locals {
+#   database_names = {
+#     for database in data.nuodbaas_databases.databaseList.databases :
+#     database.name => database
+#   }
+# }
 
-data "nuodbaas_database" "databaseDetail" {
-  for_each = local.database_names
-  organization = var.dbaas_credentials.organization
-  project      = nuodbaas_project.nuodb.name
-  name = "${each.key}"
-}
+# data "nuodbaas_database" "databaseDetail" {
+#   for_each = local.database_names
+#   organization = var.dbaas_credentials.organization
+#   project      = nuodbaas_project.nuodb.name
+#   name = "${each.key}"
+# }
 
-output "nuodbaas_databaseDetails" {
-  value = [for database in data.nuodbaas_database.databaseDetail: database]
-}
+# output "nuodbaas_databaseDetails" {
+#   value = [for database in data.nuodbaas_database.databaseDetail: database]
+# }
 

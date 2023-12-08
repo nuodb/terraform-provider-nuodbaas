@@ -132,7 +132,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	projectClient := nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString())
-	_, err := projectClient.CreateProject(state, *state.Maintenance)
+	_, err := projectClient.CreateProject(state, state.Maintenance)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -200,7 +200,7 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 	
 	projectClient := nuodbaas_client.NewProjectClient(r.client, ctx, data.Organization.ValueString(), data.Name.ValueString())
-	_, err := projectClient.UpdateProject(data, *data.Maintenance)
+	_, err := projectClient.UpdateProject(data, data.Maintenance)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
