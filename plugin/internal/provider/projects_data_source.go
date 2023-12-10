@@ -104,11 +104,6 @@ func (d *projectsDataSource) Read(ctx context.Context, req datasource.ReadReques
 		)
 		return
 	}
-	// tflog.Debug(ctx, fmt.Sprintf("TAGGER projects are %+v", projects))
-
-	// for _, project := range projects.Items {
-	// 	state.Projects = append(state.Projects, types.StringValue(project))
-	// }
 
 	state.Projects = projectDataSourceResponseList
 

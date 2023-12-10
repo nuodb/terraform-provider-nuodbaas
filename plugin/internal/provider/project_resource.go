@@ -190,6 +190,21 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
+	if projectModel.Maintenance != nil {
+		var maintenance = state.Maintenance
+		
+		if projectModel.Maintenance.IsDisabled != nil {
+			if (state.Maintenance.IsDisabled.IsNull() && *projectModel.Maintenance.IsDisabled) || !state.Maintenance.IsDisabled.IsNull() {
+				maintenance.IsDisabled = types.BoolValue(*projectModel.Maintenance.IsDisabled)
+			}
+		}
+		if projectModel.Maintenance.ExpiresIn != nil {
+			maintenance.ExpiresIn = types.StringValue(*projectModel.Maintenance.ExpiresIn)
+		}
+		state.Maintenance = maintenance
+	}
+
+	state.Tier = types.StringValue(projectModel.Tier)
 	state.ResourceVersion = types.StringValue(*projectModel.ResourceVersion)
 
 	// Save updated data into Terraform state

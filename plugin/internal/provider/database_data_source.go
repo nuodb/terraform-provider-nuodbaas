@@ -8,7 +8,6 @@ import (
 
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -146,12 +145,7 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 		}
 
 		if databaseResponseModel.Properties.TierParameters != nil {
-			tierParameters := map[string]attr.Value{}
-			for k,v := range *databaseResponseModel.Properties.TierParameters {
-				tierParameters[k] = types.StringValue(v)
-			}
-			mapValue, diags := types.MapValue(types.StringType, tierParameters)
-			// tflog.Debug(ctx, fmt.Sprintf("TAGGER idhar tak aaya again %+v", mapValue))
+			mapValue, diags := helper.ConvertMapToTfMap(databaseResponseModel.Properties.TierParameters)
 			resp.Diagnostics.Append(diags...)
 			if resp.Diagnostics.HasError() {
 				return

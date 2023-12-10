@@ -118,7 +118,6 @@ func (d *databasesDataSource) Read(ctx context.Context, req datasource.ReadReque
 		)
 		return
 	}
-	// tflog.Debug(ctx, fmt.Sprintf("TAGGER projects are %+v", databases))
 
 	state.Databases = helper.GetDatabaseDataSourceResponse(databases)
 

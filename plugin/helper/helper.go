@@ -7,6 +7,11 @@ import (
 	"net"
 	"net/http"
 	"terraform-provider-nuodbaas/internal/model"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 func GetProviderValidatorErrorMessage(valueType string, envVariable string) string {
@@ -57,4 +62,13 @@ func RemoveDoubleQuotes(s string) string {
 		s = s[:len(s)-1]
 	}
 	return s
+}
+
+func ConvertMapToTfMap(mapObj *map[string]string) (basetypes.MapValue, diag.Diagnostics){
+	tierParameters := map[string]attr.Value{}
+	for k,v := range *mapObj {
+		tierParameters[k] = types.StringValue(v)
+	}
+	mapValue, diags := types.MapValue(types.StringType, tierParameters)
+	return mapValue, diags
 }

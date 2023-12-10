@@ -285,11 +285,7 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	}
 
 	if databaseModel.Properties.TierParameters != nil {
-		tierParameters := map[string]attr.Value{}
-		for k,v := range *databaseModel.Properties.TierParameters {
-			tierParameters[k] = types.StringValue(v)
-		}
-		mapValue, diags := types.MapValue(types.StringType, tierParameters)
+		mapValue, diags := helper.ConvertMapToTfMap(databaseModel.Properties.TierParameters)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
@@ -297,6 +293,20 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 		propertiesValue.TierParameters = mapValue
 	}
 
+	if databaseModel.Maintenance != nil {
+		maintenanceModel := state.Maintenance
+		if databaseModel.Maintenance.ExpiresIn != nil {
+			maintenanceModel.ExpiresIn = types.StringValue(*databaseModel.Maintenance.ExpiresIn)
+		}
+
+		if databaseModel.Maintenance.IsDisabled != nil {
+			if (state.Maintenance.IsDisabled.IsNull() && *databaseModel.Maintenance.IsDisabled == true) || !state.Maintenance.IsDisabled.IsNull() {
+				maintenanceModel.IsDisabled = types.BoolValue(*databaseModel.Maintenance.IsDisabled)
+			}
+		}
+		state.Maintenance = maintenanceModel
+	}
+	
 	state.Properties = &propertiesValue
 
 	// Save updated data into Terraform state
@@ -321,14 +331,17 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
 	httpResponse, err := databaseClient.UpdateDatabase(state, state.Maintenance, propertiesModel)
-
 	if httpResponse.StatusCode == 409 {
 		updateResponseObj, retryError, isUpdated := r.retryUpdate(ctx, state, state.Maintenance, propertiesModel)
+
+		// This if condition is to update error if the resource is not updated even after retry
 		if !isUpdated {
 			if retryError != nil {
 				err = retryError
 				httpResponse = updateResponseObj
 			}
+		} else {
+			err = retryError
 		}
 	}
 

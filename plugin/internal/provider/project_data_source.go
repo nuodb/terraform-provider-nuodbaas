@@ -127,6 +127,19 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		projectStateModel.Maintenance = &maintenanceModel
 	}
 
+	if project.Properties != nil {
+		properties := model.ProjectProperties{}
+		if project.Properties.TierParameters != nil {
+			mapValue, diag := helper.ConvertMapToTfMap(project.Properties.TierParameters)
+			resp.Diagnostics.Append(diag...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			properties.TierParameters = mapValue
+		}
+		projectStateModel.Properties = &properties
+	}
+
 	state = projectStateModel
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
