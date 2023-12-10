@@ -254,6 +254,14 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	databaseModel, httpResponse, err := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).GetDatabase()
 
 	if err != nil {
+		errorModel := helper.GetHttpResponseModel(httpResponse)
+		if errorModel != nil && errorModel.Status == "HTTP 404 Not Found"{
+			resp.State.RemoveResource(ctx)
+			return
+		}
+	}
+
+	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading Project",
 			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err),

@@ -169,6 +169,10 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 		if databaseResponseModel.Maintenance.IsDisabled != nil {
 			maintenanceModel.IsDisabled =  types.BoolValue(*databaseResponseModel.Maintenance.IsDisabled)
 		}
+
+		if databaseResponseModel.Maintenance.ExpiresAtTime != nil {
+			maintenanceModel.ExpiresAtTime = types.StringValue(databaseResponseModel.Maintenance.ExpiresAtTime.String())
+		}
 		databaseResp.Maintenance = maintenanceModel
 
 	}

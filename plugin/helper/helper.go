@@ -20,6 +20,15 @@ func GetHttpResponseObj(httpResponse *http.Response, target interface{}) error {
 	return json.NewDecoder(httpResponse.Body).Decode(target)
 }
 
+func GetHttpResponseModel(httpResponse *http.Response) *model.ErrorModel {
+	errorModel := &model.ErrorModel{}
+	errorObj := GetHttpResponseObj(httpResponse, errorModel)
+	if errorObj != nil {
+		return nil
+	} 
+	return errorModel
+}
+
 
 func GetHttpResponseErrorMessage(httpResponse *http.Response, err error) string {
 	errorModel := &model.ErrorModel{}

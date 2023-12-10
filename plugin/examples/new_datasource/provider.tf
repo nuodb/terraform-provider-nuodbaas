@@ -18,10 +18,9 @@ resource "nuodbaas_project" "nuodb" {
   name         = "nuodb"
   sla          = "dev"
   tier         = "nx.small"
-  maintenance = null
-  # maintenance = {
-  #   expires_in = "5d"
-  # }
+  maintenance = {
+    expires_in = "5d"
+  }
 
   # properties = {}
 }

@@ -135,22 +135,22 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	projectClient := nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString())
-	_, err := projectClient.CreateProject(state, state.Maintenance)
+	httpResponse, err := projectClient.CreateProject(state, state.Maintenance)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating project",
-			"Could not create project, unexpected error: "+ err.Error(),
+			"Could not create project, unexpected error: "+ helper.GetHttpResponseErrorMessage(httpResponse, err),
 		)
 		return
 	}
 
-	getProjectModel, _, err := projectClient.GetProject()
+	getProjectModel, httpResponse, err := projectClient.GetProject()
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading Project",
-			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + err.Error(),
+			"Error Reading Project",
+			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err),
 		)
 		return
 	}
@@ -172,12 +172,20 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	projectClient := nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString())
-	projectModel, _, err := projectClient.GetProject()
+	projectModel, httpResp, err := projectClient.GetProject()
+
+	if err != nil {
+		errorModel := helper.GetHttpResponseModel(httpResp)
+		if errorModel != nil && errorModel.Status == "HTTP 404 Not Found" {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+	}
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading Project",
-			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + err.Error(),
+			"Error Reading Project",
+			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResp, err),
 		)
 		return
 	}
@@ -203,12 +211,12 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 	
 	projectClient := nuodbaas_client.NewProjectClient(r.client, ctx, data.Organization.ValueString(), data.Name.ValueString())
-	_, err := projectClient.UpdateProject(data, data.Maintenance)
+	httpResponse, err := projectClient.UpdateProject(data, data.Maintenance)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating project",
-			"Could not update project, unexpected error: "+ err.Error(),
+			"Could not update project, unexpected error: "+ helper.GetHttpResponseErrorMessage(httpResponse, err),
 		)
 		return
 	}
