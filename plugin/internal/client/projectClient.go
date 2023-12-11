@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/helper"
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
 
 	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
@@ -23,11 +25,32 @@ func (client *nuodbaasProjectClient) createUpdateProject(projectModel *nuodbaas.
 	apiRequestObject := client.client.ProjectsAPI.CreateProject(client.ctx,client.org, client.projectName)
 	projectModel.SetSla(projectResourceModel.Sla.ValueString())
 	projectModel.SetTier(projectResourceModel.Tier.ValueString())
-	var openApiMaintenanceModel = nuodbaas.MaintenanceModel{}
-	if !maintenanceModel.IsDisabled.IsNull() {
-		openApiMaintenanceModel.IsDisabled = maintenanceModel.IsDisabled.ValueBoolPointer()
+
+	if maintenanceModel != nil {
+		var openApiMaintenanceModel = nuodbaas.MaintenanceModel{}
+
+		if !maintenanceModel.IsDisabled.IsNull() {
+			openApiMaintenanceModel.IsDisabled = maintenanceModel.IsDisabled.ValueBoolPointer()
+		}
+		projectModel.SetMaintenance(openApiMaintenanceModel)
 	}
-	projectModel.SetMaintenance(openApiMaintenanceModel)
+
+	if projectResourceModel.Properties != nil {
+		var openApiProjectPropertiesModel = nuodbaas.NewProjectPropertiesModel()
+		var projectProperties = projectResourceModel.Properties
+
+		if !projectProperties.TierParameters.IsNull() {
+			elements := projectProperties.TierParameters.Elements()
+			var tierParamters = map[string]string{}
+			for key, element := range elements {
+				tierParamters[key] = strings.ReplaceAll(helper.RemoveDoubleQuotes(element.String()), "\\\"", "\"")
+			}
+			openApiProjectPropertiesModel.TierParameters = &tierParamters
+		}
+
+		projectModel.SetProperties(*openApiProjectPropertiesModel)
+	}
+
 	apiRequestObject = apiRequestObject.ProjectModel(*projectModel)
 	return client.client.ProjectsAPI.CreateProjectExecute(apiRequestObject)
 }
@@ -41,6 +64,7 @@ func (client *nuodbaasProjectClient) UpdateProject(projectResourceModel model.Pr
 	if len(projectResourceModel.ResourceVersion.ValueString()) == 0 {
 		return nil, errors.New("cannot update the project. Resource version is missing")
 	}
+
 	projectModel := nuodbaas.NewProjectModelWithDefaults()
 	projectModel.SetResourceVersion(projectResourceModel.ResourceVersion.ValueString())
 	return client.createUpdateProject(projectModel, projectResourceModel, maintenanceModel)

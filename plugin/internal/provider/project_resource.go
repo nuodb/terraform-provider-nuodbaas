@@ -204,6 +204,23 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		state.Maintenance = maintenance
 	}
 
+	if projectModel.Properties != nil {
+		propertiesModel := model.ProjectProperties{
+			TierParameters: types.MapNull(types.StringType),
+		}
+
+		if projectModel.Properties.TierParameters != nil {
+			mapValue, diags := helper.ConvertMapToTfMap(projectModel.Properties.TierParameters)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			propertiesModel.TierParameters = mapValue
+		}
+
+		state.Properties = &propertiesModel
+	}
+
 	state.Tier = types.StringValue(projectModel.Tier)
 	state.ResourceVersion = types.StringValue(*projectModel.ResourceVersion)
 

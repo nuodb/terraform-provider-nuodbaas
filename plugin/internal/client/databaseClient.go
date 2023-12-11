@@ -9,11 +9,11 @@ import (
 	"terraform-provider-nuodbaas/helper"
 	"terraform-provider-nuodbaas/internal/model"
 
-	openapi "github.com/GIT_USER_ID/GIT_REPO_ID"
+	nuodbaas "github.com/GIT_USER_ID/GIT_REPO_ID"
 )
 
 type nuodbaasDatabaseClient struct {
-	client			*openapi.APIClient
+	client			*nuodbaas.APIClient
 	org    			string
 	projectName 	string
 	ctx         	context.Context
@@ -21,18 +21,18 @@ type nuodbaasDatabaseClient struct {
 }
 
 func (client *nuodbaasDatabaseClient) CreateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel *model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel)  (*http.Response, error) {
-	databaseModel := openapi.NewDatabaseCreateUpdateModel()
+	databaseModel := nuodbaas.NewDatabaseCreateUpdateModel()
 	return client.createDatabase(databaseModel, databaseResourceModel, maintenanceModel, propertiesResourceModel, false)
 }
 
-func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *openapi.DatabaseCreateUpdateModel, databaseResourceModel model.DatabaseResourceModel,
+func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *nuodbaas.DatabaseCreateUpdateModel, databaseResourceModel model.DatabaseResourceModel,
 	 maintenanceModel *model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel, isUpdate bool)  (*http.Response, error) {
 	apiRequestObject := client.client.DatabasesAPI.CreateDatabase(client.ctx, client.org, client.projectName, client.databaseName)
 	if !isUpdate {
 		databaseModel.SetDbaPassword(databaseResourceModel.Password.ValueString())
 	}
 	databaseModel.SetTier(databaseResourceModel.Tier.ValueString())
-	var openApiMaintenanceModel = openapi.MaintenanceModel{}
+	var openApiMaintenanceModel = nuodbaas.MaintenanceModel{}
 	if maintenanceModel != nil {
 		if !maintenanceModel.ExpiresIn.IsNull() {
 			openApiMaintenanceModel.ExpiresIn = maintenanceModel.ExpiresIn.ValueStringPointer()
@@ -44,7 +44,7 @@ func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *openapi.Data
 	}
 	
 
-	var openApiDatabasePropertiesModel = openapi.DatabasePropertiesModel{}
+	var openApiDatabasePropertiesModel = nuodbaas.DatabasePropertiesModel{}
 	if propertiesResourceModel != nil {
 		if len(propertiesResourceModel.ArchiveDiskSize.ValueString()) > 0 {
 			openApiDatabasePropertiesModel.ArchiveDiskSize = propertiesResourceModel.ArchiveDiskSize.ValueStringPointer()
@@ -71,12 +71,12 @@ func (client *nuodbaasDatabaseClient) UpdateDatabase(databaseResourceModel model
 	if len(databaseResourceModel.ResourceVersion.ValueString()) == 0 {
 		return nil, errors.New("cannot update the project. Resource version is missing")
 	}
-	databaseModel := openapi.NewDatabaseCreateUpdateModel()
+	databaseModel := nuodbaas.NewDatabaseCreateUpdateModel()
 	databaseModel.SetResourceVersion(databaseResourceModel.ResourceVersion.ValueString())
 	return client.createDatabase(databaseModel, databaseResourceModel, maintenanceModel, propertiesResourceModel, true)
 }
 
-func (client *nuodbaasDatabaseClient) GetDatabase() (*openapi.DatabaseModel, *http.Response, error) {
+func (client *nuodbaasDatabaseClient) GetDatabase() (*nuodbaas.DatabaseModel, *http.Response, error) {
 	apiRequestObject := client.client.DatabasesAPI.GetDatabase(client.ctx, client.org, client.projectName, client.databaseName)
 	return client.client.DatabasesAPI.GetDatabaseExecute(apiRequestObject)
 }
@@ -85,9 +85,9 @@ func (client *nuodbaasDatabaseClient) DeleteDatabase() (*http.Response, error) {
 	return client.client.ProjectsAPI.DeleteProject(client.ctx, client.org, client.projectName).Execute()
 }
 
-func (client *nuodbaasDatabaseClient) GetDatabases() (*openapi.ItemListString, *http.Response, error) {
+func (client *nuodbaasDatabaseClient) GetDatabases() (*nuodbaas.ItemListString, *http.Response, error) {
 	var (
-		itemList *openapi.ItemListString
+		itemList *nuodbaas.ItemListString
 		httpResponse *http.Response
 		err error
 	)
@@ -119,7 +119,7 @@ func (client *nuodbaasDatabaseClient) GetDatabases() (*openapi.ItemListString, *
 	
 }
 
-func NewDatabaseClient(client *openapi.APIClient, ctx context.Context, org string, projectName string, databaseName string) *nuodbaasDatabaseClient {
+func NewDatabaseClient(client *nuodbaas.APIClient, ctx context.Context, org string, projectName string, databaseName string) *nuodbaasDatabaseClient {
 	databaseClient := nuodbaasDatabaseClient{
 		client: 		client,
 		org: 			org,
