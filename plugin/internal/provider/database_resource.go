@@ -130,6 +130,19 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 					},
 				},
 			},
+			"status": schema.SingleNestedAttribute{
+				Computed: true,
+				Attributes: map[string]schema.Attribute{
+					"sql_end_point": schema.StringAttribute{
+						MarkdownDescription: "The endpoint for SQL clients to connect to",
+						Optional: true,
+					},
+					"ca_pem": schema.StringAttribute{
+						MarkdownDescription: "The PEM-encoded certificate for SQL clients to verify database servers",
+						Optional: true,
+					},
+				},
+			},
 		},
 		Blocks: map[string]schema.Block{
 			"timeouts": timeouts.Block(ctx, timeouts.Opts {
@@ -231,6 +244,24 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 			return
 		}
 		propertiesValue.TierParameters = mapValue
+	}
+
+	if getDatabaseModel.Status != nil {
+		elementTypes := map[string]attr.Type{
+			"sql_end_point": types.StringType,
+			"ca_pem": types.StringType,
+		}
+		elements := map[string]attr.Value{
+			"sql_end_point": types.StringValue(*getDatabaseModel.Status.SqlEndpoint),
+			"ca_pem": types.StringValue(*getDatabaseModel.Status.CaPem),
+		}
+		status, diags := types.ObjectValue(elementTypes, elements)
+
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		state.Status = status
 	}
 
 	state.Properties = &propertiesValue

@@ -15,6 +15,7 @@ type DatabaseResourceModel struct {
 	ResourceVersion types.String 						`tfsdk:"resource_version"`
 	Maintenance     *MaintenanceModel 					`tfsdk:"maintenance"`
 	Timeouts		timeouts.Value 						`tfsdk:"timeouts"`
+	Status          types.Object						`tfsdk:"status"`
 }
 
 type DatabasePropertiesResourceModel struct {
@@ -25,8 +26,8 @@ type DatabasePropertiesResourceModel struct {
 
 
 type DatabaseCreateUpdateModel struct {
-	Password string
-	Tier     string
+	Password        string
+	Tier            string
 	ArchiveDiskSize string
 	JournalDiskSize string
 }
