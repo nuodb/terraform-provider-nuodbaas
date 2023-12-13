@@ -12,7 +12,7 @@ import (
 	nuodbaas "github.com/GIT_USER_ID/GIT_REPO_ID"
 )
 
-type nuodbaasDatabaseClient struct {
+type NuodbaasDatabaseClient struct {
 	client			*nuodbaas.APIClient
 	org    			string
 	projectName 	string
@@ -20,12 +20,12 @@ type nuodbaasDatabaseClient struct {
 	databaseName 	string
 }
 
-func (client *nuodbaasDatabaseClient) CreateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel *model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel)  (*http.Response, error) {
+func (client *NuodbaasDatabaseClient) CreateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel *model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel)  (*http.Response, error) {
 	databaseModel := nuodbaas.NewDatabaseCreateUpdateModel()
 	return client.createDatabase(databaseModel, databaseResourceModel, maintenanceModel, propertiesResourceModel, false)
 }
 
-func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *nuodbaas.DatabaseCreateUpdateModel, databaseResourceModel model.DatabaseResourceModel,
+func (client *NuodbaasDatabaseClient) createDatabase(databaseModel *nuodbaas.DatabaseCreateUpdateModel, databaseResourceModel model.DatabaseResourceModel,
 	 maintenanceModel *model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel, isUpdate bool)  (*http.Response, error) {
 	apiRequestObject := client.client.DatabasesAPI.CreateDatabase(client.ctx, client.org, client.projectName, client.databaseName)
 	if !isUpdate {
@@ -67,7 +67,7 @@ func (client *nuodbaasDatabaseClient) createDatabase(databaseModel *nuodbaas.Dat
 	return client.client.DatabasesAPI.CreateDatabaseExecute(apiRequestObject)
 }
 
-func (client *nuodbaasDatabaseClient) UpdateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel *model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel) (*http.Response, error) {
+func (client *NuodbaasDatabaseClient) UpdateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel *model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel) (*http.Response, error) {
 	if len(databaseResourceModel.ResourceVersion.ValueString()) == 0 {
 		return nil, errors.New("cannot update the project. Resource version is missing")
 	}
@@ -76,16 +76,16 @@ func (client *nuodbaasDatabaseClient) UpdateDatabase(databaseResourceModel model
 	return client.createDatabase(databaseModel, databaseResourceModel, maintenanceModel, propertiesResourceModel, true)
 }
 
-func (client *nuodbaasDatabaseClient) GetDatabase() (*nuodbaas.DatabaseModel, *http.Response, error) {
+func (client *NuodbaasDatabaseClient) GetDatabase() (*nuodbaas.DatabaseModel, *http.Response, error) {
 	apiRequestObject := client.client.DatabasesAPI.GetDatabase(client.ctx, client.org, client.projectName, client.databaseName)
 	return client.client.DatabasesAPI.GetDatabaseExecute(apiRequestObject)
 }
 
-func (client *nuodbaasDatabaseClient) DeleteDatabase() (*http.Response, error) {
+func (client *NuodbaasDatabaseClient) DeleteDatabase() (*http.Response, error) {
 	return client.client.ProjectsAPI.DeleteProject(client.ctx, client.org, client.projectName).Execute()
 }
 
-func (client *nuodbaasDatabaseClient) GetDatabases() (*nuodbaas.ItemListString, *http.Response, error) {
+func (client *NuodbaasDatabaseClient) GetDatabases() (*nuodbaas.ItemListString, *http.Response, error) {
 	var (
 		itemList *nuodbaas.ItemListString
 		httpResponse *http.Response
@@ -119,8 +119,8 @@ func (client *nuodbaasDatabaseClient) GetDatabases() (*nuodbaas.ItemListString, 
 	
 }
 
-func NewDatabaseClient(client *nuodbaas.APIClient, ctx context.Context, org string, projectName string, databaseName string) *nuodbaasDatabaseClient {
-	databaseClient := nuodbaasDatabaseClient{
+func NewDatabaseClient(client *nuodbaas.APIClient, ctx context.Context, org string, projectName string, databaseName string) *NuodbaasDatabaseClient {
+	databaseClient := NuodbaasDatabaseClient{
 		client: 		client,
 		org: 			org,
 		projectName:	projectName,

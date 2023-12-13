@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -107,6 +108,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 			"resource_version": schema.StringAttribute{
 				Computed: true,
 				MarkdownDescription: "The version of the resource. When specified in a PUT request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
+				// This plan modifier is necessary since it is used in updating the database. Without it the value of resource_version would be unknown
 				PlanModifiers: []planmodifier.String{
                     stringplanmodifier.UseStateForUnknown(),
                 },
@@ -126,7 +128,6 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 					"tier_parameters": schema.MapAttribute{
 						ElementType: types.StringType,
 						Optional: true,
-						// Default: mapdefault.StaticValue(basetypes.NewMapNull(types.StringType)),
 					},
 				},
 			},
@@ -204,78 +205,21 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	var getDatabaseModel *nuodbaas.DatabaseModel
-	for i := 0;i<15; i++ {
-		databaseModel, httpResponse, err := databaseClient.GetDatabase()
-		getDatabaseModel = databaseModel
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error reading Database",
-				"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err),
-			)
-			return
-		}
-		if *getDatabaseModel.Status.Ready {
-			break
-		}
-		time.Sleep(10 * time.Second)
-	}
+	updateState, diags := r.updateStateWithComputedValues(ctx, &state, databaseClient, "create")
 
-	state.ResourceVersion = types.StringValue(*getDatabaseModel.ResourceVersion)
-
-
-	propertiesValue := propertiesResourceModel{
-		ArchiveDiskSize: types.StringValue(*getDatabaseModel.Properties.ArchiveDiskSize),
-		TierParameters: types.MapNull(types.StringType),
-	}
-
-	if getDatabaseModel.Properties.JournalDiskSize != nil {
-		propertiesValue.JournalDiskSize = types.StringValue(*getDatabaseModel.Properties.JournalDiskSize)
-	}
-
-	if getDatabaseModel.Properties.TierParameters != nil {
-		tierParameters := map[string]attr.Value{}
-		for k,v := range *getDatabaseModel.Properties.TierParameters {
-			tierParameters[k] = types.StringValue(v)
-		}
-		mapValue, diags := types.MapValue(types.StringType, tierParameters)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		propertiesValue.TierParameters = mapValue
-	}
-
-	if getDatabaseModel.Status != nil {
-		elementTypes := map[string]attr.Type{
-			"sql_end_point": types.StringType,
-			"ca_pem": types.StringType,
-		}
-		elements := map[string]attr.Value{
-			"sql_end_point": types.StringValue(*getDatabaseModel.Status.SqlEndpoint),
-			"ca_pem": types.StringValue(*getDatabaseModel.Status.CaPem),
-		}
-		status, diags := types.ObjectValue(elementTypes, elements)
-
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		state.Status = status
-	}
-
-	state.Properties = &propertiesValue
-	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, updateState)...)
+
 }
 
 func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state databaseResourceModel
-
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 
@@ -294,8 +238,8 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error Reading Project",
-			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err),
+			"Error reading database",
+			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err),
 		)
 		return
 	}
@@ -331,7 +275,7 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 		}
 
 		if databaseModel.Maintenance.IsDisabled != nil {
-			if (state.Maintenance.IsDisabled.IsNull() && *databaseModel.Maintenance.IsDisabled == true) || !state.Maintenance.IsDisabled.IsNull() {
+			if (state.Maintenance.IsDisabled.IsNull() && *databaseModel.Maintenance.IsDisabled) || !state.Maintenance.IsDisabled.IsNull() {
 				maintenanceModel.IsDisabled = types.BoolValue(*databaseModel.Maintenance.IsDisabled)
 			}
 		}
@@ -343,9 +287,6 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -362,6 +303,7 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
 	httpResponse, err := databaseClient.UpdateDatabase(state, state.Maintenance, propertiesModel)
+	
 	if httpResponse.StatusCode == 409 {
 		updateResponseObj, retryError, isUpdated := r.retryUpdate(ctx, state, state.Maintenance, propertiesModel)
 
@@ -384,8 +326,16 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
+	updatedState, diags := r.updateStateWithComputedValues(ctx, &state, databaseClient, "update")
+
+	resp.Diagnostics.Append(diags...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, updatedState)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -428,6 +378,86 @@ func (r *DatabaseResource) retryUpdate(ctx context.Context, state databaseResour
 		}
 	}
 	return nil, nil, false
+}
+
+func (r *DatabaseResource) waitForDatabase(ctx context.Context, databaseClient *nuodbaas_client.NuodbaasDatabaseClient ) (*nuodbaas.DatabaseModel, *http.Response, error){
+
+	var getDatabaseModel *nuodbaas.DatabaseModel
+	for i := 0; i<15; i++ {
+		databaseModel, httpResponse, err := databaseClient.GetDatabase()
+		getDatabaseModel = databaseModel
+		if err != nil {
+			return nil, httpResponse, err
+		}
+		// if !*databaseModel.Maintenance.IsDisabled && databaseModel.Status.GetState() == "Available" {
+		// 	break
+		// } else if *databaseModel.Maintenance.IsDisabled && databaseModel.Status.GetState() == "Stopped" {
+		// 	break
+		// }
+
+		if databaseModel.Status.GetReady() {
+			break
+		}
+
+		time.Sleep(10 * time.Second)
+	}
+	return getDatabaseModel, nil, nil
+}
+
+func (r *DatabaseResource) updateStateWithComputedValues(ctx context.Context, state *databaseResourceModel, databaseClient *nuodbaas_client.NuodbaasDatabaseClient, stateType string) (*databaseResourceModel, diag.Diagnostics ) {
+	getDatabaseModel, httpResponse, err := r.waitForDatabase(ctx, databaseClient)
+	var diagnostics diag.Diagnostics
+	if err != nil {
+		diagnostics.AddError(
+			"Error reading Database",
+			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err))
+		return nil, diagnostics
+	}
+
+	if stateType == "create" {
+		state.ResourceVersion = types.StringValue(*getDatabaseModel.ResourceVersion)
+	}
+
+	propertiesValue := propertiesResourceModel{
+		ArchiveDiskSize: types.StringValue(*getDatabaseModel.Properties.ArchiveDiskSize),
+		TierParameters: types.MapNull(types.StringType),
+	}
+
+	if getDatabaseModel.Properties.JournalDiskSize != nil {
+		propertiesValue.JournalDiskSize = types.StringValue(*getDatabaseModel.Properties.JournalDiskSize)
+	}
+
+	if getDatabaseModel.Properties.TierParameters != nil {
+		mapValue, diags := helper.ConvertMapToTfMap(getDatabaseModel.Properties.TierParameters)
+		diagnostics = append(diagnostics, diags...)
+		
+
+		if diagnostics.HasError() {
+			return nil, diagnostics
+		}
+		propertiesValue.TierParameters = mapValue
+	}
+
+	if getDatabaseModel.Status != nil {
+		elementTypes := map[string]attr.Type{
+			"sql_end_point": types.StringType,
+			"ca_pem": types.StringType,
+		}
+		elements := map[string]attr.Value{
+			"sql_end_point": types.StringValue(*getDatabaseModel.Status.SqlEndpoint),
+			"ca_pem": types.StringValue(*getDatabaseModel.Status.CaPem),
+		}
+		status, diags := types.ObjectValue(elementTypes, elements)
+		diagnostics = append(diagnostics, diags...)
+		if diagnostics.HasError() {
+			return nil, diagnostics
+		}
+		state.Status = status
+	}
+
+	state.Properties = &propertiesValue
+
+	return state, diagnostics
 }
 
 func (r *DatabaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
