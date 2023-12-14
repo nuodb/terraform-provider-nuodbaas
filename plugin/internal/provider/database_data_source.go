@@ -1,3 +1,7 @@
+/* (C) Copyright 2016-2023 Dassault Systemes SE.
+All Rights Reserved.
+*/
+
 package provider
 
 import (
@@ -49,15 +53,8 @@ func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 			"maintenance": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
-					"expires_in": schema.StringAttribute{
-						MarkdownDescription: "The time until the project or database is disabled, e.g. 1d",
-						Optional: true,
-					},
 					"is_disabled": schema.BoolAttribute{
 						MarkdownDescription: "Whether the project or database should be shutdown",
-						Optional: true,
-					},
-					"expires_at_time": schema.StringAttribute{
 						Optional: true,
 					},
 				},
@@ -157,18 +154,10 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 
 	if databaseResponseModel.Maintenance != nil {
 		maintenanceModel := &model.MaintenanceModel{}
-		if databaseResponseModel.Maintenance.ExpiresIn != nil {
-			maintenanceModel.ExpiresIn =  types.StringValue(*databaseResponseModel.Maintenance.ExpiresIn)
-		}
 		if databaseResponseModel.Maintenance.IsDisabled != nil {
 			maintenanceModel.IsDisabled =  types.BoolValue(*databaseResponseModel.Maintenance.IsDisabled)
 		}
-
-		if databaseResponseModel.Maintenance.ExpiresAtTime != nil {
-			maintenanceModel.ExpiresAtTime = types.StringValue(databaseResponseModel.Maintenance.ExpiresAtTime.String())
-		}
 		databaseResp.Maintenance = maintenanceModel
-
 	}
 
 	if databaseResponseModel.Status != nil {

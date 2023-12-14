@@ -1,3 +1,7 @@
+/* (C) Copyright 2016-2023 Dassault Systemes SE.
+All Rights Reserved.
+*/
+
 package provider
 
 import (
@@ -49,14 +53,7 @@ func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaReque
 			"maintenance": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
-					"expires_in": schema.StringAttribute{
-						MarkdownDescription: "The time until the project or database is disabled, e.g. 1d",
-						Optional: true,
-					},
 					"is_disabled": schema.BoolAttribute{
-						Optional: true,
-					},
-					"expires_at_time": schema.StringAttribute{
 						Optional: true,
 					},
 				},
@@ -113,22 +110,18 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	if project.Maintenance != nil {
 		maintenanceModel := model.MaintenanceModel{}
-		if project.Maintenance.ExpiresIn != nil {
-			maintenanceModel.ExpiresIn = types.StringValue(*project.Maintenance.ExpiresIn)
-		}
 	
 		if project.Maintenance.IsDisabled != nil {
 			maintenanceModel.IsDisabled = types.BoolValue(*project.Maintenance.IsDisabled)
 		}
 
-		if project.Maintenance.ExpiresAtTime != nil {
-			maintenanceModel.ExpiresAtTime = types.StringValue(project.Maintenance.ExpiresAtTime.String())
-		}
 		projectStateModel.Maintenance = &maintenanceModel
 	}
 
 	if project.Properties != nil {
-		properties := model.ProjectProperties{}
+		properties := model.ProjectProperties{
+			TierParameters: types.MapNull(types.StringType),
+		}
 		if project.Properties.TierParameters != nil {
 			mapValue, diag := helper.ConvertMapToTfMap(project.Properties.TierParameters)
 			resp.Diagnostics.Append(diag...)

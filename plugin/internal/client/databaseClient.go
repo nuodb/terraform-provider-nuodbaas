@@ -1,3 +1,7 @@
+/*
+(C) Copyright 2016-2023 Dassault Systemes SE.
+All Rights Reserved.
+*/
 package nuodbaas_client
 
 import (
@@ -6,10 +10,12 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"terraform-provider-nuodbaas/helper"
-	"terraform-provider-nuodbaas/internal/model"
 
-	nuodbaas "github.com/GIT_USER_ID/GIT_REPO_ID"
+	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/helper"
+
+	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
+
+	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 type NuodbaasDatabaseClient struct {
@@ -32,11 +38,8 @@ func (client *NuodbaasDatabaseClient) createDatabase(databaseModel *nuodbaas.Dat
 		databaseModel.SetDbaPassword(databaseResourceModel.Password.ValueString())
 	}
 	databaseModel.SetTier(databaseResourceModel.Tier.ValueString())
-	var openApiMaintenanceModel = nuodbaas.MaintenanceModel{}
 	if maintenanceModel != nil {
-		if !maintenanceModel.ExpiresIn.IsNull() {
-			openApiMaintenanceModel.ExpiresIn = maintenanceModel.ExpiresIn.ValueStringPointer()
-		}
+		var openApiMaintenanceModel = nuodbaas.MaintenanceModel{}
 		if !maintenanceModel.IsDisabled.IsNull() {
 			openApiMaintenanceModel.IsDisabled = maintenanceModel.IsDisabled.ValueBoolPointer()
 		}

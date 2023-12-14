@@ -1,16 +1,23 @@
+/* (C) Copyright 2016-2023 Dassault Systemes SE.
+All Rights Reserved.
+*/
+
 package provider
 
 import (
 	"context"
 	"fmt"
-	"terraform-provider-nuodbaas/helper"
-	nuodbaas_client "terraform-provider-nuodbaas/internal/client"
-	"terraform-provider-nuodbaas/internal/model"
 
-	nuodbaas "github.com/GIT_USER_ID/GIT_REPO_ID"
+	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/helper"
+
+	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
+
+	nuodbaas_client "github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/client"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 var _ datasource.DataSourceWithConfigure = &projectsDataSource{}

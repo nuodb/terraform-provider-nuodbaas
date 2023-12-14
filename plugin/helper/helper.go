@@ -1,3 +1,7 @@
+/*
+(C) Copyright 2016-2023 Dassault Systemes SE.
+All Rights Reserved.
+*/
 package helper
 
 import (
@@ -6,12 +10,12 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"terraform-provider-nuodbaas/internal/model"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
 )
 
 func GetProviderValidatorErrorMessage(valueType string, envVariable string) string {

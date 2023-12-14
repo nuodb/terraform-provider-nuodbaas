@@ -1,3 +1,7 @@
+/*
+(C) Copyright 2016-2023 Dassault Systemes SE.
+All Rights Reserved.
+*/
 package model
 
 import "github.com/hashicorp/terraform-plugin-framework/types"

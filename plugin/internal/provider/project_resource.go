@@ -81,9 +81,6 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 					"is_disabled": schema.BoolAttribute{
 						Optional: true,
 					},
-					"expires_at_time": schema.StringAttribute{
-						Optional: true,
-					},
 				},
 			},
 			"resource_version": schema.StringAttribute{
@@ -198,9 +195,6 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 				maintenance.IsDisabled = types.BoolValue(*projectModel.Maintenance.IsDisabled)
 			}
 		}
-		if projectModel.Maintenance.ExpiresIn != nil {
-			maintenance.ExpiresIn = types.StringValue(*projectModel.Maintenance.ExpiresIn)
-		}
 		state.Maintenance = maintenance
 	}
 
@@ -227,9 +221,6 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -256,9 +247,6 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
