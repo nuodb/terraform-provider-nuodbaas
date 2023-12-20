@@ -21,6 +21,8 @@ resource "nuodbaas_project" "dev"{
   maintenance = {
     is_disabled=false
   }
+
+  properties = {}
 }
 
 resource "nuodbaas_project" "nuodb" {
@@ -36,63 +38,52 @@ resource "nuodbaas_database" "nuodb" {
   name         = "nuodb"
   tier         = "n0.nano"
   dba_password = "helloworld"
-  maintenance = {
-    expires_in = "2d"
+  properties = {
+    archive_disk_size = "7Gi"
   }
 
-  properties = {
-    archive_disk_size = "1Gi"
-  }
 }
 
 resource "nuodbaas_database" "dbaas" {
   organization = var.dbaas_credentials.organization
   project      = nuodbaas_project.nuodb.name
   name         = "dbaas"
-  tier         = "n0.nano"
+  # tier         = "n1.small"
   dba_password = "helloworld"
   maintenance = {
     expires_in = "2d"
   }
 
-  properties = {
-    archive_disk_size = "1Gi"
-  }
+  # properties = {
+  #   archive_disk_size = "1Gi"
+  # }
 }
 
-data "nuodbaas_projects" "projectsList" {
-  filter = {
-    organization = var.dbaas_credentials.organization
-  }
-  
-}
+# data "nuodbaas_projects" "projectsList" {
+#   filter {
+    
+#   }
+# }
 
-output "projectsList" {
-  value = data.nuodbaas_projects.projectsList
-}
+# output "projectsList" {
+#   value = data.nuodbaas_projects.projectsList
+# }
 
-data "nuodbaas_databases" "databaseList" {
-  filter = {
-    organization = var.dbaas_credentials.organization
-    project      = nuodbaas_database.nuodb.name
-  }
-}
+# locals {
+#   project_names = {
+#     for project in data.nuodbaas_projects.projectsList.projects :
+#     project.name => project
+#   }
+# }
 
-output "databaseList" {
-  value = data.nuodbaas_databases.databaseList
-}
+# data "nuodbaas_project" "projectDetail" {
+#   for_each = local.project_names
+#   organization = var.dbaas_credentials.organization
+#   name = "${each.key}"
+# }
 
-data "nuodbaas_database" "databaseDetail" {
-  depends_on = []
-  for_each = toset(data.nuodbaas_databases.databaseList.databases == null ? [] : data.nuodbaas_databases.databaseList.databases)
-  filter = {
-    organization = var.dbaas_credentials.organization
-    project      = nuodbaas_database.nuodb.name
-  }
-  name = "${each.key}"
-}
+# output "projectDetail" {
+#   value = data.nuodbaas_project.projectDetail
+# }
 
-output "nuodbaas_databaseDetails" {
-  value = [for database in data.nuodbaas_database.databaseDetail: database.database]
-}
 
