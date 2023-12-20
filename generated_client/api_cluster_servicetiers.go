@@ -120,7 +120,7 @@ func (a *ClusterServicetiersAPIService) CreateServiceTierExecute(r ApiCreateServ
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -131,7 +131,7 @@ func (a *ClusterServicetiersAPIService) CreateServiceTierExecute(r ApiCreateServ
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -142,7 +142,7 @@ func (a *ClusterServicetiersAPIService) CreateServiceTierExecute(r ApiCreateServ
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -153,7 +153,7 @@ func (a *ClusterServicetiersAPIService) CreateServiceTierExecute(r ApiCreateServ
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -164,7 +164,7 @@ func (a *ClusterServicetiersAPIService) CreateServiceTierExecute(r ApiCreateServ
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 409 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -175,7 +175,7 @@ func (a *ClusterServicetiersAPIService) CreateServiceTierExecute(r ApiCreateServ
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 415 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -186,7 +186,7 @@ func (a *ClusterServicetiersAPIService) CreateServiceTierExecute(r ApiCreateServ
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -299,7 +299,7 @@ func (a *ClusterServicetiersAPIService) DeleteServiceTierExecute(r ApiDeleteServ
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -310,7 +310,7 @@ func (a *ClusterServicetiersAPIService) DeleteServiceTierExecute(r ApiDeleteServ
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -321,7 +321,7 @@ func (a *ClusterServicetiersAPIService) DeleteServiceTierExecute(r ApiDeleteServ
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -332,7 +332,7 @@ func (a *ClusterServicetiersAPIService) DeleteServiceTierExecute(r ApiDeleteServ
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -343,7 +343,7 @@ func (a *ClusterServicetiersAPIService) DeleteServiceTierExecute(r ApiDeleteServ
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 408 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -354,7 +354,7 @@ func (a *ClusterServicetiersAPIService) DeleteServiceTierExecute(r ApiDeleteServ
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -456,7 +456,7 @@ func (a *ClusterServicetiersAPIService) GetServiceTierExecute(r ApiGetServiceTie
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -467,7 +467,7 @@ func (a *ClusterServicetiersAPIService) GetServiceTierExecute(r ApiGetServiceTie
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -478,7 +478,7 @@ func (a *ClusterServicetiersAPIService) GetServiceTierExecute(r ApiGetServiceTie
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -489,7 +489,7 @@ func (a *ClusterServicetiersAPIService) GetServiceTierExecute(r ApiGetServiceTie
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -500,7 +500,7 @@ func (a *ClusterServicetiersAPIService) GetServiceTierExecute(r ApiGetServiceTie
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -607,7 +607,7 @@ func (a *ClusterServicetiersAPIService) GetServiceTiersExecute(r ApiGetServiceTi
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -618,7 +618,7 @@ func (a *ClusterServicetiersAPIService) GetServiceTiersExecute(r ApiGetServiceTi
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -629,7 +629,7 @@ func (a *ClusterServicetiersAPIService) GetServiceTiersExecute(r ApiGetServiceTi
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -640,7 +640,7 @@ func (a *ClusterServicetiersAPIService) GetServiceTiersExecute(r ApiGetServiceTi
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -760,7 +760,7 @@ func (a *ClusterServicetiersAPIService) PatchServiceTierExecute(r ApiPatchServic
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -771,7 +771,7 @@ func (a *ClusterServicetiersAPIService) PatchServiceTierExecute(r ApiPatchServic
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -782,7 +782,7 @@ func (a *ClusterServicetiersAPIService) PatchServiceTierExecute(r ApiPatchServic
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -793,7 +793,7 @@ func (a *ClusterServicetiersAPIService) PatchServiceTierExecute(r ApiPatchServic
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -804,7 +804,7 @@ func (a *ClusterServicetiersAPIService) PatchServiceTierExecute(r ApiPatchServic
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 409 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -815,7 +815,7 @@ func (a *ClusterServicetiersAPIService) PatchServiceTierExecute(r ApiPatchServic
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 415 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -826,7 +826,7 @@ func (a *ClusterServicetiersAPIService) PatchServiceTierExecute(r ApiPatchServic
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

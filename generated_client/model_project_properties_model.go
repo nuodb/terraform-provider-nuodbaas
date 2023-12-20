@@ -22,6 +22,8 @@ var _ MappedNullable = &ProjectPropertiesModel{}
 type ProjectPropertiesModel struct {
 	// Opaque parameters supplied to project service tier.
 	TierParameters *map[string]string `json:"tierParameters,omitempty"`
+	// The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb-ce/tags. If omitted, the project version will be resolved based on the SLA and cluster configuration.
+	ProductVersion *string `json:"productVersion,omitempty"`
 }
 
 // NewProjectPropertiesModel instantiates a new ProjectPropertiesModel object
@@ -73,6 +75,38 @@ func (o *ProjectPropertiesModel) SetTierParameters(v map[string]string) {
 	o.TierParameters = &v
 }
 
+// GetProductVersion returns the ProductVersion field value if set, zero value otherwise.
+func (o *ProjectPropertiesModel) GetProductVersion() string {
+	if o == nil || IsNil(o.ProductVersion) {
+		var ret string
+		return ret
+	}
+	return *o.ProductVersion
+}
+
+// GetProductVersionOk returns a tuple with the ProductVersion field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ProjectPropertiesModel) GetProductVersionOk() (*string, bool) {
+	if o == nil || IsNil(o.ProductVersion) {
+		return nil, false
+	}
+	return o.ProductVersion, true
+}
+
+// HasProductVersion returns a boolean if a field has been set.
+func (o *ProjectPropertiesModel) HasProductVersion() bool {
+	if o != nil && !IsNil(o.ProductVersion) {
+		return true
+	}
+
+	return false
+}
+
+// SetProductVersion gets a reference to the given string and assigns it to the ProductVersion field.
+func (o *ProjectPropertiesModel) SetProductVersion(v string) {
+	o.ProductVersion = &v
+}
+
 func (o ProjectPropertiesModel) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -85,6 +119,9 @@ func (o ProjectPropertiesModel) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	if !IsNil(o.TierParameters) {
 		toSerialize["tierParameters"] = o.TierParameters
+	}
+	if !IsNil(o.ProductVersion) {
+		toSerialize["productVersion"] = o.ProductVersion
 	}
 	return toSerialize, nil
 }

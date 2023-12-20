@@ -15,7 +15,7 @@ type DatabaseResourceModel struct {
 	Project         types.String 						`tfsdk:"project"`
 	Password        types.String 						`tfsdk:"dba_password"`
 	Tier            types.String 						`tfsdk:"tier"`
-	Properties      *DatabasePropertiesResourceModel 	`tfsdk:"properties"`
+	Properties      types.Object 						`tfsdk:"properties"`
 	ResourceVersion types.String 						`tfsdk:"resource_version"`
 	Maintenance     *MaintenanceModel 					`tfsdk:"maintenance"`
 	Timeouts		timeouts.Value 						`tfsdk:"timeouts"`

@@ -1,6 +1,6 @@
 # \DatabasesAPI
 
-All URIs are relative to *http://}*
+All URIs are relative to *https://example.nuodb.com*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
@@ -164,7 +164,7 @@ Name | Type | Description  | Notes
 
 ## GetAllDatabases
 
-> ItemListString GetAllDatabases(ctx).ListAccessible(listAccessible).Execute()
+> ItemListString GetAllDatabases(ctx).LabelFilter(labelFilter).ListAccessible(listAccessible).Execute()
 
 List the databases in the cluster
 
@@ -177,15 +177,16 @@ import (
     "context"
     "fmt"
     "os"
-    openapiclient "github.com/GIT_USER_ID/GIT_REPO_ID"
+    openapiclient "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 func main() {
+    labelFilter := "labelFilter_example" // string | Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are: * `key` - Only return resources that have label with specified key * `key=value` - Only return resources that have label with specified key set to value * `!key` - Only return resources that do _not_ have label with specified key * `key!=value` - Only return resources that do _not_ have label with specified key set to value (optional)
     listAccessible := true // bool | Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level (optional) (default to false)
 
     configuration := openapiclient.NewConfiguration()
     apiClient := openapiclient.NewAPIClient(configuration)
-    resp, r, err := apiClient.DatabasesAPI.GetAllDatabases(context.Background()).ListAccessible(listAccessible).Execute()
+    resp, r, err := apiClient.DatabasesAPI.GetAllDatabases(context.Background()).LabelFilter(labelFilter).ListAccessible(listAccessible).Execute()
     if err != nil {
         fmt.Fprintf(os.Stderr, "Error when calling `DatabasesAPI.GetAllDatabases``: %v\n", err)
         fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
@@ -206,6 +207,7 @@ Other parameters are passed through a pointer to a apiGetAllDatabasesRequest str
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
+ **labelFilter** | **string** | Comma-separated list of filters to apply based on labels, which are composed using &#x60;AND&#x60;. Acceptable filter expressions are: * &#x60;key&#x60; - Only return resources that have label with specified key * &#x60;key&#x3D;value&#x60; - Only return resources that have label with specified key set to value * &#x60;!key&#x60; - Only return resources that do _not_ have label with specified key * &#x60;key!&#x3D;value&#x60; - Only return resources that do _not_ have label with specified key set to value | 
  **listAccessible** | **bool** | Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level | [default to false]
 
 ### Return type
@@ -302,7 +304,7 @@ Name | Type | Description  | Notes
 
 ## GetDatabases
 
-> ItemListString GetDatabases(ctx, organization, project).ListAccessible(listAccessible).Execute()
+> ItemListString GetDatabases(ctx, organization, project).LabelFilter(labelFilter).ListAccessible(listAccessible).Execute()
 
 List the databases in a project
 
@@ -321,11 +323,12 @@ import (
 func main() {
     organization := "organization_example" // string | 
     project := "project_example" // string | 
+    labelFilter := "labelFilter_example" // string | Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are: * `key` - Only return resources that have label with specified key * `key=value` - Only return resources that have label with specified key set to value * `!key` - Only return resources that do _not_ have label with specified key * `key!=value` - Only return resources that do _not_ have label with specified key set to value (optional)
     listAccessible := true // bool | Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level (optional) (default to false)
 
     configuration := openapiclient.NewConfiguration()
     apiClient := openapiclient.NewAPIClient(configuration)
-    resp, r, err := apiClient.DatabasesAPI.GetDatabases(context.Background(), organization, project).ListAccessible(listAccessible).Execute()
+    resp, r, err := apiClient.DatabasesAPI.GetDatabases(context.Background(), organization, project).LabelFilter(labelFilter).ListAccessible(listAccessible).Execute()
     if err != nil {
         fmt.Fprintf(os.Stderr, "Error when calling `DatabasesAPI.GetDatabases``: %v\n", err)
         fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
@@ -353,6 +356,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
 
 
+ **labelFilter** | **string** | Comma-separated list of filters to apply based on labels, which are composed using &#x60;AND&#x60;. Acceptable filter expressions are: * &#x60;key&#x60; - Only return resources that have label with specified key * &#x60;key&#x3D;value&#x60; - Only return resources that have label with specified key set to value * &#x60;!key&#x60; - Only return resources that do _not_ have label with specified key * &#x60;key!&#x3D;value&#x60; - Only return resources that do _not_ have label with specified key set to value | 
  **listAccessible** | **bool** | Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level | [default to false]
 
 ### Return type
@@ -375,7 +379,7 @@ Name | Type | Description  | Notes
 
 ## GetOrganizationDatabases
 
-> ItemListString GetOrganizationDatabases(ctx, organization).ListAccessible(listAccessible).Execute()
+> ItemListString GetOrganizationDatabases(ctx, organization).LabelFilter(labelFilter).ListAccessible(listAccessible).Execute()
 
 List the databases in an organization
 
@@ -388,16 +392,17 @@ import (
     "context"
     "fmt"
     "os"
-    openapiclient "github.com/GIT_USER_ID/GIT_REPO_ID"
+    openapiclient "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 func main() {
     organization := "organization_example" // string | 
+    labelFilter := "labelFilter_example" // string | Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are: * `key` - Only return resources that have label with specified key * `key=value` - Only return resources that have label with specified key set to value * `!key` - Only return resources that do _not_ have label with specified key * `key!=value` - Only return resources that do _not_ have label with specified key set to value (optional)
     listAccessible := true // bool | Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level (optional) (default to false)
 
     configuration := openapiclient.NewConfiguration()
     apiClient := openapiclient.NewAPIClient(configuration)
-    resp, r, err := apiClient.DatabasesAPI.GetOrganizationDatabases(context.Background(), organization).ListAccessible(listAccessible).Execute()
+    resp, r, err := apiClient.DatabasesAPI.GetOrganizationDatabases(context.Background(), organization).LabelFilter(labelFilter).ListAccessible(listAccessible).Execute()
     if err != nil {
         fmt.Fprintf(os.Stderr, "Error when calling `DatabasesAPI.GetOrganizationDatabases``: %v\n", err)
         fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
@@ -423,6 +428,7 @@ Other parameters are passed through a pointer to a apiGetOrganizationDatabasesRe
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
 
+ **labelFilter** | **string** | Comma-separated list of filters to apply based on labels, which are composed using &#x60;AND&#x60;. Acceptable filter expressions are: * &#x60;key&#x60; - Only return resources that have label with specified key * &#x60;key&#x3D;value&#x60; - Only return resources that have label with specified key set to value * &#x60;!key&#x60; - Only return resources that do _not_ have label with specified key * &#x60;key!&#x3D;value&#x60; - Only return resources that do _not_ have label with specified key set to value | 
  **listAccessible** | **bool** | Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level | [default to false]
 
 ### Return type

@@ -7,6 +7,7 @@ Name | Type | Description | Notes
 **Organization** | Pointer to **string** |  | [optional] 
 **Project** | Pointer to **string** |  | [optional] 
 **Name** | Pointer to **string** |  | [optional] 
+**Labels** | Pointer to **map[string]string** | User-defined labels attached to the resource that can be used for filtering | [optional] 
 **Tier** | Pointer to **string** | The service tier for the database. If omitted, the project service tier is inherited. | [optional] 
 **Maintenance** | Pointer to [**MaintenanceModel**](MaintenanceModel.md) |  | [optional] 
 **Properties** | Pointer to [**DatabasePropertiesModel**](DatabasePropertiesModel.md) |  | [optional] 
@@ -106,6 +107,31 @@ SetName sets Name field to given value.
 `func (o *DatabaseModel) HasName() bool`
 
 HasName returns a boolean if a field has been set.
+
+### GetLabels
+
+`func (o *DatabaseModel) GetLabels() map[string]string`
+
+GetLabels returns the Labels field if non-nil, zero value otherwise.
+
+### GetLabelsOk
+
+`func (o *DatabaseModel) GetLabelsOk() (*map[string]string, bool)`
+
+GetLabelsOk returns a tuple with the Labels field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetLabels
+
+`func (o *DatabaseModel) SetLabels(v map[string]string)`
+
+SetLabels sets Labels field to given value.
+
+### HasLabels
+
+`func (o *DatabaseModel) HasLabels() bool`
+
+HasLabels returns a boolean if a field has been set.
 
 ### GetTier
 

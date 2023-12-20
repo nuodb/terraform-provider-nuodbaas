@@ -104,7 +104,7 @@ func (a *HealthzAPIService) GetHealthExecute(r ApiGetHealthRequest) (*http.Respo
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -115,7 +115,7 @@ func (a *HealthzAPIService) GetHealthExecute(r ApiGetHealthRequest) (*http.Respo
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -126,7 +126,7 @@ func (a *HealthzAPIService) GetHealthExecute(r ApiGetHealthRequest) (*http.Respo
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -137,7 +137,7 @@ func (a *HealthzAPIService) GetHealthExecute(r ApiGetHealthRequest) (*http.Respo
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -148,7 +148,7 @@ func (a *HealthzAPIService) GetHealthExecute(r ApiGetHealthRequest) (*http.Respo
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 503 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

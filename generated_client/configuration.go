@@ -94,7 +94,7 @@ func NewConfiguration() *Configuration {
 		Debug:            false,
 		Servers:          ServerConfigurations{
 			{
-				URL: "{{ .Values.cpDoc.serverUrl }}",
+				URL: "https://example.nuodb.com",
 				Description: "No description provided",
 			},
 		},

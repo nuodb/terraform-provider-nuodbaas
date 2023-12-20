@@ -11,16 +11,17 @@ package nuodbaas
 
 import (
 	"context"
+	"testing"
+
+	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
-	openapiclient "github.com/GIT_USER_ID/GIT_REPO_ID"
 )
 
 func Test_nuodbaas_ClusterServicetiersAPIService(t *testing.T) {
 
-	configuration := openapiclient.NewConfiguration()
-	apiClient := openapiclient.NewAPIClient(configuration)
+	configuration := nuodbaas.NewConfiguration()
+	apiClient := nuodbaas.NewAPIClient(configuration)
 
 	t.Run("Test ClusterServicetiersAPIService CreateServiceTier", func(t *testing.T) {
 

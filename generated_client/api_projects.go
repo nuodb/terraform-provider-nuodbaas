@@ -124,7 +124,7 @@ func (a *ProjectsAPIService) CreateProjectExecute(r ApiCreateProjectRequest) (*h
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -135,7 +135,7 @@ func (a *ProjectsAPIService) CreateProjectExecute(r ApiCreateProjectRequest) (*h
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -146,7 +146,7 @@ func (a *ProjectsAPIService) CreateProjectExecute(r ApiCreateProjectRequest) (*h
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -157,7 +157,7 @@ func (a *ProjectsAPIService) CreateProjectExecute(r ApiCreateProjectRequest) (*h
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -168,7 +168,7 @@ func (a *ProjectsAPIService) CreateProjectExecute(r ApiCreateProjectRequest) (*h
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 409 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -179,7 +179,7 @@ func (a *ProjectsAPIService) CreateProjectExecute(r ApiCreateProjectRequest) (*h
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 415 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -190,7 +190,7 @@ func (a *ProjectsAPIService) CreateProjectExecute(r ApiCreateProjectRequest) (*h
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -307,7 +307,7 @@ func (a *ProjectsAPIService) DeleteProjectExecute(r ApiDeleteProjectRequest) (*h
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -318,7 +318,7 @@ func (a *ProjectsAPIService) DeleteProjectExecute(r ApiDeleteProjectRequest) (*h
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -329,7 +329,7 @@ func (a *ProjectsAPIService) DeleteProjectExecute(r ApiDeleteProjectRequest) (*h
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -340,7 +340,7 @@ func (a *ProjectsAPIService) DeleteProjectExecute(r ApiDeleteProjectRequest) (*h
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -351,7 +351,7 @@ func (a *ProjectsAPIService) DeleteProjectExecute(r ApiDeleteProjectRequest) (*h
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 408 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -362,7 +362,7 @@ func (a *ProjectsAPIService) DeleteProjectExecute(r ApiDeleteProjectRequest) (*h
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 409 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -373,7 +373,7 @@ func (a *ProjectsAPIService) DeleteProjectExecute(r ApiDeleteProjectRequest) (*h
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -391,7 +391,14 @@ func (a *ProjectsAPIService) DeleteProjectExecute(r ApiDeleteProjectRequest) (*h
 type ApiGetAllProjectsRequest struct {
 	ctx context.Context
 	ApiService *ProjectsAPIService
+	labelFilter *string
 	listAccessible *bool
+}
+
+// Comma-separated list of filters to apply based on labels, which are composed using &#x60;AND&#x60;. Acceptable filter expressions are: * &#x60;key&#x60; - Only return resources that have label with specified key * &#x60;key&#x3D;value&#x60; - Only return resources that have label with specified key set to value * &#x60;!key&#x60; - Only return resources that do _not_ have label with specified key * &#x60;key!&#x3D;value&#x60; - Only return resources that do _not_ have label with specified key set to value
+func (r ApiGetAllProjectsRequest) LabelFilter(labelFilter string) ApiGetAllProjectsRequest {
+	r.labelFilter = &labelFilter
+	return r
 }
 
 // Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
@@ -438,6 +445,9 @@ func (a *ProjectsAPIService) GetAllProjectsExecute(r ApiGetAllProjectsRequest) (
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
+	if r.labelFilter != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "labelFilter", r.labelFilter, "")
+	}
 	if r.listAccessible != nil {
 		parameterAddToHeaderOrQuery(localVarQueryParams, "listAccessible", r.listAccessible, "")
 	} else {
@@ -484,7 +494,7 @@ func (a *ProjectsAPIService) GetAllProjectsExecute(r ApiGetAllProjectsRequest) (
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -495,7 +505,7 @@ func (a *ProjectsAPIService) GetAllProjectsExecute(r ApiGetAllProjectsRequest) (
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -506,7 +516,7 @@ func (a *ProjectsAPIService) GetAllProjectsExecute(r ApiGetAllProjectsRequest) (
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -517,7 +527,7 @@ func (a *ProjectsAPIService) GetAllProjectsExecute(r ApiGetAllProjectsRequest) (
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -632,7 +642,7 @@ func (a *ProjectsAPIService) GetProjectExecute(r ApiGetProjectRequest) (*Project
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -643,7 +653,7 @@ func (a *ProjectsAPIService) GetProjectExecute(r ApiGetProjectRequest) (*Project
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -654,7 +664,7 @@ func (a *ProjectsAPIService) GetProjectExecute(r ApiGetProjectRequest) (*Project
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -665,7 +675,7 @@ func (a *ProjectsAPIService) GetProjectExecute(r ApiGetProjectRequest) (*Project
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -676,7 +686,7 @@ func (a *ProjectsAPIService) GetProjectExecute(r ApiGetProjectRequest) (*Project
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -704,7 +714,14 @@ type ApiGetProjectsRequest struct {
 	ctx context.Context
 	ApiService *ProjectsAPIService
 	organization string
+	labelFilter *string
 	listAccessible *bool
+}
+
+// Comma-separated list of filters to apply based on labels, which are composed using &#x60;AND&#x60;. Acceptable filter expressions are: * &#x60;key&#x60; - Only return resources that have label with specified key * &#x60;key&#x3D;value&#x60; - Only return resources that have label with specified key set to value * &#x60;!key&#x60; - Only return resources that do _not_ have label with specified key * &#x60;key!&#x3D;value&#x60; - Only return resources that do _not_ have label with specified key set to value
+func (r ApiGetProjectsRequest) LabelFilter(labelFilter string) ApiGetProjectsRequest {
+	r.labelFilter = &labelFilter
+	return r
 }
 
 // Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
@@ -754,6 +771,9 @@ func (a *ProjectsAPIService) GetProjectsExecute(r ApiGetProjectsRequest) (*ItemL
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
+	if r.labelFilter != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "labelFilter", r.labelFilter, "")
+	}
 	if r.listAccessible != nil {
 		parameterAddToHeaderOrQuery(localVarQueryParams, "listAccessible", r.listAccessible, "")
 	} else {
@@ -800,7 +820,7 @@ func (a *ProjectsAPIService) GetProjectsExecute(r ApiGetProjectsRequest) (*ItemL
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -811,7 +831,7 @@ func (a *ProjectsAPIService) GetProjectsExecute(r ApiGetProjectsRequest) (*ItemL
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -822,7 +842,7 @@ func (a *ProjectsAPIService) GetProjectsExecute(r ApiGetProjectsRequest) (*ItemL
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -833,7 +853,7 @@ func (a *ProjectsAPIService) GetProjectsExecute(r ApiGetProjectsRequest) (*ItemL
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -957,7 +977,7 @@ func (a *ProjectsAPIService) PatchProjectExecute(r ApiPatchProjectRequest) (*htt
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -968,7 +988,7 @@ func (a *ProjectsAPIService) PatchProjectExecute(r ApiPatchProjectRequest) (*htt
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -979,7 +999,7 @@ func (a *ProjectsAPIService) PatchProjectExecute(r ApiPatchProjectRequest) (*htt
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -990,7 +1010,7 @@ func (a *ProjectsAPIService) PatchProjectExecute(r ApiPatchProjectRequest) (*htt
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -1001,7 +1021,7 @@ func (a *ProjectsAPIService) PatchProjectExecute(r ApiPatchProjectRequest) (*htt
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 409 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -1012,7 +1032,7 @@ func (a *ProjectsAPIService) PatchProjectExecute(r ApiPatchProjectRequest) (*htt
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 415 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -1023,7 +1043,7 @@ func (a *ProjectsAPIService) PatchProjectExecute(r ApiPatchProjectRequest) (*htt
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

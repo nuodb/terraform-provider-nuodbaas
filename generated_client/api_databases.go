@@ -128,7 +128,7 @@ func (a *DatabasesAPIService) CreateDatabaseExecute(r ApiCreateDatabaseRequest) 
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -139,7 +139,7 @@ func (a *DatabasesAPIService) CreateDatabaseExecute(r ApiCreateDatabaseRequest) 
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -150,7 +150,7 @@ func (a *DatabasesAPIService) CreateDatabaseExecute(r ApiCreateDatabaseRequest) 
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -161,7 +161,7 @@ func (a *DatabasesAPIService) CreateDatabaseExecute(r ApiCreateDatabaseRequest) 
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -172,7 +172,7 @@ func (a *DatabasesAPIService) CreateDatabaseExecute(r ApiCreateDatabaseRequest) 
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 409 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -183,7 +183,18 @@ func (a *DatabasesAPIService) CreateDatabaseExecute(r ApiCreateDatabaseRequest) 
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 415 {
-			var v ErrorContentString
+			var v ErrorContent
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+			return localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -194,7 +205,7 @@ func (a *DatabasesAPIService) CreateDatabaseExecute(r ApiCreateDatabaseRequest) 
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -315,7 +326,7 @@ func (a *DatabasesAPIService) DeleteDatabaseExecute(r ApiDeleteDatabaseRequest) 
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -326,7 +337,7 @@ func (a *DatabasesAPIService) DeleteDatabaseExecute(r ApiDeleteDatabaseRequest) 
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -337,7 +348,7 @@ func (a *DatabasesAPIService) DeleteDatabaseExecute(r ApiDeleteDatabaseRequest) 
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -348,7 +359,7 @@ func (a *DatabasesAPIService) DeleteDatabaseExecute(r ApiDeleteDatabaseRequest) 
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -359,7 +370,7 @@ func (a *DatabasesAPIService) DeleteDatabaseExecute(r ApiDeleteDatabaseRequest) 
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 408 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -370,7 +381,7 @@ func (a *DatabasesAPIService) DeleteDatabaseExecute(r ApiDeleteDatabaseRequest) 
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -388,7 +399,14 @@ func (a *DatabasesAPIService) DeleteDatabaseExecute(r ApiDeleteDatabaseRequest) 
 type ApiGetAllDatabasesRequest struct {
 	ctx context.Context
 	ApiService *DatabasesAPIService
+	labelFilter *string
 	listAccessible *bool
+}
+
+// Comma-separated list of filters to apply based on labels, which are composed using &#x60;AND&#x60;. Acceptable filter expressions are: * &#x60;key&#x60; - Only return resources that have label with specified key * &#x60;key&#x3D;value&#x60; - Only return resources that have label with specified key set to value * &#x60;!key&#x60; - Only return resources that do _not_ have label with specified key * &#x60;key!&#x3D;value&#x60; - Only return resources that do _not_ have label with specified key set to value
+func (r ApiGetAllDatabasesRequest) LabelFilter(labelFilter string) ApiGetAllDatabasesRequest {
+	r.labelFilter = &labelFilter
+	return r
 }
 
 // Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
@@ -435,6 +453,9 @@ func (a *DatabasesAPIService) GetAllDatabasesExecute(r ApiGetAllDatabasesRequest
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
+	if r.labelFilter != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "labelFilter", r.labelFilter, "")
+	}
 	if r.listAccessible != nil {
 		parameterAddToHeaderOrQuery(localVarQueryParams, "listAccessible", r.listAccessible, "")
 	} else {
@@ -481,7 +502,7 @@ func (a *DatabasesAPIService) GetAllDatabasesExecute(r ApiGetAllDatabasesRequest
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -492,7 +513,7 @@ func (a *DatabasesAPIService) GetAllDatabasesExecute(r ApiGetAllDatabasesRequest
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -503,7 +524,7 @@ func (a *DatabasesAPIService) GetAllDatabasesExecute(r ApiGetAllDatabasesRequest
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -514,7 +535,7 @@ func (a *DatabasesAPIService) GetAllDatabasesExecute(r ApiGetAllDatabasesRequest
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -633,7 +654,7 @@ func (a *DatabasesAPIService) GetDatabaseExecute(r ApiGetDatabaseRequest) (*Data
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -644,7 +665,7 @@ func (a *DatabasesAPIService) GetDatabaseExecute(r ApiGetDatabaseRequest) (*Data
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -655,7 +676,7 @@ func (a *DatabasesAPIService) GetDatabaseExecute(r ApiGetDatabaseRequest) (*Data
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -666,7 +687,7 @@ func (a *DatabasesAPIService) GetDatabaseExecute(r ApiGetDatabaseRequest) (*Data
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -677,7 +698,7 @@ func (a *DatabasesAPIService) GetDatabaseExecute(r ApiGetDatabaseRequest) (*Data
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -706,7 +727,14 @@ type ApiGetDatabasesRequest struct {
 	ApiService *DatabasesAPIService
 	organization string
 	project string
+	labelFilter *string
 	listAccessible *bool
+}
+
+// Comma-separated list of filters to apply based on labels, which are composed using &#x60;AND&#x60;. Acceptable filter expressions are: * &#x60;key&#x60; - Only return resources that have label with specified key * &#x60;key&#x3D;value&#x60; - Only return resources that have label with specified key set to value * &#x60;!key&#x60; - Only return resources that do _not_ have label with specified key * &#x60;key!&#x3D;value&#x60; - Only return resources that do _not_ have label with specified key set to value
+func (r ApiGetDatabasesRequest) LabelFilter(labelFilter string) ApiGetDatabasesRequest {
+	r.labelFilter = &labelFilter
+	return r
 }
 
 // Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
@@ -759,6 +787,9 @@ func (a *DatabasesAPIService) GetDatabasesExecute(r ApiGetDatabasesRequest) (*It
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
+	if r.labelFilter != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "labelFilter", r.labelFilter, "")
+	}
 	if r.listAccessible != nil {
 		parameterAddToHeaderOrQuery(localVarQueryParams, "listAccessible", r.listAccessible, "")
 	} else {
@@ -805,7 +836,7 @@ func (a *DatabasesAPIService) GetDatabasesExecute(r ApiGetDatabasesRequest) (*It
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -816,7 +847,7 @@ func (a *DatabasesAPIService) GetDatabasesExecute(r ApiGetDatabasesRequest) (*It
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -827,7 +858,7 @@ func (a *DatabasesAPIService) GetDatabasesExecute(r ApiGetDatabasesRequest) (*It
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -838,7 +869,7 @@ func (a *DatabasesAPIService) GetDatabasesExecute(r ApiGetDatabasesRequest) (*It
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -849,7 +880,7 @@ func (a *DatabasesAPIService) GetDatabasesExecute(r ApiGetDatabasesRequest) (*It
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -877,7 +908,14 @@ type ApiGetOrganizationDatabasesRequest struct {
 	ctx context.Context
 	ApiService *DatabasesAPIService
 	organization string
+	labelFilter *string
 	listAccessible *bool
+}
+
+// Comma-separated list of filters to apply based on labels, which are composed using &#x60;AND&#x60;. Acceptable filter expressions are: * &#x60;key&#x60; - Only return resources that have label with specified key * &#x60;key&#x3D;value&#x60; - Only return resources that have label with specified key set to value * &#x60;!key&#x60; - Only return resources that do _not_ have label with specified key * &#x60;key!&#x3D;value&#x60; - Only return resources that do _not_ have label with specified key set to value
+func (r ApiGetOrganizationDatabasesRequest) LabelFilter(labelFilter string) ApiGetOrganizationDatabasesRequest {
+	r.labelFilter = &labelFilter
+	return r
 }
 
 // Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
@@ -927,6 +965,9 @@ func (a *DatabasesAPIService) GetOrganizationDatabasesExecute(r ApiGetOrganizati
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
+	if r.labelFilter != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "labelFilter", r.labelFilter, "")
+	}
 	if r.listAccessible != nil {
 		parameterAddToHeaderOrQuery(localVarQueryParams, "listAccessible", r.listAccessible, "")
 	} else {
@@ -973,7 +1014,7 @@ func (a *DatabasesAPIService) GetOrganizationDatabasesExecute(r ApiGetOrganizati
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -984,7 +1025,7 @@ func (a *DatabasesAPIService) GetOrganizationDatabasesExecute(r ApiGetOrganizati
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -995,7 +1036,7 @@ func (a *DatabasesAPIService) GetOrganizationDatabasesExecute(r ApiGetOrganizati
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -1006,7 +1047,7 @@ func (a *DatabasesAPIService) GetOrganizationDatabasesExecute(r ApiGetOrganizati
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -1134,7 +1175,7 @@ func (a *DatabasesAPIService) PatchDatabaseExecute(r ApiPatchDatabaseRequest) (*
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -1145,7 +1186,7 @@ func (a *DatabasesAPIService) PatchDatabaseExecute(r ApiPatchDatabaseRequest) (*
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -1156,7 +1197,7 @@ func (a *DatabasesAPIService) PatchDatabaseExecute(r ApiPatchDatabaseRequest) (*
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -1167,7 +1208,7 @@ func (a *DatabasesAPIService) PatchDatabaseExecute(r ApiPatchDatabaseRequest) (*
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -1178,7 +1219,7 @@ func (a *DatabasesAPIService) PatchDatabaseExecute(r ApiPatchDatabaseRequest) (*
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 409 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -1189,7 +1230,18 @@ func (a *DatabasesAPIService) PatchDatabaseExecute(r ApiPatchDatabaseRequest) (*
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 415 {
-			var v ErrorContentString
+			var v ErrorContent
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+			return localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 422 {
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -1200,7 +1252,7 @@ func (a *DatabasesAPIService) PatchDatabaseExecute(r ApiPatchDatabaseRequest) (*
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

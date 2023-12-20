@@ -191,7 +191,7 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		var maintenance = state.Maintenance
 		
 		if projectModel.Maintenance.IsDisabled != nil {
-			if (state.Maintenance.IsDisabled.IsNull() && *projectModel.Maintenance.IsDisabled) || !state.Maintenance.IsDisabled.IsNull() {
+			if (state.Maintenance != nil && state.Maintenance.IsDisabled.IsNull() && *projectModel.Maintenance.IsDisabled) || (state.Maintenance!= nil && !state.Maintenance.IsDisabled.IsNull()) {
 				maintenance.IsDisabled = types.BoolValue(*projectModel.Maintenance.IsDisabled)
 			}
 		}
@@ -203,7 +203,7 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 			TierParameters: types.MapNull(types.StringType),
 		}
 
-		if projectModel.Properties.TierParameters != nil {
+		if len(*projectModel.Properties.TierParameters) != 0 {
 			mapValue, diags := helper.ConvertMapToTfMap(projectModel.Properties.TierParameters)
 			resp.Diagnostics.Append(diags...)
 			if resp.Diagnostics.HasError() {
@@ -211,8 +211,10 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 			}
 			propertiesModel.TierParameters = mapValue
 		}
-
-		state.Properties = &propertiesModel
+		if len(*projectModel.Properties.TierParameters) != 0 {
+			state.Properties = &propertiesModel
+		}
+		
 	}
 
 	state.Tier = types.StringValue(projectModel.Tier)

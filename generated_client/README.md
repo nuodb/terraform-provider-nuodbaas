@@ -74,7 +74,7 @@ ctx = context.WithValue(context.Background(), nuodbaas.ContextOperationServerVar
 
 ## Documentation for API Endpoints
 
-All URIs are relative to *http://}*
+All URIs are relative to *https://example.nuodb.com*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
@@ -130,7 +130,7 @@ Class | Method | HTTP request | Description
  - [DbaasAccessRuleModel](docs/DbaasAccessRuleModel.md)
  - [DbaasUserCreateUpdateModel](docs/DbaasUserCreateUpdateModel.md)
  - [DbaasUserModel](docs/DbaasUserModel.md)
- - [ErrorContentString](docs/ErrorContentString.md)
+ - [ErrorContent](docs/ErrorContent.md)
  - [Features](docs/Features.md)
  - [FieldSelector](docs/FieldSelector.md)
  - [HelmFeatureModel](docs/HelmFeatureModel.md)

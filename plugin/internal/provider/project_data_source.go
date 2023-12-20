@@ -44,17 +44,17 @@ func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaReque
 			},
 			"sla": schema.StringAttribute{
 				MarkdownDescription: "The SLA for the project. Cannot be updated once the project is created.",
-				Optional: true,
+				Computed: true,
 			},
 			"tier": schema.StringAttribute{
 				MarkdownDescription: "The Tier for the project. Cannot be updated once the project is created.",
-				Optional: true,
+				Computed: true,
 			},
 			"maintenance": schema.SingleNestedAttribute{
-				Optional: true,
+				Computed: true,
 				Attributes: map[string]schema.Attribute{
 					"is_disabled": schema.BoolAttribute{
-						Optional: true,
+						Computed: true,
 					},
 				},
 			},
@@ -62,7 +62,7 @@ func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaReque
 				Computed: true,
 			},
 			"properties": schema.SingleNestedAttribute{
-				Optional: true,
+				Computed: true,
 				Attributes: map[string]schema.Attribute{
 					"tier_parameters": schema.MapAttribute{
 						Optional: true,
@@ -136,10 +136,6 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	state = projectStateModel
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
 
 }
 

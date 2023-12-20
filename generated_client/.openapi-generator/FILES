@@ -28,7 +28,7 @@ docs/DatabasesAPI.md
 docs/DbaasAccessRuleModel.md
 docs/DbaasUserCreateUpdateModel.md
 docs/DbaasUserModel.md
-docs/ErrorContentString.md
+docs/ErrorContent.md
 docs/Features.md
 docs/FieldSelector.md
 docs/HealthzAPI.md
@@ -65,7 +65,7 @@ model_databasequotaspec_scope_labelselector_match_expressions.go
 model_dbaas_access_rule_model.go
 model_dbaas_user_create_update_model.go
 model_dbaas_user_model.go
-model_error_content_string.go
+model_error_content.go
 model_features.go
 model_field_selector.go
 model_helm_feature_model.go

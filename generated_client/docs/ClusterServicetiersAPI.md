@@ -1,6 +1,6 @@
 # \ClusterServicetiersAPI
 
-All URIs are relative to *http://}*
+All URIs are relative to *https://example.nuodb.com*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
@@ -27,7 +27,7 @@ import (
     "context"
     "fmt"
     "os"
-    openapiclient "github.com/GIT_USER_ID/GIT_REPO_ID"
+    openapiclient "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 func main() {
@@ -95,7 +95,7 @@ import (
     "context"
     "fmt"
     "os"
-    openapiclient "github.com/GIT_USER_ID/GIT_REPO_ID"
+    openapiclient "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 func main() {
@@ -163,7 +163,7 @@ import (
     "context"
     "fmt"
     "os"
-    openapiclient "github.com/GIT_USER_ID/GIT_REPO_ID"
+    openapiclient "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 func main() {
@@ -231,7 +231,7 @@ import (
     "context"
     "fmt"
     "os"
-    openapiclient "github.com/GIT_USER_ID/GIT_REPO_ID"
+    openapiclient "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 func main() {
@@ -290,7 +290,7 @@ import (
     "context"
     "fmt"
     "os"
-    openapiclient "github.com/GIT_USER_ID/GIT_REPO_ID"
+    openapiclient "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 func main() {

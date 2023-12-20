@@ -22,9 +22,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
@@ -80,7 +83,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 			},
 			"dba_password": schema.StringAttribute{
 				MarkdownDescription: "Database password. Cannot be updated once database is created",
-				Required:            true,
+				Required:  true,
 				Sensitive: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -88,7 +91,8 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 			},
 			"tier": schema.StringAttribute{
 				MarkdownDescription: "The Tier for the project. Cannot be updated once the database is created.",
-				Required:            true,
+				Optional: true,
+				Computed: true,
 			},
 			"maintenance": schema.SingleNestedAttribute{
 				Optional: true,
@@ -109,6 +113,10 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 			},
 			"properties": schema.SingleNestedAttribute{
 				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
 				Attributes: map[string]schema.Attribute{
 					"archive_disk_size": schema.StringAttribute{
 						MarkdownDescription: "The size of the archive volumes for the database. Can be only updated to increase the volume size",
@@ -127,14 +135,17 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 			},
 			"status": schema.SingleNestedAttribute{
 				Computed: true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
 				Attributes: map[string]schema.Attribute{
 					"sql_end_point": schema.StringAttribute{
 						MarkdownDescription: "The endpoint for SQL clients to connect to",
-						Optional: true,
+						Computed: true,
 					},
 					"ca_pem": schema.StringAttribute{
 						MarkdownDescription: "The PEM-encoded certificate for SQL clients to verify database servers",
-						Optional: true,
+						Computed: true,
 					},
 				},
 			},
@@ -171,11 +182,16 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &state)...)
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var propertiesModel propertiesResourceModel
 
-	var propertiesModel *propertiesResourceModel = state.Properties
+	resp.Diagnostics.Append(state.Properties.As(ctx, &propertiesModel, basetypes.ObjectAsOptions{UnhandledUnknownAsEmpty: true, UnhandledNullAsEmpty: true})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	
 	createTimeout, diags:= state.Timeouts.Create(ctx, 30*time.Minute)
 	resp.Diagnostics.Append(diags...)
@@ -189,7 +205,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	defer cancel()
 	
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	httpResponse, err := databaseClient.CreateDatabase(state, state.Maintenance, propertiesModel)
+	httpResponse, err := databaseClient.CreateDatabase(state, state.Maintenance, &propertiesModel)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -241,25 +257,27 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	state.ResourceVersion = types.StringValue(*databaseModel.ResourceVersion)
 	state.Tier = types.StringValue(*databaseModel.Tier)
 
-	propertiesValue := propertiesResourceModel{
-		TierParameters: types.MapNull(types.StringType),
+	propertiesValue := map[string]attr.Value{
+		"tier_parameters": types.MapNull(types.StringType),
+		"journal_disk_size": types.StringNull(),
 	}
 
 	if databaseModel.Properties.ArchiveDiskSize != nil {
-		propertiesValue.ArchiveDiskSize = types.StringValue(*databaseModel.Properties.ArchiveDiskSize)
+		propertiesValue["archive_disk_size"] = types.StringValue(*databaseModel.Properties.ArchiveDiskSize)
 	}
 
 	if databaseModel.Properties.JournalDiskSize != nil {
-		propertiesValue.JournalDiskSize = types.StringValue(*databaseModel.Properties.JournalDiskSize)
+		propertiesValue["journal_disk_size"] = types.StringValue(*databaseModel.Properties.JournalDiskSize)
 	}
 
-	if databaseModel.Properties.TierParameters != nil {
+	if len(*databaseModel.Properties.TierParameters) != 0 {
+		tflog.Debug(ctx, fmt.Sprintf("TAGGER we have tier parameters %+v", databaseModel.Properties.TierParameters))
 		mapValue, diags := helper.ConvertMapToTfMap(databaseModel.Properties.TierParameters)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		propertiesValue.TierParameters = mapValue
+		propertiesValue["tier_parameters"] = mapValue
 	}
 
 	if databaseModel.Maintenance != nil {
@@ -271,8 +289,14 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 		}
 		state.Maintenance = maintenanceModel
 	}
+
+	convertPropertiesType := map[string]attr.Type{
+		"archive_disk_size" : types.StringType,
+		"journal_disk_size" : types.StringType,
+		"tier_parameters" : types.MapType{ElemType: types.StringType},
+	}
 	
-	state.Properties = &propertiesValue
+	state.Properties = basetypes.NewObjectValueMust(convertPropertiesType, propertiesValue)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -289,13 +313,17 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	var propertiesModel *propertiesResourceModel = state.Properties
+	var propertiesModel propertiesResourceModel
+	resp.Diagnostics.Append(state.Properties.As(ctx, &propertiesModel, basetypes.ObjectAsOptions{UnhandledUnknownAsEmpty: true, UnhandledNullAsEmpty: true})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	httpResponse, err := databaseClient.UpdateDatabase(state, state.Maintenance, propertiesModel)
+	httpResponse, err := databaseClient.UpdateDatabase(state, state.Maintenance, &propertiesModel)
 	
 	if httpResponse.StatusCode == 409 {
-		updateResponseObj, retryError, isUpdated := r.retryUpdate(ctx, state, state.Maintenance, propertiesModel)
+		updateResponseObj, retryError, isUpdated := r.retryUpdate(ctx, state, state.Maintenance, &propertiesModel)
 
 		// This if condition is to update error if the resource is not updated even after retry
 		if !isUpdated {
@@ -373,7 +401,7 @@ func (r *DatabaseResource) retryUpdate(ctx context.Context, state databaseResour
 func (r *DatabaseResource) waitForDatabase(ctx context.Context, databaseClient *nuodbaas_client.NuodbaasDatabaseClient ) (*nuodbaas.DatabaseModel, *http.Response, error){
 
 	var getDatabaseModel *nuodbaas.DatabaseModel
-	for i := 0; i<15; i++ {
+	for {
 		databaseModel, httpResponse, err := databaseClient.GetDatabase()
 		getDatabaseModel = databaseModel
 		if err != nil {
@@ -407,17 +435,18 @@ func (r *DatabaseResource) updateStateWithComputedValues(ctx context.Context, st
 	if stateType == "create" {
 		state.ResourceVersion = types.StringValue(*getDatabaseModel.ResourceVersion)
 	}
-
-	propertiesValue := propertiesResourceModel{
-		ArchiveDiskSize: types.StringValue(*getDatabaseModel.Properties.ArchiveDiskSize),
-		TierParameters: types.MapNull(types.StringType),
+	propertiesValue := map[string]attr.Value{
+		"tier_parameters": types.MapNull(types.StringType),
+		"archive_disk_size": types.StringValue(*getDatabaseModel.Properties.ArchiveDiskSize),
+		"journal_disk_size": types.StringNull(),
 	}
+
 
 	if getDatabaseModel.Properties.JournalDiskSize != nil {
-		propertiesValue.JournalDiskSize = types.StringValue(*getDatabaseModel.Properties.JournalDiskSize)
+		propertiesValue["journal_disk_size"] = types.StringValue(*getDatabaseModel.Properties.JournalDiskSize)
 	}
 
-	if getDatabaseModel.Properties.TierParameters != nil {
+	if len(getDatabaseModel.Properties.GetTierParameters()) != 0 {
 		mapValue, diags := helper.ConvertMapToTfMap(getDatabaseModel.Properties.TierParameters)
 		diagnostics = append(diagnostics, diags...)
 		
@@ -425,7 +454,7 @@ func (r *DatabaseResource) updateStateWithComputedValues(ctx context.Context, st
 		if diagnostics.HasError() {
 			return nil, diagnostics
 		}
-		propertiesValue.TierParameters = mapValue
+		propertiesValue["tier_parameters"] = mapValue
 	}
 
 	if getDatabaseModel.Status != nil {
@@ -445,7 +474,14 @@ func (r *DatabaseResource) updateStateWithComputedValues(ctx context.Context, st
 		state.Status = status
 	}
 
-	state.Properties = &propertiesValue
+	convertPropertiesType := map[string]attr.Type{
+		"archive_disk_size" : types.StringType,
+		"journal_disk_size" : types.StringType,
+		"tier_parameters" : types.MapType{ElemType: types.StringType},
+	}
+	
+	state.Properties = basetypes.NewObjectValueMust(convertPropertiesType, propertiesValue)
+	state.Tier = types.StringValue(*getDatabaseModel.Tier)
 
 	return state, diagnostics
 }

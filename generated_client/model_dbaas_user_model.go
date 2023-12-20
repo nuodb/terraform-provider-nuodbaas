@@ -23,6 +23,8 @@ var _ MappedNullable = &DbaasUserModel{}
 type DbaasUserModel struct {
 	Organization *string `json:"organization,omitempty"`
 	Name *string `json:"name,omitempty"`
+	// User-defined labels attached to the resource that can be used for filtering
+	Labels *map[string]string `json:"labels,omitempty"`
 	AccessRule DbaasAccessRuleModel `json:"accessRule"`
 	// The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.
 	ResourceVersion *string `json:"resourceVersion,omitempty"`
@@ -112,6 +114,38 @@ func (o *DbaasUserModel) SetName(v string) {
 	o.Name = &v
 }
 
+// GetLabels returns the Labels field value if set, zero value otherwise.
+func (o *DbaasUserModel) GetLabels() map[string]string {
+	if o == nil || IsNil(o.Labels) {
+		var ret map[string]string
+		return ret
+	}
+	return *o.Labels
+}
+
+// GetLabelsOk returns a tuple with the Labels field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *DbaasUserModel) GetLabelsOk() (*map[string]string, bool) {
+	if o == nil || IsNil(o.Labels) {
+		return nil, false
+	}
+	return o.Labels, true
+}
+
+// HasLabels returns a boolean if a field has been set.
+func (o *DbaasUserModel) HasLabels() bool {
+	if o != nil && !IsNil(o.Labels) {
+		return true
+	}
+
+	return false
+}
+
+// SetLabels gets a reference to the given map[string]string and assigns it to the Labels field.
+func (o *DbaasUserModel) SetLabels(v map[string]string) {
+	o.Labels = &v
+}
+
 // GetAccessRule returns the AccessRule field value
 func (o *DbaasUserModel) GetAccessRule() DbaasAccessRuleModel {
 	if o == nil {
@@ -183,6 +217,9 @@ func (o DbaasUserModel) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.Name) {
 		toSerialize["name"] = o.Name
+	}
+	if !IsNil(o.Labels) {
+		toSerialize["labels"] = o.Labels
 	}
 	toSerialize["accessRule"] = o.AccessRule
 	if !IsNil(o.ResourceVersion) {

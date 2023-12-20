@@ -23,6 +23,8 @@ var _ MappedNullable = &ProjectModel{}
 type ProjectModel struct {
 	Organization *string `json:"organization,omitempty"`
 	Name *string `json:"name,omitempty"`
+	// User-defined labels attached to the resource that can be used for filtering
+	Labels *map[string]string `json:"labels,omitempty"`
 	// The SLA for the project. Cannot be updated once the project is created.
 	Sla string `json:"sla"`
 	// The service tier for the project
@@ -117,6 +119,38 @@ func (o *ProjectModel) HasName() bool {
 // SetName gets a reference to the given string and assigns it to the Name field.
 func (o *ProjectModel) SetName(v string) {
 	o.Name = &v
+}
+
+// GetLabels returns the Labels field value if set, zero value otherwise.
+func (o *ProjectModel) GetLabels() map[string]string {
+	if o == nil || IsNil(o.Labels) {
+		var ret map[string]string
+		return ret
+	}
+	return *o.Labels
+}
+
+// GetLabelsOk returns a tuple with the Labels field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ProjectModel) GetLabelsOk() (*map[string]string, bool) {
+	if o == nil || IsNil(o.Labels) {
+		return nil, false
+	}
+	return o.Labels, true
+}
+
+// HasLabels returns a boolean if a field has been set.
+func (o *ProjectModel) HasLabels() bool {
+	if o != nil && !IsNil(o.Labels) {
+		return true
+	}
+
+	return false
+}
+
+// SetLabels gets a reference to the given map[string]string and assigns it to the Labels field.
+func (o *ProjectModel) SetLabels(v map[string]string) {
+	o.Labels = &v
 }
 
 // GetSla returns the Sla field value
@@ -310,6 +344,9 @@ func (o ProjectModel) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.Name) {
 		toSerialize["name"] = o.Name
+	}
+	if !IsNil(o.Labels) {
+		toSerialize["labels"] = o.Labels
 	}
 	toSerialize["sla"] = o.Sla
 	toSerialize["tier"] = o.Tier

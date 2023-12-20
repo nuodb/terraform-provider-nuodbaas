@@ -86,8 +86,6 @@ func (d *projectsDataSource) Read(ctx context.Context, req datasource.ReadReques
 
 	filter := state.Filter
 
-	// resp.Diagnostics.Append(state.Filter.As(ctx, &filter, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -102,8 +100,6 @@ func (d *projectsDataSource) Read(ctx context.Context, req datasource.ReadReques
 
 	projects, httpResponse, err := projectClient.GetProjects()
 
-	projectDataSourceResponseList := helper.GetProjectDataSourceResponse(projects)
-	
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error getting projects",
@@ -112,13 +108,12 @@ func (d *projectsDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
+	projectDataSourceResponseList := helper.GetProjectDataSourceResponse(projects)
+	
+
 	state.Projects = projectDataSourceResponseList
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
 
 }
 
