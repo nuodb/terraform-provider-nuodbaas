@@ -15,23 +15,25 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
+	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
+// Return a generic error message if the provided provider attribute is missing
 func GetProviderValidatorErrorMessage(valueType string, envVariable string) string {
 	return fmt.Sprintf("The provider cannot create the NuoDbaas API client as there is a missing or empty value for the NuoDbaas API %v. "+
 		"Set the %v value in the configuration or use the %v environment variable. "+
 		"If either is already set, ensure the value is not empty.", valueType, valueType, envVariable)
 }
 
-func GetHttpResponseObj(httpResponse *http.Response, target interface{}) error {
+func getHttpResponseObj(httpResponse *http.Response, target interface{}) error {
 	defer httpResponse.Body.Close()
 	return json.NewDecoder(httpResponse.Body).Decode(target)
 }
 
-func GetHttpResponseModel(httpResponse *http.Response) *model.ErrorModel {
-	errorModel := &model.ErrorModel{}
-	errorObj := GetHttpResponseObj(httpResponse, errorModel)
+// Extracts the Error Model from the http.Response struct
+func GetHttpResponseModel(httpResponse *http.Response) *nuodbaas.ErrorContentString {
+	errorModel := &nuodbaas.ErrorContentString{}
+	errorObj := getHttpResponseObj(httpResponse, errorModel)
 	if errorObj != nil {
 		return nil
 	} 
@@ -39,14 +41,15 @@ func GetHttpResponseModel(httpResponse *http.Response) *model.ErrorModel {
 }
 
 
+// Returns the readable error message string provided by the client
 func GetHttpResponseErrorMessage(httpResponse *http.Response, err error) string {
-	errorModel := &model.ErrorModel{}
-	errorObj := GetHttpResponseObj(httpResponse, errorModel)
+	errorModel := &nuodbaas.ErrorContentString{}
+	errorObj := getHttpResponseObj(httpResponse, errorModel)
 
 	if errorObj != nil {
 		return err.Error()
 	} 
-	return errorModel.Detail
+	return errorModel.GetDetail()
 }
 
 
@@ -58,6 +61,7 @@ func IsTimeoutError(err error) bool {
    return false
 }
 
+// Removes any extra double quotes that are added in the string
 func RemoveDoubleQuotes(s string) string {
 	if len(s) > 0 && s[0] == '"' {
 		s = s[1:]
@@ -68,11 +72,12 @@ func RemoveDoubleQuotes(s string) string {
 	return s
 }
 
+// Converts map[string]string to basetypes.MapValue
 func ConvertMapToTfMap(mapObj *map[string]string) (basetypes.MapValue, diag.Diagnostics){
-	tierParameters := map[string]attr.Value{}
+	mapValue := map[string]attr.Value{}
 	for k,v := range *mapObj {
-		tierParameters[k] = types.StringValue(v)
+		mapValue[k] = types.StringValue(v)
 	}
-	mapValue, diags := types.MapValue(types.StringType, tierParameters)
-	return mapValue, diags
+	tfMapValue, diags := types.MapValue(types.StringType, mapValue)
+	return tfMapValue, diags
 }

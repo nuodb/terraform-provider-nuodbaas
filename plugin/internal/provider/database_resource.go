@@ -27,7 +27,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
@@ -153,6 +152,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 		Blocks: map[string]schema.Block{
 			"timeouts": timeouts.Block(ctx, timeouts.Opts {
 				Create: true,
+				Update: true,
 			}),
 		},
 	}
@@ -192,15 +192,14 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	
-	createTimeout, diags:= state.Timeouts.Create(ctx, 30*time.Minute)
+
+	ctx, diags, cancel := r.updateContextWithTimeout(ctx, state, "create")
+
 	resp.Diagnostics.Append(diags...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	ctx, cancel := context.WithTimeout(ctx, createTimeout)
 
 	defer cancel()
 	
@@ -215,7 +214,21 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	updateState, diags := r.updateStateWithComputedValues(ctx, &state, databaseClient, "create")
+	getDatabaseModel, httpResponse, err := r.waitForDatabase(ctx, databaseClient)
+
+	if err!= nil && helper.IsTimeoutError(err) {
+		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Timeout error %+v", state.Name.ValueString()))
+		return
+	}
+
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading Database",
+			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err))
+		return
+	}
+
+	updateState, diags := r.updateStateWithComputedValues(ctx, &state, getDatabaseModel, "create")
 
 	resp.Diagnostics.Append(diags...)
 
@@ -236,11 +249,12 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	databaseModel, httpResponse, err := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).GetDatabase()
+	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
+	getDatabaseModel, httpResponse, err := databaseClient.GetDatabase()
 
 	if err != nil {
 		errorModel := helper.GetHttpResponseModel(httpResponse)
-		if errorModel != nil && errorModel.Status == "HTTP 404 Not Found"{
+		if errorModel != nil && errorModel.GetStatus() == "HTTP 404 Not Found"{
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -248,58 +262,21 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading database",
-			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err),
-		)
+			"Error reading Database",
+			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err))
 		return
 	}
 
-	state.ResourceVersion = types.StringValue(*databaseModel.ResourceVersion)
-	state.Tier = types.StringValue(*databaseModel.Tier)
-
-	propertiesValue := map[string]attr.Value{
-		"tier_parameters": types.MapNull(types.StringType),
-		"journal_disk_size": types.StringNull(),
-	}
-
-	if databaseModel.Properties.ArchiveDiskSize != nil {
-		propertiesValue["archive_disk_size"] = types.StringValue(*databaseModel.Properties.ArchiveDiskSize)
-	}
-
-	if databaseModel.Properties.JournalDiskSize != nil {
-		propertiesValue["journal_disk_size"] = types.StringValue(*databaseModel.Properties.JournalDiskSize)
-	}
-
-	if len(*databaseModel.Properties.TierParameters) != 0 {
-		tflog.Debug(ctx, fmt.Sprintf("TAGGER we have tier parameters %+v", databaseModel.Properties.TierParameters))
-		mapValue, diags := helper.ConvertMapToTfMap(databaseModel.Properties.TierParameters)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		propertiesValue["tier_parameters"] = mapValue
-	}
-
-	if databaseModel.Maintenance != nil {
-		maintenanceModel := state.Maintenance
-		if databaseModel.Maintenance.IsDisabled != nil {
-			if (state.Maintenance.IsDisabled.IsNull() && *databaseModel.Maintenance.IsDisabled) || !state.Maintenance.IsDisabled.IsNull() {
-				maintenanceModel.IsDisabled = types.BoolValue(*databaseModel.Maintenance.IsDisabled)
-			}
-		}
-		state.Maintenance = maintenanceModel
-	}
-
-	convertPropertiesType := map[string]attr.Type{
-		"archive_disk_size" : types.StringType,
-		"journal_disk_size" : types.StringType,
-		"tier_parameters" : types.MapType{ElemType: types.StringType},
-	}
+	readState, diags := r.updateStateWithComputedValues(ctx, &state, getDatabaseModel, "read")
 	
-	state.Properties = basetypes.NewObjectValueMust(convertPropertiesType, propertiesValue)
+	resp.Diagnostics.Append(diags...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, readState)...)
 
 }
 
@@ -319,11 +296,21 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
+	ctx, diags, cancel := r.updateContextWithTimeout(ctx, state, "update")
+
+	resp.Diagnostics.Append(diags...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	defer cancel()
+
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
 	httpResponse, err := databaseClient.UpdateDatabase(state, state.Maintenance, &propertiesModel)
 	
 	if httpResponse.StatusCode == 409 {
-		updateResponseObj, retryError, isUpdated := r.retryUpdate(ctx, state, state.Maintenance, &propertiesModel)
+		updateResponseObj, retryError, isUpdated := r.retryUpdate(ctx, state, state.Maintenance, &propertiesModel, databaseClient)
 
 		// This if condition is to update error if the resource is not updated even after retry
 		if !isUpdated {
@@ -344,7 +331,16 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	updatedState, diags := r.updateStateWithComputedValues(ctx, &state, databaseClient, "update")
+	getDatabaseModel, httpResponse, err := r.waitForDatabase(ctx, databaseClient)
+
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading Database",
+			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err))
+		return
+	}
+
+	updatedState, diags := r.updateStateWithComputedValues(ctx, &state, getDatabaseModel, "update")
 
 	resp.Diagnostics.Append(diags...)
 
@@ -380,8 +376,7 @@ func (r *DatabaseResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 }
 
-func (r *DatabaseResource) retryUpdate(ctx context.Context, state databaseResourceModel, maintenanceModel *maintenanceModel, propertiesModel *model.DatabasePropertiesResourceModel) (*http.Response, error, bool) {
-	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
+func (r *DatabaseResource) retryUpdate(ctx context.Context, state databaseResourceModel, maintenanceModel *maintenanceModel, propertiesModel *model.DatabasePropertiesResourceModel, databaseClient *nuodbaas_client.NuodbaasDatabaseClient) (*http.Response, error, bool) {
 	databaseModel, httpResponse, err := databaseClient.GetDatabase()
 	if err != nil {
 		return httpResponse, err, false
@@ -398,7 +393,7 @@ func (r *DatabaseResource) retryUpdate(ctx context.Context, state databaseResour
 	return nil, nil, false
 }
 
-func (r *DatabaseResource) waitForDatabase(ctx context.Context, databaseClient *nuodbaas_client.NuodbaasDatabaseClient ) (*nuodbaas.DatabaseModel, *http.Response, error){
+func (r *DatabaseResource) waitForDatabase(ctx context.Context, databaseClient *nuodbaas_client.NuodbaasDatabaseClient) (*nuodbaas.DatabaseModel, *http.Response, error){
 
 	var getDatabaseModel *nuodbaas.DatabaseModel
 	for {
@@ -407,13 +402,9 @@ func (r *DatabaseResource) waitForDatabase(ctx context.Context, databaseClient *
 		if err != nil {
 			return nil, httpResponse, err
 		}
-		// if !*databaseModel.Maintenance.IsDisabled && databaseModel.Status.GetState() == "Available" {
-		// 	break
-		// } else if *databaseModel.Maintenance.IsDisabled && databaseModel.Status.GetState() == "Stopped" {
-		// 	break
-		// }
-
-		if databaseModel.Status.GetReady() {
+		if !*databaseModel.Maintenance.IsDisabled && databaseModel.Status.GetState() == "Available" {
+			break
+		} else if *databaseModel.Maintenance.IsDisabled && databaseModel.Status.GetState() == "Stopped" {
 			break
 		}
 
@@ -422,49 +413,42 @@ func (r *DatabaseResource) waitForDatabase(ctx context.Context, databaseClient *
 	return getDatabaseModel, nil, nil
 }
 
-func (r *DatabaseResource) updateStateWithComputedValues(ctx context.Context, state *databaseResourceModel, databaseClient *nuodbaas_client.NuodbaasDatabaseClient, stateType string) (*databaseResourceModel, diag.Diagnostics ) {
-	getDatabaseModel, httpResponse, err := r.waitForDatabase(ctx, databaseClient)
+func (r *DatabaseResource) updateStateWithComputedValues(ctx context.Context, state *databaseResourceModel, databaseModel *nuodbaas.DatabaseModel, stateType string) (*databaseResourceModel, diag.Diagnostics ) {
+	
 	var diagnostics diag.Diagnostics
-	if err != nil {
-		diagnostics.AddError(
-			"Error reading Database",
-			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err))
-		return nil, diagnostics
+	
+	if stateType != "update" {
+		state.ResourceVersion = types.StringValue(*databaseModel.ResourceVersion)
 	}
+	state.Tier = types.StringValue(*databaseModel.Tier)
 
-	if stateType == "create" {
-		state.ResourceVersion = types.StringValue(*getDatabaseModel.ResourceVersion)
-	}
 	propertiesValue := map[string]attr.Value{
 		"tier_parameters": types.MapNull(types.StringType),
-		"archive_disk_size": types.StringValue(*getDatabaseModel.Properties.ArchiveDiskSize),
+		"archive_disk_size": types.StringValue(*databaseModel.Properties.ArchiveDiskSize),
 		"journal_disk_size": types.StringNull(),
 	}
 
-
-	if getDatabaseModel.Properties.JournalDiskSize != nil {
-		propertiesValue["journal_disk_size"] = types.StringValue(*getDatabaseModel.Properties.JournalDiskSize)
+	if databaseModel.Properties.JournalDiskSize != nil {
+		propertiesValue["journal_disk_size"] = types.StringValue(*databaseModel.Properties.JournalDiskSize)
 	}
 
-	if len(getDatabaseModel.Properties.GetTierParameters()) != 0 {
-		mapValue, diags := helper.ConvertMapToTfMap(getDatabaseModel.Properties.TierParameters)
+	if len(databaseModel.Properties.GetTierParameters()) != 0 {
+		mapValue, diags := helper.ConvertMapToTfMap(databaseModel.Properties.TierParameters)
 		diagnostics = append(diagnostics, diags...)
-		
-
 		if diagnostics.HasError() {
 			return nil, diagnostics
 		}
 		propertiesValue["tier_parameters"] = mapValue
 	}
 
-	if getDatabaseModel.Status != nil {
+	if databaseModel.Status != nil {
 		elementTypes := map[string]attr.Type{
 			"sql_end_point": types.StringType,
 			"ca_pem": types.StringType,
 		}
 		elements := map[string]attr.Value{
-			"sql_end_point": types.StringValue(*getDatabaseModel.Status.SqlEndpoint),
-			"ca_pem": types.StringValue(*getDatabaseModel.Status.CaPem),
+			"sql_end_point": types.StringValue(*databaseModel.Status.SqlEndpoint),
+			"ca_pem": types.StringValue(*databaseModel.Status.CaPem),
 		}
 		status, diags := types.ObjectValue(elementTypes, elements)
 		diagnostics = append(diagnostics, diags...)
@@ -481,9 +465,27 @@ func (r *DatabaseResource) updateStateWithComputedValues(ctx context.Context, st
 	}
 	
 	state.Properties = basetypes.NewObjectValueMust(convertPropertiesType, propertiesValue)
-	state.Tier = types.StringValue(*getDatabaseModel.Tier)
 
 	return state, diagnostics
+}
+
+func (r *DatabaseResource) updateContextWithTimeout(ctx context.Context, state model.DatabaseResourceModel, timeoutType string) (context.Context, diag.Diagnostics, context.CancelFunc) {
+	var timeout time.Duration
+	var diags diag.Diagnostics
+
+	if timeoutType == "create" {
+		timeout, diags = state.Timeouts.Create(ctx, 30*time.Minute)
+	} else if timeoutType == "update" {
+		timeout, diags = state.Timeouts.Update(ctx, 30*time.Minute)
+	}
+
+	if diags.HasError() {
+		return ctx, diags, nil
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+
+	return ctx, diags, cancel
 }
 
 func (r *DatabaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

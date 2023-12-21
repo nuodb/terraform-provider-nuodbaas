@@ -95,7 +95,7 @@ func (client *NuodbaasDatabaseClient) GetDatabases() (*nuodbaas.ItemListString, 
 		err error
 	)
 	if len(client.org) == 0 && len(client.projectName) == 0 {
-		itemList, httpResponse, err = client.client.DatabasesAPI.GetAllDatabases(client.ctx).Execute()
+		itemList, httpResponse, err = client.client.DatabasesAPI.GetAllDatabases(client.ctx).ListAccessible(true).Execute()
 	} else {
 		itemList, httpResponse, err = client.client.DatabasesAPI.GetDatabases(client.ctx, client.org, client.projectName).Execute()
 	}

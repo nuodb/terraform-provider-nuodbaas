@@ -48,10 +48,10 @@ func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 			},
 			"tier": schema.StringAttribute{
 				MarkdownDescription: "The Tier for the project. Cannot be updated once the database is created.",
-				Optional: true,
+				Computed: true,
 			},
 			"maintenance": schema.SingleNestedAttribute{
-				Optional: true,
+				Computed: true,
 				Attributes: map[string]schema.Attribute{
 					"is_disabled": schema.BoolAttribute{
 						MarkdownDescription: "Whether the project or database should be shutdown",
@@ -64,32 +64,32 @@ func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 				MarkdownDescription: "The version of the resource. When specified in a PUT request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
 			},
 			"properties": schema.SingleNestedAttribute{
-				Optional: true,
+				Computed: true,
 				Attributes: map[string]schema.Attribute{
 					"archive_disk_size": schema.StringAttribute{
 						MarkdownDescription: "The size of the archive volumes for the database. Can be only updated to increase the volume size",
-						Optional: true,
+						Computed: true,
 					},
 					"journal_disk_size": schema.StringAttribute{
 						MarkdownDescription: "The size of the journal volumes for the database. Can be only updated to increase the volume size.",
-						Optional: true,
+						Computed: true,
 					},
 					"tier_parameters": schema.MapAttribute{
-						Optional: true,
+						Computed: true,
 						ElementType: types.StringType,
 					},
 				},
 			},
 			"status": schema.SingleNestedAttribute{
-				Optional: true,
+				Computed: true,
 				Attributes: map[string]schema.Attribute{
 					"sql_end_point": schema.StringAttribute{
 						MarkdownDescription: "The endpoint for SQL clients to connect to",
-						Optional: true,
+						Computed: true,
 					},
 					"ca_pem": schema.StringAttribute{
 						MarkdownDescription: "The PEM-encoded certificate for SQL clients to verify database servers",
-						Optional: true,
+						Computed: true,
 					},
 				},
 			},
