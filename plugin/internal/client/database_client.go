@@ -85,7 +85,8 @@ func (client *NuodbaasDatabaseClient) GetDatabase() (*nuodbaas.DatabaseModel, *h
 }
 
 func (client *NuodbaasDatabaseClient) DeleteDatabase() (*http.Response, error) {
-	return client.client.ProjectsAPI.DeleteProject(client.ctx, client.org, client.projectName).Execute()
+	
+	return client.client.DatabasesAPI.DeleteDatabase(client.ctx, client.org, client.projectName, client.databaseName).Execute()
 }
 
 func (client *NuodbaasDatabaseClient) GetDatabases() (*nuodbaas.ItemListString, *http.Response, error) {

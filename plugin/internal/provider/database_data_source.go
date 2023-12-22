@@ -35,19 +35,19 @@ func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"organization": schema.StringAttribute{
-				MarkdownDescription: "Name of the organization for which project is created",
-				Required: true,
-			},
-			"name": schema.StringAttribute{
-				MarkdownDescription: "Name of the database",
+				MarkdownDescription: "The organization that the database belongs to",
 				Required: true,
 			},
 			"project": schema.StringAttribute{
 				MarkdownDescription: "The name of the project for which database is created",
 				Required: true,
 			},
+			"name": schema.StringAttribute{
+				MarkdownDescription: "Name of the database",
+				Required: true,
+			},
 			"tier": schema.StringAttribute{
-				MarkdownDescription: "The Tier for the project. Cannot be updated once the database is created.",
+				MarkdownDescription: "The Tier for the database. Cannot be updated once the database is created.",
 				Computed: true,
 			},
 			"maintenance": schema.SingleNestedAttribute{
@@ -55,7 +55,15 @@ func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 				Attributes: map[string]schema.Attribute{
 					"is_disabled": schema.BoolAttribute{
 						MarkdownDescription: "Whether the project or database should be shutdown",
-						Optional: true,
+						Computed: true,
+					},
+					"expires_in": schema.StringAttribute{
+						MarkdownDescription: "The time until the project or database is disabled, e.g. 1d",
+						Computed: true,
+					},
+					"expires_at": schema.StringAttribute{
+						MarkdownDescription: "The time at which the project or database will be disabled",
+						Computed: true,
 					},
 				},
 			},
@@ -153,9 +161,17 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 	}
 
 	if databaseResponseModel.Maintenance != nil {
-		maintenanceModel := &model.MaintenanceModel{}
+		maintenanceModel := &model.MaintenanceDataSourceModel{}
 		if databaseResponseModel.Maintenance.IsDisabled != nil {
 			maintenanceModel.IsDisabled =  types.BoolValue(*databaseResponseModel.Maintenance.IsDisabled)
+		}
+
+		if databaseResponseModel.Maintenance.ExpiresIn != nil {
+			maintenanceModel.ExpiresIn = types.StringValue(*databaseResponseModel.Maintenance.ExpiresIn)
+		}
+
+		if databaseResponseModel.Maintenance.ExpiresAtTime != nil {
+			maintenanceModel.ExpiresAt = types.StringValue(databaseResponseModel.Maintenance.ExpiresAtTime.String())
 		}
 		databaseResp.Maintenance = maintenanceModel
 	}
@@ -192,7 +208,7 @@ func (d *databaseDataSource) Configure(_ context.Context, req datasource.Configu
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *openapi.APIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *openapi.APIClient, got: %T. Please report this issue to NuoDB.Support@3ds.com", req.ProviderData),
 		)
 		return
 	}

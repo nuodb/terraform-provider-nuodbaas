@@ -31,8 +31,8 @@ func getHttpResponseObj(httpResponse *http.Response, target interface{}) error {
 }
 
 // Extracts the Error Model from the http.Response struct
-func GetHttpResponseModel(httpResponse *http.Response) *nuodbaas.ErrorContentString {
-	errorModel := &nuodbaas.ErrorContentString{}
+func GetHttpResponseModel(httpResponse *http.Response) *nuodbaas.ErrorContent {
+	errorModel := &nuodbaas.ErrorContent{}
 	errorObj := getHttpResponseObj(httpResponse, errorModel)
 	if errorObj != nil {
 		return nil
@@ -43,7 +43,7 @@ func GetHttpResponseModel(httpResponse *http.Response) *nuodbaas.ErrorContentStr
 
 // Returns the readable error message string provided by the client
 func GetHttpResponseErrorMessage(httpResponse *http.Response, err error) string {
-	errorModel := &nuodbaas.ErrorContentString{}
+	errorModel := &nuodbaas.ErrorContent{}
 	errorObj := getHttpResponseObj(httpResponse, errorModel)
 
 	if errorObj != nil {
@@ -80,4 +80,12 @@ func ConvertMapToTfMap(mapObj *map[string]string) (basetypes.MapValue, diag.Diag
 	}
 	tfMapValue, diags := types.MapValue(types.StringType, mapValue)
 	return tfMapValue, diags
+}
+
+func ComputeWaitTime(i int, maxWait int) int {
+	if(i * 2 < maxWait) {
+		return i * 2
+	} else {
+		return maxWait
+	}
 }

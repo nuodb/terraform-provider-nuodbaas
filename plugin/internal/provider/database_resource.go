@@ -44,9 +44,6 @@ type DatabaseResource struct {
 	client *nuodbaas.APIClient
 }
 
-type databaseResourceModel = model.DatabaseResourceModel
-
-type propertiesResourceModel = model.DatabasePropertiesResourceModel
 
 func (r *DatabaseResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_database"
@@ -89,7 +86,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 			"tier": schema.StringAttribute{
-				MarkdownDescription: "The Tier for the project. Cannot be updated once the database is created.",
+				MarkdownDescription: "The service tier for the database. If omitted, the project service tier is inherited.",
 				Optional: true,
 				Computed: true,
 			},
@@ -127,6 +124,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 						Optional: true,
 					},
 					"tier_parameters": schema.MapAttribute{
+						MarkdownDescription: "Opaque parameters supplied to database service tier.",
 						ElementType: types.StringType,
 						Optional: true,
 					},
@@ -178,7 +176,7 @@ func (r *DatabaseResource) Configure(ctx context.Context, req resource.Configure
 }
 
 func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var state databaseResourceModel
+	var state model.DatabaseResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &state)...)
@@ -186,7 +184,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	var propertiesModel propertiesResourceModel
+	var propertiesModel model.DatabasePropertiesResourceModel
 
 	resp.Diagnostics.Append(state.Properties.As(ctx, &propertiesModel, basetypes.ObjectAsOptions{UnhandledUnknownAsEmpty: true, UnhandledNullAsEmpty: true})...)
 	if resp.Diagnostics.HasError() {
@@ -217,7 +215,9 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	getDatabaseModel, httpResponse, err := r.waitForDatabase(ctx, databaseClient)
 
 	if err!= nil && helper.IsTimeoutError(err) {
-		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Timeout error %+v", state.Name.ValueString()))
+		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Unable to get database %+v in ready. You can go ahead and retry creating it", state.Name.ValueString()))
+		databaseClient = nuodbaas_client.NewDatabaseClient(r.client, context.Background(), state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
+		httpResponse, err = databaseClient.DeleteDatabase()
 		return
 	}
 
@@ -242,7 +242,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 }
 
 func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state databaseResourceModel
+	var state model.DatabaseResourceModel
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 
@@ -281,8 +281,7 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 }
 
 func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var state databaseResourceModel
-
+	var state model.DatabaseResourceModel
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &state)...)
 
@@ -290,7 +289,7 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	var propertiesModel propertiesResourceModel
+	var propertiesModel model.DatabasePropertiesResourceModel
 	resp.Diagnostics.Append(state.Properties.As(ctx, &propertiesModel, basetypes.ObjectAsOptions{UnhandledUnknownAsEmpty: true, UnhandledNullAsEmpty: true})...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -308,19 +307,10 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
 	httpResponse, err := databaseClient.UpdateDatabase(state, state.Maintenance, &propertiesModel)
-	
-	if httpResponse.StatusCode == 409 {
-		updateResponseObj, retryError, isUpdated := r.retryUpdate(ctx, state, state.Maintenance, &propertiesModel, databaseClient)
+	httpResponseContent := helper.GetHttpResponseModel(httpResponse)
 
-		// This if condition is to update error if the resource is not updated even after retry
-		if !isUpdated {
-			if retryError != nil {
-				err = retryError
-				httpResponse = updateResponseObj
-			}
-		} else {
-			err = retryError
-		}
+	if httpResponseContent != nil && httpResponseContent.GetCode() == "CONCURRENT_UPDATE" {
+		err = r.retryUpdate(ctx, state, state.Maintenance, &propertiesModel, databaseClient)
 	}
 
 	if err != nil {
@@ -350,14 +340,10 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, updatedState)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r *DatabaseResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state databaseResourceModel
+	var state model.DatabaseResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -376,44 +362,46 @@ func (r *DatabaseResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 }
 
-func (r *DatabaseResource) retryUpdate(ctx context.Context, state databaseResourceModel, maintenanceModel *maintenanceModel, propertiesModel *model.DatabasePropertiesResourceModel, databaseClient *nuodbaas_client.NuodbaasDatabaseClient) (*http.Response, error, bool) {
-	databaseModel, httpResponse, err := databaseClient.GetDatabase()
+func (r *DatabaseResource) retryUpdate(ctx context.Context, state model.DatabaseResourceModel, maintenanceModel *maintenanceModel, propertiesModel *model.DatabasePropertiesResourceModel, databaseClient *nuodbaas_client.NuodbaasDatabaseClient) error {
+	databaseModel, _, err := databaseClient.GetDatabase()
 	if err != nil {
-		return httpResponse, err, false
+		return err
 	}
-	if *databaseModel.ResourceVersion != state.ResourceVersion.ValueString() {
-		state.ResourceVersion = types.StringValue(*databaseModel.ResourceVersion)
-		httpResponse, err = databaseClient.UpdateDatabase(state, maintenanceModel, propertiesModel)
-		if err != nil {
-			return httpResponse, err, false
-		} else {
-			return nil, nil, true
-		}
+	state.ResourceVersion = types.StringValue(*databaseModel.ResourceVersion)
+	_, err = databaseClient.UpdateDatabase(state, maintenanceModel, propertiesModel)
+	if err != nil {
+		return err
+	} else {
+		return nil
 	}
-	return nil, nil, false
 }
 
 func (r *DatabaseResource) waitForDatabase(ctx context.Context, databaseClient *nuodbaas_client.NuodbaasDatabaseClient) (*nuodbaas.DatabaseModel, *http.Response, error){
 
 	var getDatabaseModel *nuodbaas.DatabaseModel
+	var waitTime = 1
 	for {
 		databaseModel, httpResponse, err := databaseClient.GetDatabase()
 		getDatabaseModel = databaseModel
 		if err != nil {
 			return nil, httpResponse, err
 		}
-		if !*databaseModel.Maintenance.IsDisabled && databaseModel.Status.GetState() == "Available" {
-			break
-		} else if *databaseModel.Maintenance.IsDisabled && databaseModel.Status.GetState() == "Stopped" {
+		if databaseModel.Maintenance != nil {
+			if !*databaseModel.Maintenance.IsDisabled && databaseModel.Status != nil && databaseModel.Status.GetState() == "Available" {
+				break
+			} else if *databaseModel.Maintenance.IsDisabled && databaseModel.Status != nil && databaseModel.Status.GetState() == "Stopped" {
+				break
+			}
+		} else if databaseModel.Status != nil && databaseModel.Status.GetState() == "Available" {
 			break
 		}
-
-		time.Sleep(10 * time.Second)
+		time.Sleep(time.Duration(waitTime) * time.Second)
+		waitTime = helper.ComputeWaitTime(waitTime, 10)
 	}
 	return getDatabaseModel, nil, nil
 }
 
-func (r *DatabaseResource) updateStateWithComputedValues(ctx context.Context, state *databaseResourceModel, databaseModel *nuodbaas.DatabaseModel, stateType string) (*databaseResourceModel, diag.Diagnostics ) {
+func (r *DatabaseResource) updateStateWithComputedValues(ctx context.Context, state *model.DatabaseResourceModel, databaseModel *nuodbaas.DatabaseModel, stateType string) (*model.DatabaseResourceModel, diag.Diagnostics ) {
 	
 	var diagnostics diag.Diagnostics
 	

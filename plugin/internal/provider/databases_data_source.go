@@ -99,7 +99,7 @@ func (d *databasesDataSource) Read(ctx context.Context, req datasource.ReadReque
 	if state.Filter != nil && state.Filter.Organization.IsNull() && !state.Filter.Project.IsNull() {
 		resp.Diagnostics.AddError(
 			"Organization Missing",
-			"Organization is required with project name to get databases",
+			"Organization is required if project is supplied",
 		)
 		return
 	}
@@ -126,10 +126,6 @@ func (d *databasesDataSource) Read(ctx context.Context, req datasource.ReadReque
 	state.Databases = helper.GetDatabaseDataSourceResponse(databases)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
 
 }
 

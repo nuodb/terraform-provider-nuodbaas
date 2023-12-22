@@ -28,6 +28,11 @@ type DatabasePropertiesResourceModel struct {
 	TierParameters  types.Map    `tfsdk:"tier_parameters"`
 }
 
+type MaintenanceDataSourceModel struct {
+	IsDisabled types.Bool   `tfsdk:"is_disabled"`
+	ExpiresIn types.String  `tfsdk:"expires_in"`
+	ExpiresAt types.String  `tfsdk:"expires_at"` 
+}
 
 type DatabaseCreateUpdateModel struct {
 	Password        string
@@ -44,7 +49,7 @@ type DatabaseDataSourceModel struct {
 	Tier            types.String 						`tfsdk:"tier"`
 	Properties      *DatabasePropertiesResourceModel	`tfsdk:"properties"`
 	ResourceVersion types.String 						`tfsdk:"resource_version"`
-	Maintenance     *MaintenanceModel 					`tfsdk:"maintenance"`
+	Maintenance     *MaintenanceDataSourceModel 		`tfsdk:"maintenance"`
 	Status			*StatusModel                        `tfsdk:"status"`	
 }
 
