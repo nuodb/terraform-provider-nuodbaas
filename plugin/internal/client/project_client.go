@@ -6,11 +6,11 @@ package nuodbaas_client
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/helper"
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
 
@@ -25,7 +25,7 @@ type nuodbaasProjectClient struct {
 }
 
 
-func (client *nuodbaasProjectClient) createUpdateProject(projectModel *nuodbaas.ProjectModel, projectResourceModel model.ProjectResourceModel, maintenanceModel *model.MaintenanceModel) (*http.Response, error) {
+func (client *nuodbaasProjectClient) createUpdateProject(projectModel *nuodbaas.ProjectModel, projectResourceModel model.ProjectResourceModel, maintenanceModel *model.MaintenanceModel) (*nuodbaas.ErrorContent) {
 	apiRequestObject := client.client.ProjectsAPI.CreateProject(client.ctx,client.org, client.projectName)
 	projectModel.SetSla(projectResourceModel.Sla.ValueString())
 	projectModel.SetTier(projectResourceModel.Tier.ValueString())
@@ -56,27 +56,41 @@ func (client *nuodbaasProjectClient) createUpdateProject(projectModel *nuodbaas.
 	}
 
 	apiRequestObject = apiRequestObject.ProjectModel(*projectModel)
-	return client.client.ProjectsAPI.CreateProjectExecute(apiRequestObject)
+	_, err := client.client.ProjectsAPI.CreateProjectExecute(apiRequestObject)
+
+	if serverErr, ok := err.(*nuodbaas.GenericOpenAPIError); ok {
+		tflog.Debug(client.ctx, fmt.Sprintf("TAGGER err is %+v %+v %+v", serverErr.Error(), string(serverErr.Body()), serverErr.Model()))
+	}	else {
+		tflog.Debug(client.ctx, fmt.Sprintf("TAGGER not ok and is %+v", err))
+	}
+	errorModel := helper.GetErrorModelFromError(client.ctx, err)
+	tflog.Debug(client.ctx, fmt.Sprintf("TAGGER converted errorMessage is %+v %+v %+v", errorModel.GetDetail(), errorModel.GetCode(), errorModel.GetStatus()))
+
+	return errorModel
 }
 
-func (client *nuodbaasProjectClient) CreateProject(projectResourceModel model.ProjectResourceModel,  maintenanceModel *model.MaintenanceModel) (*http.Response, error) {
+func (client *nuodbaasProjectClient) CreateProject(projectResourceModel model.ProjectResourceModel,  maintenanceModel *model.MaintenanceModel) *nuodbaas.ErrorContent {
 	projectModel := nuodbaas.NewProjectModelWithDefaults()
 	return client.createUpdateProject(projectModel, projectResourceModel, maintenanceModel)
 }
 
-func (client *nuodbaasProjectClient) UpdateProject(projectResourceModel model.ProjectResourceModel,  maintenanceModel *model.MaintenanceModel) (*http.Response, error) {
+func (client *nuodbaasProjectClient) UpdateProject(projectResourceModel model.ProjectResourceModel,  maintenanceModel *model.MaintenanceModel)  *nuodbaas.ErrorContent {
 	if len(projectResourceModel.ResourceVersion.ValueString()) == 0 {
-		return nil, errors.New("cannot update the project. Resource version is missing")
+		errorMessage := "cannot update the project. Resource version is missing"
+		return &nuodbaas.ErrorContent{ 
+			Detail: &errorMessage,
+		}
 	}
-
 	projectModel := nuodbaas.NewProjectModelWithDefaults()
 	projectModel.SetResourceVersion(projectResourceModel.ResourceVersion.ValueString())
 	return client.createUpdateProject(projectModel, projectResourceModel, maintenanceModel)
 }
 
-func (client *nuodbaasProjectClient) GetProject() (*nuodbaas.ProjectModel, *http.Response, error) {
+func (client *nuodbaasProjectClient) GetProject() (*nuodbaas.ProjectModel, *nuodbaas.ErrorContent) {
 	apiGetRequestObject := client.client.ProjectsAPI.GetProject(client.ctx, client.org, client.projectName)
-	return client.client.ProjectsAPI.GetProjectExecute(apiGetRequestObject)
+	projectMdoel, _, err := client.client.ProjectsAPI.GetProjectExecute(apiGetRequestObject)
+	errModel := helper.GetErrorModelFromError(client.ctx, err)
+	return projectMdoel, errModel
 }
 
 func (client *nuodbaasProjectClient) GetProjects() (*nuodbaas.ItemListString, *http.Response, error) {
@@ -98,8 +112,9 @@ func (client *nuodbaasProjectClient) GetProjects() (*nuodbaas.ItemListString, *h
 
 }
 
-func (client *nuodbaasProjectClient) DeleteProject() (*http.Response, error) {
-	return client.client.ProjectsAPI.DeleteProject(client.ctx, client.org, client.projectName).Execute()
+func (client *nuodbaasProjectClient) DeleteProject() *nuodbaas.ErrorContent {
+	_, err := client.client.ProjectsAPI.DeleteProject(client.ctx, client.org, client.projectName).Execute()
+	return helper.GetErrorModelFromError(client.ctx, err)
 }
 
 func NewProjectClient(client *nuodbaas.APIClient, ctx context.Context, org string, projectName string) *nuodbaasProjectClient {

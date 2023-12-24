@@ -5,6 +5,7 @@ All Rights Reserved.
 package helper
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
@@ -23,6 +25,17 @@ func GetProviderValidatorErrorMessage(valueType string, envVariable string) stri
 	return fmt.Sprintf("The provider cannot create the NuoDbaas API client as there is a missing or empty value for the NuoDbaas API %v. "+
 		"Set the %v value in the configuration or use the %v environment variable. "+
 		"If either is already set, ensure the value is not empty.", valueType, valueType, envVariable)
+}
+
+func GetErrorModelFromError(ctx context.Context, err error) *nuodbaas.ErrorContent {
+	if serverErr, ok := err.(*nuodbaas.GenericOpenAPIError); ok {
+		errorModel := nuodbaas.ErrorContent{}
+		json.Unmarshal(serverErr.Body(), &errorModel)
+		return &errorModel
+	}	else {
+		tflog.Debug(ctx, fmt.Sprintf("TAGGER not ok and is %+v", err))
+		return nil
+	}
 }
 
 func getHttpResponseObj(httpResponse *http.Response, target interface{}) error {

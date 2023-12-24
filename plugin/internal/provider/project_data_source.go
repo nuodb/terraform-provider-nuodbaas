@@ -90,12 +90,12 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	projectClient := nuodbaas_client.NewProjectClient(d.client,ctx,state.Organization.ValueString(),state.Name.ValueString())
 
-	project, httpResponse, err := projectClient.GetProject()
+	project, err := projectClient.GetProject()
 	
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error getting projects",
-			"Could not get projects, unexpected error: "+ helper.GetHttpResponseErrorMessage(httpResponse, err),
+			"Could not get projects, unexpected error:",
 		)
 		return
 	}
