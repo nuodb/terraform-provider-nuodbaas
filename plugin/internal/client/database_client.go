@@ -26,18 +26,19 @@ type NuodbaasDatabaseClient struct {
 	databaseName 	string
 }
 
-func (client *NuodbaasDatabaseClient) CreateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel *model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel)  (*http.Response, error) {
+func (client *NuodbaasDatabaseClient) CreateDatabase(databaseResourceModel model.DatabaseResourceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel)  (*http.Response, error) {
 	databaseModel := nuodbaas.NewDatabaseCreateUpdateModel()
-	return client.createDatabase(databaseModel, databaseResourceModel, maintenanceModel, propertiesResourceModel, false)
+	return client.createDatabase(databaseModel, databaseResourceModel, propertiesResourceModel, false)
 }
 
 func (client *NuodbaasDatabaseClient) createDatabase(databaseModel *nuodbaas.DatabaseCreateUpdateModel, databaseResourceModel model.DatabaseResourceModel,
-	 maintenanceModel *model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel, isUpdate bool)  (*http.Response, error) {
+	 propertiesResourceModel *model.DatabasePropertiesResourceModel, isUpdate bool)  (*http.Response, error) {
 	apiRequestObject := client.client.DatabasesAPI.CreateDatabase(client.ctx, client.org, client.projectName, client.databaseName)
 	if !isUpdate {
 		databaseModel.SetDbaPassword(databaseResourceModel.Password.ValueString())
 	}
 	databaseModel.SetTier(databaseResourceModel.Tier.ValueString())
+	maintenanceModel := databaseResourceModel.Maintenance
 	if maintenanceModel != nil {
 		var openApiMaintenanceModel = nuodbaas.MaintenanceModel{}
 		if !maintenanceModel.IsDisabled.IsNull() {
@@ -70,13 +71,13 @@ func (client *NuodbaasDatabaseClient) createDatabase(databaseModel *nuodbaas.Dat
 	return client.client.DatabasesAPI.CreateDatabaseExecute(apiRequestObject)
 }
 
-func (client *NuodbaasDatabaseClient) UpdateDatabase(databaseResourceModel model.DatabaseResourceModel, maintenanceModel *model.MaintenanceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel) (*http.Response, error) {
+func (client *NuodbaasDatabaseClient) UpdateDatabase(databaseResourceModel model.DatabaseResourceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel) (*http.Response, error) {
 	if len(databaseResourceModel.ResourceVersion.ValueString()) == 0 {
 		return nil, errors.New("cannot update the project. Resource version is missing")
 	}
 	databaseModel := nuodbaas.NewDatabaseCreateUpdateModel()
 	databaseModel.SetResourceVersion(databaseResourceModel.ResourceVersion.ValueString())
-	return client.createDatabase(databaseModel, databaseResourceModel, maintenanceModel, propertiesResourceModel, true)
+	return client.createDatabase(databaseModel, databaseResourceModel, propertiesResourceModel, true)
 }
 
 func (client *NuodbaasDatabaseClient) GetDatabase() (*nuodbaas.DatabaseModel, *http.Response, error) {

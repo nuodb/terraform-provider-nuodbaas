@@ -25,10 +25,12 @@ type nuodbaasProjectClient struct {
 }
 
 
-func (client *nuodbaasProjectClient) createUpdateProject(projectModel *nuodbaas.ProjectModel, projectResourceModel model.ProjectResourceModel, maintenanceModel *model.MaintenanceModel) (*nuodbaas.ErrorContent) {
+func (client *nuodbaasProjectClient) createUpdateProject(projectModel *nuodbaas.ProjectModel, projectResourceModel model.ProjectResourceModel) (*nuodbaas.ErrorContent) {
 	apiRequestObject := client.client.ProjectsAPI.CreateProject(client.ctx,client.org, client.projectName)
 	projectModel.SetSla(projectResourceModel.Sla.ValueString())
 	projectModel.SetTier(projectResourceModel.Tier.ValueString())
+
+	maintenanceModel:= projectResourceModel.Maintenance
 
 	if maintenanceModel != nil {
 		var openApiMaintenanceModel = nuodbaas.MaintenanceModel{}
@@ -69,12 +71,12 @@ func (client *nuodbaasProjectClient) createUpdateProject(projectModel *nuodbaas.
 	return errorModel
 }
 
-func (client *nuodbaasProjectClient) CreateProject(projectResourceModel model.ProjectResourceModel,  maintenanceModel *model.MaintenanceModel) *nuodbaas.ErrorContent {
+func (client *nuodbaasProjectClient) CreateProject(projectResourceModel model.ProjectResourceModel) *nuodbaas.ErrorContent {
 	projectModel := nuodbaas.NewProjectModelWithDefaults()
-	return client.createUpdateProject(projectModel, projectResourceModel, maintenanceModel)
+	return client.createUpdateProject(projectModel, projectResourceModel)
 }
 
-func (client *nuodbaasProjectClient) UpdateProject(projectResourceModel model.ProjectResourceModel,  maintenanceModel *model.MaintenanceModel)  *nuodbaas.ErrorContent {
+func (client *nuodbaasProjectClient) UpdateProject(projectResourceModel model.ProjectResourceModel)  *nuodbaas.ErrorContent {
 	if len(projectResourceModel.ResourceVersion.ValueString()) == 0 {
 		errorMessage := "cannot update the project. Resource version is missing"
 		return &nuodbaas.ErrorContent{ 
@@ -83,7 +85,7 @@ func (client *nuodbaasProjectClient) UpdateProject(projectResourceModel model.Pr
 	}
 	projectModel := nuodbaas.NewProjectModelWithDefaults()
 	projectModel.SetResourceVersion(projectResourceModel.ResourceVersion.ValueString())
-	return client.createUpdateProject(projectModel, projectResourceModel, maintenanceModel)
+	return client.createUpdateProject(projectModel, projectResourceModel)
 }
 
 func (client *nuodbaasProjectClient) GetProject() (*nuodbaas.ProjectModel, *nuodbaas.ErrorContent) {

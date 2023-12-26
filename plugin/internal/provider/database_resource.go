@@ -202,7 +202,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	defer cancel()
 	
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	httpResponse, err := databaseClient.CreateDatabase(state, state.Maintenance, &propertiesModel)
+	httpResponse, err := databaseClient.CreateDatabase(state, &propertiesModel)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -217,7 +217,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	if err!= nil && helper.IsTimeoutError(err) {
 		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Unable to get database %+v in ready. You can go ahead and retry creating it", state.Name.ValueString()))
 		databaseClient = nuodbaas_client.NewDatabaseClient(r.client, context.Background(), state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-		httpResponse, err = databaseClient.DeleteDatabase()
+		httpResponse, _ = databaseClient.DeleteDatabase()
 		return
 	}
 
@@ -258,9 +258,6 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 			resp.State.RemoveResource(ctx)
 			return
 		}
-	}
-
-	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading Database",
 			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err))
@@ -306,7 +303,7 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 	defer cancel()
 
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	httpResponse, err := databaseClient.UpdateDatabase(state, state.Maintenance, &propertiesModel)
+	httpResponse, err := databaseClient.UpdateDatabase(state, &propertiesModel)
 	httpResponseContent := helper.GetHttpResponseModel(httpResponse)
 
 	if httpResponseContent != nil && httpResponseContent.GetCode() == "CONCURRENT_UPDATE" {
@@ -368,7 +365,7 @@ func (r *DatabaseResource) retryUpdate(ctx context.Context, state model.Database
 		return err
 	}
 	state.ResourceVersion = types.StringValue(*databaseModel.ResourceVersion)
-	_, err = databaseClient.UpdateDatabase(state, maintenanceModel, propertiesModel)
+	_, err = databaseClient.UpdateDatabase(state, propertiesModel)
 	if err != nil {
 		return err
 	} else {
@@ -411,13 +408,9 @@ func (r *DatabaseResource) updateStateWithComputedValues(ctx context.Context, st
 	state.Tier = types.StringValue(*databaseModel.Tier)
 
 	propertiesValue := map[string]attr.Value{
-		"tier_parameters": types.MapNull(types.StringType),
 		"archive_disk_size": types.StringValue(*databaseModel.Properties.ArchiveDiskSize),
-		"journal_disk_size": types.StringNull(),
-	}
-
-	if databaseModel.Properties.JournalDiskSize != nil {
-		propertiesValue["journal_disk_size"] = types.StringValue(*databaseModel.Properties.JournalDiskSize)
+		"journal_disk_size": types.StringPointerValue(databaseModel.Properties.JournalDiskSize),
+		"tier_parameters": types.MapNull(types.StringType),
 	}
 
 	if len(databaseModel.Properties.GetTierParameters()) != 0 {
@@ -435,8 +428,8 @@ func (r *DatabaseResource) updateStateWithComputedValues(ctx context.Context, st
 			"ca_pem": types.StringType,
 		}
 		elements := map[string]attr.Value{
-			"sql_end_point": types.StringValue(*databaseModel.Status.SqlEndpoint),
-			"ca_pem": types.StringValue(*databaseModel.Status.CaPem),
+			"sql_end_point": types.StringPointerValue(databaseModel.Status.SqlEndpoint),
+			"ca_pem": types.StringPointerValue(databaseModel.Status.CaPem),
 		}
 		status, diags := types.ObjectValue(elementTypes, elements)
 		diagnostics = append(diagnostics, diags...)

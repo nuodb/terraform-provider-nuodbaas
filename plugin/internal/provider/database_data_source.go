@@ -141,12 +141,8 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 	if databaseResponseModel.Properties != nil {
 		propertiesModel := &model.DatabasePropertiesResourceModel{
 			TierParameters: types.MapNull(types.StringType),
-		}
-		if databaseResponseModel.Properties.ArchiveDiskSize != nil {
-			propertiesModel.ArchiveDiskSize = types.StringValue(*databaseResponseModel.Properties.ArchiveDiskSize)
-		}
-		if databaseResponseModel.Properties.JournalDiskSize != nil {
-			propertiesModel.JournalDiskSize = types.StringValue(*databaseResponseModel.Properties.JournalDiskSize)
+			ArchiveDiskSize: types.StringPointerValue(databaseResponseModel.Properties.ArchiveDiskSize),
+			JournalDiskSize:  types.StringPointerValue(databaseResponseModel.Properties.JournalDiskSize),
 		}
 
 		if databaseResponseModel.Properties.TierParameters != nil {
@@ -161,13 +157,9 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 	}
 
 	if databaseResponseModel.Maintenance != nil {
-		maintenanceModel := &model.MaintenanceDataSourceModel{}
-		if databaseResponseModel.Maintenance.IsDisabled != nil {
-			maintenanceModel.IsDisabled =  types.BoolValue(*databaseResponseModel.Maintenance.IsDisabled)
-		}
-
-		if databaseResponseModel.Maintenance.ExpiresIn != nil {
-			maintenanceModel.ExpiresIn = types.StringValue(*databaseResponseModel.Maintenance.ExpiresIn)
+		maintenanceModel := &model.MaintenanceDataSourceModel{
+			IsDisabled: types.BoolPointerValue(databaseResponseModel.Maintenance.IsDisabled),
+			ExpiresIn: types.StringPointerValue(databaseResponseModel.Maintenance.ExpiresIn),
 		}
 
 		if databaseResponseModel.Maintenance.ExpiresAtTime != nil {
@@ -177,12 +169,9 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 	}
 
 	if databaseResponseModel.Status != nil {
-		statusModel := &model.StatusModel{}
-		if databaseResponseModel.Status.SqlEndpoint != nil {
-			statusModel.SqlEndPoint = types.StringValue(*databaseResponseModel.Status.SqlEndpoint)
-		}
-		if databaseResponseModel.Status.CaPem != nil {
-			statusModel.CaPem = types.StringValue(*databaseResponseModel.Status.CaPem)
+		statusModel := &model.StatusModel{
+			SqlEndPoint:  types.StringPointerValue(databaseResponseModel.Status.SqlEndpoint),
+			CaPem: types.StringPointerValue(databaseResponseModel.Status.CaPem),
 		}
 		databaseResp.Status = statusModel
 	}
@@ -208,7 +197,7 @@ func (d *databaseDataSource) Configure(_ context.Context, req datasource.Configu
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *openapi.APIClient, got: %T. Please report this issue to NuoDB.Support@3ds.com", req.ProviderData),
+			fmt.Sprintf("Expected *nuodbaas.APIClient, got: %T. Please report this issue to NuoDB.Support@3ds.com", req.ProviderData),
 		)
 		return
 	}

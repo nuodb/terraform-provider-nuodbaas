@@ -7,10 +7,9 @@ package helper
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"net"
 	"net/http"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -67,11 +66,7 @@ func GetHttpResponseErrorMessage(httpResponse *http.Response, err error) string 
 
 
 func IsTimeoutError(err error) bool {
-	var netErr net.Error
-	if errors.As(err, &netErr) && netErr.Timeout() {
-	  return true
-	}
-   return false
+	return os.IsTimeout(err)
 }
 
 // Removes any extra double quotes that are added in the string
