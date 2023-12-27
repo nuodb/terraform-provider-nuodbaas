@@ -96,29 +96,29 @@ func (d *databasesDataSource) Read(ctx context.Context, req datasource.ReadReque
 		project = ""
 	)
 
-	if state.Filter != nil && state.Filter.Organization.IsNull() && !state.Filter.Project.IsNull() {
-		resp.Diagnostics.AddError(
-			"Organization Missing",
-			"Organization is required if project is supplied",
-		)
-		return
-	}
-
-	if state.Filter != nil && !state.Filter.Organization.IsNull() {
-		organization = state.Filter.Organization.ValueString()
-	}
-
-	if state.Filter != nil && !state.Filter.Project.IsNull() {
-		project = state.Filter.Project.ValueString()
+	if state.Filter != nil {
+		if  state.Filter.Organization.IsNull() && !state.Filter.Project.IsNull() {
+			resp.Diagnostics.AddError(
+				"Organization Missing",
+				"Organization is required if project is supplied",
+			)
+			return
+		}
+		if !state.Filter.Organization.IsNull() {
+			organization = state.Filter.Organization.ValueString()
+		}
+		if !state.Filter.Project.IsNull() {
+			project = state.Filter.Project.ValueString()
+		}
 	}
 
 	databaseClient := nuodbaas_client.NewDatabaseClient(d.client,ctx, organization, project, "")
 
-	databases, httpResponse, err := databaseClient.GetDatabases()
+	databases, err := databaseClient.GetDatabases()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error getting databases",
-			"Could not get databases, unexpected error: "+ helper.GetHttpResponseErrorMessage(httpResponse, err),
+			"Could not get databases, unexpected error: "+ helper.GetErrorContentObj(err).GetDetail(),
 		)
 		return
 	}

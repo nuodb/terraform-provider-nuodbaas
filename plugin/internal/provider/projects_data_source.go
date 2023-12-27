@@ -98,12 +98,12 @@ func (d *projectsDataSource) Read(ctx context.Context, req datasource.ReadReques
 
 	projectClient := nuodbaas_client.NewProjectClient(d.client,ctx,organization,"")
 
-	projects, httpResponse, err := projectClient.GetProjects()
+	projects, err := projectClient.GetProjects()
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error getting projects",
-			"Could not get projects, unexpected error: "+ helper.GetHttpResponseErrorMessage(httpResponse, err),
+			"Could not get projects, unexpected error: " + helper.GetErrorContentObj(err).GetDetail(),
 		)
 		return
 	}
@@ -128,7 +128,7 @@ func (d *projectsDataSource) Configure(_ context.Context, req datasource.Configu
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *openapi.APIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *nuodbaas.APIClient, got: %T. Please report this issue to NuoDB.Support@3ds.com", req.ProviderData),
 		)
 		return
 	}

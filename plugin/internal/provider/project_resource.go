@@ -113,7 +113,7 @@ func (r *ProjectResource) Configure(ctx context.Context, req resource.ConfigureR
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *nuodbaas.APIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *nuodbaas.APIClient, got: %T. Please report this issue to NuoDB.Support@3ds.com", req.ProviderData),
 		)
 		return
 	}
@@ -137,7 +137,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating project",
-			"Could not create project, unexpected error: "+ err.GetDetail(),
+			"Could not create project, unexpected error: "+ helper.GetErrorContentObj(err).GetDetail(),
 		)
 		return
 	}
@@ -147,7 +147,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading Project",
-			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + err.GetDetail(),
+			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + helper.GetErrorContentObj(err).GetDetail(),
 		)
 		return
 	}
@@ -172,7 +172,7 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	projectModel, err := projectClient.GetProject()
 
 	if err != nil {
-		if err.GetStatus() == "HTTP 404 Not Found" {
+		if helper.GetErrorContentObj(err).GetStatus() == "HTTP 404 Not Found" {
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -181,7 +181,7 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading Project",
-			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + err.GetDetail(),
+			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + helper.GetErrorContentObj(err).GetDetail(),
 		)
 		return
 	}
@@ -240,7 +240,7 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating project",
-			"Could not update project, unexpected error: "+ err.GetDetail(),
+			"Could not update project, unexpected error: "+ helper.GetErrorContentObj(err).GetDetail(),
 		)
 		return
 	}
@@ -265,7 +265,7 @@ func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	if err!=nil {
 		resp.Diagnostics.AddError("Error deleting project", 
 			fmt.Sprintf("Unable to delete project %s, unexpected error: %v", 
-			state.Name.ValueString(), err.GetDetail()))
+			state.Name.ValueString(), helper.GetErrorContentObj(err).GetDetail()))
 		return
 	}
 }

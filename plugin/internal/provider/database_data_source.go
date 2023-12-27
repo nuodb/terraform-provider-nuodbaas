@@ -10,6 +10,7 @@ import (
 
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/helper"
 
+	nuodbaas_client "github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/client"
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -119,17 +120,16 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	databaseResponseModel, httpResponse, err :=  d.client.DatabasesAPI.GetDatabase(ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).Execute()
+	databaseResponseModel, err := nuodbaas_client.NewDatabaseClient(d.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).GetDatabase()
 
 	if err!=nil {
 		resp.Diagnostics.AddError(
 			"Error updating database",
-			fmt.Sprintf("Could not update database, unexpected error: %+v", helper.GetHttpResponseErrorMessage(httpResponse, err)),
+			fmt.Sprintf("Could not update database, unexpected error: %+v", helper.GetErrorContentObj(err).GetDetail()),
 		)
 		return
 	}
 	
-
 	var databaseResp = model.DatabaseDataSourceModel{
 		Organization: types.StringValue(*databaseResponseModel.Organization),
 		Name: types.StringValue(*databaseResponseModel.Name),

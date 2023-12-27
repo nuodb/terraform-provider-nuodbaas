@@ -8,11 +8,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/helper"
-
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
 
 	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
@@ -26,15 +24,15 @@ type NuodbaasDatabaseClient struct {
 	databaseName 	string
 }
 
-func (client *NuodbaasDatabaseClient) CreateDatabase(databaseResourceModel model.DatabaseResourceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel)  (*http.Response, error) {
+func (client *NuodbaasDatabaseClient) CreateDatabase(databaseResourceModel model.DatabaseResourceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel) error {
 	databaseModel := nuodbaas.NewDatabaseCreateUpdateModel()
-	return client.createDatabase(databaseModel, databaseResourceModel, propertiesResourceModel, false)
+	return client.createDatabase(databaseModel, databaseResourceModel, propertiesResourceModel)
 }
 
 func (client *NuodbaasDatabaseClient) createDatabase(databaseModel *nuodbaas.DatabaseCreateUpdateModel, databaseResourceModel model.DatabaseResourceModel,
-	 propertiesResourceModel *model.DatabasePropertiesResourceModel, isUpdate bool)  (*http.Response, error) {
+	 propertiesResourceModel *model.DatabasePropertiesResourceModel) error {
 	apiRequestObject := client.client.DatabasesAPI.CreateDatabase(client.ctx, client.org, client.projectName, client.databaseName)
-	if !isUpdate {
+	if databaseModel.ResourceVersion == nil {
 		databaseModel.SetDbaPassword(databaseResourceModel.Password.ValueString())
 	}
 	databaseModel.SetTier(databaseResourceModel.Tier.ValueString())
@@ -68,42 +66,44 @@ func (client *NuodbaasDatabaseClient) createDatabase(databaseModel *nuodbaas.Dat
 	
 	databaseModel.SetProperties(openApiDatabasePropertiesModel)
 	apiRequestObject= apiRequestObject.DatabaseCreateUpdateModel(*databaseModel)
-	return client.client.DatabasesAPI.CreateDatabaseExecute(apiRequestObject)
+	_, err := client.client.DatabasesAPI.CreateDatabaseExecute(apiRequestObject)
+	return err
 }
 
-func (client *NuodbaasDatabaseClient) UpdateDatabase(databaseResourceModel model.DatabaseResourceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel) (*http.Response, error) {
+func (client *NuodbaasDatabaseClient) UpdateDatabase(databaseResourceModel model.DatabaseResourceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel) error {
 	if len(databaseResourceModel.ResourceVersion.ValueString()) == 0 {
-		return nil, errors.New("cannot update the project. Resource version is missing")
+		return errors.New("cannot update the project. Resource version is missing")
 	}
 	databaseModel := nuodbaas.NewDatabaseCreateUpdateModel()
 	databaseModel.SetResourceVersion(databaseResourceModel.ResourceVersion.ValueString())
-	return client.createDatabase(databaseModel, databaseResourceModel, propertiesResourceModel, true)
+	return client.createDatabase(databaseModel, databaseResourceModel, propertiesResourceModel)
 }
 
-func (client *NuodbaasDatabaseClient) GetDatabase() (*nuodbaas.DatabaseModel, *http.Response, error) {
+func (client *NuodbaasDatabaseClient) GetDatabase() (*nuodbaas.DatabaseModel, error) {
 	apiRequestObject := client.client.DatabasesAPI.GetDatabase(client.ctx, client.org, client.projectName, client.databaseName)
-	return client.client.DatabasesAPI.GetDatabaseExecute(apiRequestObject)
+	model, _, err:= client.client.DatabasesAPI.GetDatabaseExecute(apiRequestObject)
+	return model, err
 }
 
-func (client *NuodbaasDatabaseClient) DeleteDatabase() (*http.Response, error) {
+func (client *NuodbaasDatabaseClient) DeleteDatabase() error {
 	
-	return client.client.DatabasesAPI.DeleteDatabase(client.ctx, client.org, client.projectName, client.databaseName).Execute()
+	_, err:= client.client.DatabasesAPI.DeleteDatabase(client.ctx, client.org, client.projectName, client.databaseName).Execute()
+	return err
 }
 
-func (client *NuodbaasDatabaseClient) GetDatabases() (*nuodbaas.ItemListString, *http.Response, error) {
+func (client *NuodbaasDatabaseClient) GetDatabases() (*nuodbaas.ItemListString, error) {
 	var (
 		itemList *nuodbaas.ItemListString
-		httpResponse *http.Response
 		err error
 	)
 	if len(client.org) == 0 && len(client.projectName) == 0 {
-		itemList, httpResponse, err = client.client.DatabasesAPI.GetAllDatabases(client.ctx).ListAccessible(true).Execute()
+		itemList, _, err = client.client.DatabasesAPI.GetAllDatabases(client.ctx).ListAccessible(true).Execute()
 	} else {
-		itemList, httpResponse, err = client.client.DatabasesAPI.GetDatabases(client.ctx, client.org, client.projectName).Execute()
+		itemList, _, err = client.client.DatabasesAPI.GetDatabases(client.ctx, client.org, client.projectName).Execute()
 	}
 
 	if err != nil {
-		return nil, httpResponse, err
+		return nil, err
 	}
 
 	newListItems := itemList.Items
@@ -120,7 +120,7 @@ func (client *NuodbaasDatabaseClient) GetDatabases() (*nuodbaas.ItemListString, 
 	}
 
 	itemList.SetItems(newListItems)
-	return itemList, httpResponse, err
+	return itemList, err
 	
 }
 

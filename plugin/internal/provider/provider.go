@@ -190,6 +190,7 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 
 	if helper.IsTimeoutError(error) {
 		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Unable to connect with %+v", host))
+		return
 	}
 
 	if httpsRes==nil && error!=nil {

@@ -7,7 +7,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/helper"
@@ -167,7 +166,7 @@ func (r *DatabaseResource) Configure(ctx context.Context, req resource.Configure
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *openapi.APIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *nuodbaas.APIClient, got: %T. Please report this issue to NuoDB.Support@3ds.com", req.ProviderData),
 		)
 		return
 	}
@@ -202,29 +201,29 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	defer cancel()
 	
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	httpResponse, err := databaseClient.CreateDatabase(state, &propertiesModel)
+	err := databaseClient.CreateDatabase(state, &propertiesModel)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating database",
-			"Could not create database, unexpected error: "+ helper.GetHttpResponseErrorMessage(httpResponse, err),
+			"Could not create database, unexpected error: "+ helper.GetErrorContentObj(err).GetDetail(),
 		)
 		return
 	}
 
-	getDatabaseModel, httpResponse, err := r.waitForDatabase(ctx, databaseClient)
+	getDatabaseModel, err := r.waitForDatabase(ctx, databaseClient)
 
 	if err!= nil && helper.IsTimeoutError(err) {
 		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Unable to get database %+v in ready. You can go ahead and retry creating it", state.Name.ValueString()))
 		databaseClient = nuodbaas_client.NewDatabaseClient(r.client, context.Background(), state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-		httpResponse, _ = databaseClient.DeleteDatabase()
+		databaseClient.DeleteDatabase()
 		return
 	}
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading Database",
-			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err))
+			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetErrorContentObj(err).GetDetail())
 		return
 	}
 
@@ -250,17 +249,16 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	getDatabaseModel, httpResponse, err := databaseClient.GetDatabase()
+	getDatabaseModel, err := databaseClient.GetDatabase()
 
 	if err != nil {
-		errorModel := helper.GetHttpResponseModel(httpResponse)
-		if errorModel != nil && errorModel.GetStatus() == "HTTP 404 Not Found"{
+		if *helper.GetErrorContentObj(err).Status == "HTTP 404 Not Found" {
 			resp.State.RemoveResource(ctx)
 			return
 		}
 		resp.Diagnostics.AddError(
 			"Error reading Database",
-			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err))
+			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetErrorContentObj(err).GetDetail())
 		return
 	}
 
@@ -303,27 +301,26 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 	defer cancel()
 
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	httpResponse, err := databaseClient.UpdateDatabase(state, &propertiesModel)
-	httpResponseContent := helper.GetHttpResponseModel(httpResponse)
+	err := databaseClient.UpdateDatabase(state, &propertiesModel)
 
-	if httpResponseContent != nil && httpResponseContent.GetCode() == "CONCURRENT_UPDATE" {
+	if err != nil && helper.GetErrorContentObj(err).GetCode() == "CONCURRENT_UPDATE" {
 		err = r.retryUpdate(ctx, state, state.Maintenance, &propertiesModel, databaseClient)
 	}
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating database",
-			fmt.Sprintf("Could not update database, unexpected error: %+v", helper.GetHttpResponseErrorMessage(httpResponse, err)),
+			fmt.Sprintf("Could not update database, unexpected error: %+v", helper.GetErrorContentObj(err).GetDetail()),
 		)
 		return
 	}
 
-	getDatabaseModel, httpResponse, err := r.waitForDatabase(ctx, databaseClient)
+	getDatabaseModel, err := r.waitForDatabase(ctx, databaseClient)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading Database",
-			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetHttpResponseErrorMessage(httpResponse, err))
+			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetErrorContentObj(err).GetDetail())
 		return
 	}
 
@@ -349,23 +346,23 @@ func (r *DatabaseResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	httpResponse, err := r.client.DatabasesAPI.DeleteDatabase(ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).Execute()
+	err := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).DeleteDatabase()
 
 	if err!=nil {
 		resp.Diagnostics.AddError("Unable to delete database", 
 			fmt.Sprintf("Unable to database project %s, unexpected error: %v", 
-			state.Name.ValueString(), helper.GetHttpResponseErrorMessage(httpResponse, err)))
+			state.Name.ValueString(), helper.GetErrorContentObj(err).GetDetail()))
 		return
 	}
 }
 
 func (r *DatabaseResource) retryUpdate(ctx context.Context, state model.DatabaseResourceModel, maintenanceModel *maintenanceModel, propertiesModel *model.DatabasePropertiesResourceModel, databaseClient *nuodbaas_client.NuodbaasDatabaseClient) error {
-	databaseModel, _, err := databaseClient.GetDatabase()
+	databaseModel, err := databaseClient.GetDatabase()
 	if err != nil {
 		return err
 	}
 	state.ResourceVersion = types.StringValue(*databaseModel.ResourceVersion)
-	_, err = databaseClient.UpdateDatabase(state, propertiesModel)
+	err = databaseClient.UpdateDatabase(state, propertiesModel)
 	if err != nil {
 		return err
 	} else {
@@ -373,15 +370,15 @@ func (r *DatabaseResource) retryUpdate(ctx context.Context, state model.Database
 	}
 }
 
-func (r *DatabaseResource) waitForDatabase(ctx context.Context, databaseClient *nuodbaas_client.NuodbaasDatabaseClient) (*nuodbaas.DatabaseModel, *http.Response, error){
+func (r *DatabaseResource) waitForDatabase(ctx context.Context, databaseClient *nuodbaas_client.NuodbaasDatabaseClient) (*nuodbaas.DatabaseModel, error){
 
 	var getDatabaseModel *nuodbaas.DatabaseModel
 	var waitTime = 1
 	for {
-		databaseModel, httpResponse, err := databaseClient.GetDatabase()
+		databaseModel, err := databaseClient.GetDatabase()
 		getDatabaseModel = databaseModel
 		if err != nil {
-			return nil, httpResponse, err
+			return nil, err
 		}
 		if databaseModel.Maintenance != nil {
 			if !*databaseModel.Maintenance.IsDisabled && databaseModel.Status != nil && databaseModel.Status.GetState() == "Available" {
@@ -395,7 +392,7 @@ func (r *DatabaseResource) waitForDatabase(ctx context.Context, databaseClient *
 		time.Sleep(time.Duration(waitTime) * time.Second)
 		waitTime = helper.ComputeWaitTime(waitTime, 10)
 	}
-	return getDatabaseModel, nil, nil
+	return getDatabaseModel, nil
 }
 
 func (r *DatabaseResource) updateStateWithComputedValues(ctx context.Context, state *model.DatabaseResourceModel, databaseModel *nuodbaas.DatabaseModel, stateType string) (*model.DatabaseResourceModel, diag.Diagnostics ) {

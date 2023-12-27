@@ -5,17 +5,14 @@ All Rights Reserved.
 package helper
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
@@ -26,44 +23,24 @@ func GetProviderValidatorErrorMessage(valueType string, envVariable string) stri
 		"If either is already set, ensure the value is not empty.", valueType, valueType, envVariable)
 }
 
-func GetErrorModelFromError(ctx context.Context, err error) *nuodbaas.ErrorContent {
+
+//Return a Error Content object
+func GetErrorContentObj(err error) *nuodbaas.ErrorContent {
 	if serverErr, ok := err.(*nuodbaas.GenericOpenAPIError); ok {
 		errorModel := nuodbaas.ErrorContent{}
 		json.Unmarshal(serverErr.Body(), &errorModel)
 		return &errorModel
-	}	else {
-		tflog.Debug(ctx, fmt.Sprintf("TAGGER not ok and is %+v", err))
-		return nil
+	} else {
+		errorMessage := err.Error()
+		code := ""
+		status := ""
+		return &nuodbaas.ErrorContent{
+			Detail: &errorMessage,
+			Code: &code,
+			Status: &status,
+		}
 	}
 }
-
-func getHttpResponseObj(httpResponse *http.Response, target interface{}) error {
-	defer httpResponse.Body.Close()
-	return json.NewDecoder(httpResponse.Body).Decode(target)
-}
-
-// Extracts the Error Model from the http.Response struct
-func GetHttpResponseModel(httpResponse *http.Response) *nuodbaas.ErrorContent {
-	errorModel := &nuodbaas.ErrorContent{}
-	errorObj := getHttpResponseObj(httpResponse, errorModel)
-	if errorObj != nil {
-		return nil
-	} 
-	return errorModel
-}
-
-
-// Returns the readable error message string provided by the client
-func GetHttpResponseErrorMessage(httpResponse *http.Response, err error) string {
-	errorModel := &nuodbaas.ErrorContent{}
-	errorObj := getHttpResponseObj(httpResponse, errorModel)
-
-	if errorObj != nil {
-		return err.Error()
-	} 
-	return errorModel.GetDetail()
-}
-
 
 func IsTimeoutError(err error) bool {
 	return os.IsTimeout(err)
