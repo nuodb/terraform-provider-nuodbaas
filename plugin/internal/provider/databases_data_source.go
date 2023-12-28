@@ -118,7 +118,7 @@ func (d *databasesDataSource) Read(ctx context.Context, req datasource.ReadReque
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error getting databases",
-			"Could not get databases, unexpected error: "+ helper.GetErrorContentObj(err).GetDetail(),
+			helper.GetApiErrorMessage(err, "Could not get databases, unexpected error:"),
 		)
 		return
 	}

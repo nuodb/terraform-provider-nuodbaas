@@ -95,7 +95,7 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error getting projects",
-			"Could not get projects, unexpected error: " + helper.GetErrorContentObj(err).GetDetail(),
+			helper.GetApiErrorMessage(err, "Could not get projects, unexpected error:"),
 		)
 		return
 	}

@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+// Properties is of types Object because it is a computed field.
+// Computed has nil, known and unknown values. The struct cannot handle unknown values. Therefore a types.Object is used.
 type DatabaseResourceModel struct {
 	Organization    types.String 						`tfsdk:"organization"`
 	Name            types.String 						`tfsdk:"name"`

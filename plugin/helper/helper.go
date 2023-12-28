@@ -5,7 +5,7 @@ All Rights Reserved.
 package helper
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"os"
 
@@ -23,23 +23,24 @@ func GetProviderValidatorErrorMessage(valueType string, envVariable string) stri
 		"If either is already set, ensure the value is not empty.", valueType, valueType, envVariable)
 }
 
+// Extracts the error message from error object
+func GetApiErrorMessage(err error, message string) string {
+	errorObj := GetErrorContentObj(context.Background(), err)
+	extendedErrorMessage := err.Error()
+	if errorObj!=nil {
+		extendedErrorMessage = errorObj.GetDetail()
+	}
+	return  fmt.Sprintf("%s %s", message, extendedErrorMessage)
+}
 
 //Return a Error Content object
-func GetErrorContentObj(err error) *nuodbaas.ErrorContent {
+func GetErrorContentObj(ctx context.Context, err error) *nuodbaas.ErrorContent {
 	if serverErr, ok := err.(*nuodbaas.GenericOpenAPIError); ok {
-		errorModel := nuodbaas.ErrorContent{}
-		json.Unmarshal(serverErr.Body(), &errorModel)
-		return &errorModel
-	} else {
-		errorMessage := err.Error()
-		code := ""
-		status := ""
-		return &nuodbaas.ErrorContent{
-			Detail: &errorMessage,
-			Code: &code,
-			Status: &status,
+		if errModel, ok:= serverErr.Model().(nuodbaas.ErrorContent); ok {
+			return &errModel
 		}
 	}
+	return nil
 }
 
 func IsTimeoutError(err error) bool {

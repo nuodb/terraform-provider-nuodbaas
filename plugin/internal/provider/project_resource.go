@@ -137,7 +137,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating project",
-			"Could not create project, unexpected error: "+ helper.GetErrorContentObj(err).GetDetail(),
+			helper.GetApiErrorMessage(err, "Could not create project, unexpected error:"),
 		)
 		return
 	}
@@ -147,7 +147,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading Project",
-			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + helper.GetErrorContentObj(err).GetDetail(),
+			helper.GetApiErrorMessage(err, fmt.Sprintf("Could not get NuoDbaas project %+v", state.Name.ValueString())),
 		)
 		return
 	}
@@ -172,16 +172,18 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	projectModel, err := projectClient.GetProject()
 
 	if err != nil {
-		if helper.GetErrorContentObj(err).GetStatus() == "HTTP 404 Not Found" {
-			resp.State.RemoveResource(ctx)
-			return
+		if errObj := helper.GetErrorContentObj(ctx, err); errObj != nil {
+			if errObj.GetStatus() == "HTTP 404 Not Found" {
+				resp.State.RemoveResource(ctx)
+				return
+			}
 		}
 	}
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading Project",
-			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + helper.GetErrorContentObj(err).GetDetail(),
+			helper.GetApiErrorMessage(err, fmt.Sprintf("Could not get NuoDbaas project %+v", state.Name.ValueString())),
 		)
 		return
 	}
@@ -240,7 +242,7 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating project",
-			"Could not update project, unexpected error: "+ helper.GetErrorContentObj(err).GetDetail(),
+			helper.GetApiErrorMessage(err, "Could not update project, unexpected error:"),
 		)
 		return
 	}
@@ -263,9 +265,10 @@ func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	err :=  nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString()).DeleteProject()
 
 	if err!=nil {
-		resp.Diagnostics.AddError("Error deleting project", 
-			fmt.Sprintf("Unable to delete project %s, unexpected error: %v", 
-			state.Name.ValueString(), helper.GetErrorContentObj(err).GetDetail()))
+		resp.Diagnostics.AddError(
+			"Error deleting project", 
+			helper.GetApiErrorMessage(err, fmt.Sprintf("Unable to delete project %s, unexpected error:", state.Name.ValueString())),
+		)
 		return
 	}
 }

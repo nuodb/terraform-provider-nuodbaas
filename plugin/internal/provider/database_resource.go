@@ -206,7 +206,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating database",
-			"Could not create database, unexpected error: "+ helper.GetErrorContentObj(err).GetDetail(),
+			helper.GetApiErrorMessage(err, "Could not create database, unexpected error:"),
 		)
 		return
 	}
@@ -223,7 +223,8 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading Database",
-			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetErrorContentObj(err).GetDetail())
+			helper.GetApiErrorMessage(err, "Could not get NuoDbaas database " + state.Name.ValueString()),
+		)
 		return
 	}
 
@@ -252,13 +253,16 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	getDatabaseModel, err := databaseClient.GetDatabase()
 
 	if err != nil {
-		if *helper.GetErrorContentObj(err).Status == "HTTP 404 Not Found" {
-			resp.State.RemoveResource(ctx)
-			return
+		if errObj := helper.GetErrorContentObj(ctx, err); errObj!=nil {
+			if errObj.GetStatus() == "HTTP 404 Not Found" {
+				resp.State.RemoveResource(ctx)
+				return
+			}
 		}
 		resp.Diagnostics.AddError(
 			"Error reading Database",
-			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetErrorContentObj(err).GetDetail())
+			helper.GetApiErrorMessage(err, "Could not get NuoDbaas database " + state.Name.ValueString()),
+		)
 		return
 	}
 
@@ -303,14 +307,19 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
 	err := databaseClient.UpdateDatabase(state, &propertiesModel)
 
-	if err != nil && helper.GetErrorContentObj(err).GetCode() == "CONCURRENT_UPDATE" {
-		err = r.retryUpdate(ctx, state, state.Maintenance, &propertiesModel, databaseClient)
+
+	if err != nil {
+		if errObj := helper.GetErrorContentObj(ctx, err); errObj != nil {
+			if errObj.GetCode() == "CONCURRENT_UPDATE" {
+				err = r.retryUpdate(ctx, state, state.Maintenance, &propertiesModel, databaseClient)
+			}
+		}
 	}
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating database",
-			fmt.Sprintf("Could not update database, unexpected error: %+v", helper.GetErrorContentObj(err).GetDetail()),
+			helper.GetApiErrorMessage(err, "Could not update database, unexpected error:"),
 		)
 		return
 	}
@@ -320,7 +329,8 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading Database",
-			"Could not get NuoDbaas database " + state.Name.ValueString()+" : " + helper.GetErrorContentObj(err).GetDetail())
+			helper.GetApiErrorMessage(err, "Could not get NuoDbaas database " + state.Name.ValueString()),
+		)
 		return
 	}
 
@@ -349,9 +359,9 @@ func (r *DatabaseResource) Delete(ctx context.Context, req resource.DeleteReques
 	err := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).DeleteDatabase()
 
 	if err!=nil {
-		resp.Diagnostics.AddError("Unable to delete database", 
-			fmt.Sprintf("Unable to database project %s, unexpected error: %v", 
-			state.Name.ValueString(), helper.GetErrorContentObj(err).GetDetail()))
+		resp.Diagnostics.AddError("Unable to delete database",
+			helper.GetApiErrorMessage(err, fmt.Sprintf("Unable to database project %s, unexpected error:", state.Name.ValueString())), 
+		)
 		return
 	}
 }
