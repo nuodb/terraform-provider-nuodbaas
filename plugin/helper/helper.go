@@ -5,7 +5,6 @@ All Rights Reserved.
 package helper
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -25,7 +24,7 @@ func GetProviderValidatorErrorMessage(valueType string, envVariable string) stri
 
 // Extracts the error message from error object
 func GetApiErrorMessage(err error, message string) string {
-	errorObj := GetErrorContentObj(context.Background(), err)
+	errorObj := GetErrorContentObj(err)
 	extendedErrorMessage := err.Error()
 	if errorObj!=nil {
 		extendedErrorMessage = errorObj.GetDetail()
@@ -34,7 +33,7 @@ func GetApiErrorMessage(err error, message string) string {
 }
 
 //Return a Error Content object
-func GetErrorContentObj(ctx context.Context, err error) *nuodbaas.ErrorContent {
+func GetErrorContentObj(err error) *nuodbaas.ErrorContent {
 	if serverErr, ok := err.(*nuodbaas.GenericOpenAPIError); ok {
 		if errModel, ok:= serverErr.Model().(nuodbaas.ErrorContent); ok {
 			return &errModel

@@ -172,7 +172,7 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	projectModel, err := projectClient.GetProject()
 
 	if err != nil {
-		if errObj := helper.GetErrorContentObj(ctx, err); errObj != nil {
+		if errObj := helper.GetErrorContentObj(err); errObj != nil {
 			if errObj.GetStatus() == "HTTP 404 Not Found" {
 				resp.State.RemoveResource(ctx)
 				return

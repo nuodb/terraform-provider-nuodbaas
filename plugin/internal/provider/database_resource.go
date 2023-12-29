@@ -253,7 +253,7 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	getDatabaseModel, err := databaseClient.GetDatabase()
 
 	if err != nil {
-		if errObj := helper.GetErrorContentObj(ctx, err); errObj!=nil {
+		if errObj := helper.GetErrorContentObj(err); errObj!=nil {
 			if errObj.GetStatus() == "HTTP 404 Not Found" {
 				resp.State.RemoveResource(ctx)
 				return
@@ -309,7 +309,7 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 
 
 	if err != nil {
-		if errObj := helper.GetErrorContentObj(ctx, err); errObj != nil {
+		if errObj := helper.GetErrorContentObj(err); errObj != nil {
 			if errObj.GetCode() == "CONCURRENT_UPDATE" {
 				err = r.retryUpdate(ctx, state, state.Maintenance, &propertiesModel, databaseClient)
 			}
