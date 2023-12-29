@@ -3,7 +3,7 @@ NuoDB Control Plane REST API
 
 NuoDB Control Plane (CP) allows users to create and manage NuoDB databases remotely using a Database as a Service (DBaaS) model.
 
-API version: 2.2.0
+API version: 2.3.0
 Contact: NuoDB.Support@3ds.com
 */
 
@@ -23,11 +23,14 @@ var _ MappedNullable = &ProjectModel{}
 type ProjectModel struct {
 	Organization *string `json:"organization,omitempty"`
 	Name *string `json:"name,omitempty"`
+	// User-defined labels attached to the resource that can be used for filtering
+	Labels *map[string]string `json:"labels,omitempty"`
 	// The SLA for the project. Cannot be updated once the project is created.
 	Sla string `json:"sla"`
 	// The service tier for the project
 	Tier string `json:"tier"`
 	Maintenance *MaintenanceModel `json:"maintenance,omitempty"`
+	Properties *ProjectPropertiesModel `json:"properties,omitempty"`
 	// The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.
 	ResourceVersion *string `json:"resourceVersion,omitempty"`
 	Status *ProjectStatusModel `json:"status,omitempty"`
@@ -118,6 +121,38 @@ func (o *ProjectModel) SetName(v string) {
 	o.Name = &v
 }
 
+// GetLabels returns the Labels field value if set, zero value otherwise.
+func (o *ProjectModel) GetLabels() map[string]string {
+	if o == nil || IsNil(o.Labels) {
+		var ret map[string]string
+		return ret
+	}
+	return *o.Labels
+}
+
+// GetLabelsOk returns a tuple with the Labels field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ProjectModel) GetLabelsOk() (*map[string]string, bool) {
+	if o == nil || IsNil(o.Labels) {
+		return nil, false
+	}
+	return o.Labels, true
+}
+
+// HasLabels returns a boolean if a field has been set.
+func (o *ProjectModel) HasLabels() bool {
+	if o != nil && !IsNil(o.Labels) {
+		return true
+	}
+
+	return false
+}
+
+// SetLabels gets a reference to the given map[string]string and assigns it to the Labels field.
+func (o *ProjectModel) SetLabels(v map[string]string) {
+	o.Labels = &v
+}
+
 // GetSla returns the Sla field value
 func (o *ProjectModel) GetSla() string {
 	if o == nil {
@@ -196,6 +231,38 @@ func (o *ProjectModel) HasMaintenance() bool {
 // SetMaintenance gets a reference to the given MaintenanceModel and assigns it to the Maintenance field.
 func (o *ProjectModel) SetMaintenance(v MaintenanceModel) {
 	o.Maintenance = &v
+}
+
+// GetProperties returns the Properties field value if set, zero value otherwise.
+func (o *ProjectModel) GetProperties() ProjectPropertiesModel {
+	if o == nil || IsNil(o.Properties) {
+		var ret ProjectPropertiesModel
+		return ret
+	}
+	return *o.Properties
+}
+
+// GetPropertiesOk returns a tuple with the Properties field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ProjectModel) GetPropertiesOk() (*ProjectPropertiesModel, bool) {
+	if o == nil || IsNil(o.Properties) {
+		return nil, false
+	}
+	return o.Properties, true
+}
+
+// HasProperties returns a boolean if a field has been set.
+func (o *ProjectModel) HasProperties() bool {
+	if o != nil && !IsNil(o.Properties) {
+		return true
+	}
+
+	return false
+}
+
+// SetProperties gets a reference to the given ProjectPropertiesModel and assigns it to the Properties field.
+func (o *ProjectModel) SetProperties(v ProjectPropertiesModel) {
+	o.Properties = &v
 }
 
 // GetResourceVersion returns the ResourceVersion field value if set, zero value otherwise.
@@ -278,10 +345,16 @@ func (o ProjectModel) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.Name) {
 		toSerialize["name"] = o.Name
 	}
+	if !IsNil(o.Labels) {
+		toSerialize["labels"] = o.Labels
+	}
 	toSerialize["sla"] = o.Sla
 	toSerialize["tier"] = o.Tier
 	if !IsNil(o.Maintenance) {
 		toSerialize["maintenance"] = o.Maintenance
+	}
+	if !IsNil(o.Properties) {
+		toSerialize["properties"] = o.Properties
 	}
 	if !IsNil(o.ResourceVersion) {
 		toSerialize["resourceVersion"] = o.ResourceVersion

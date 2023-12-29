@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/helper"
 
@@ -183,7 +184,19 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 	configuration.DefaultHeader["Authorization"] = fmt.Sprintf("Basic %s", basicAuth(basicUsername, password))
 	configuration.Servers = serverConfig
 	apiClient := nuodbaas.NewAPIClient(configuration)
-	httpsRes, error := apiClient.HealthzAPI.GetHealth(context.Background()).Execute()
+	ctx, cancel := context.WithTimeout(ctx, time.Second * 30)
+	defer cancel()
+	httpsRes, error := apiClient.HealthzAPI.GetHealth(ctx).Execute()
+
+	if helper.IsTimeoutError(error) {
+		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Unable to connect with %+v", host))
+		return
+	}
+
+	if httpsRes==nil && error!=nil {
+		resp.Diagnostics.AddError("Something went wrong", fmt.Sprintf("Something went wrong %s", error.Error()))
+		return
+	}
 	if httpsRes.StatusCode != 403 && httpsRes.StatusCode >= 300 {
 		resp.Diagnostics.AddError(
             "Something went wrong",
@@ -202,11 +215,17 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 func (p *NuoDbaasProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource {
 		NewProjectResource,
+		NewDatabaseResource,
 	}
 }
 
 func (p *NuoDbaasProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource {
+        NewProjectDataSource,
+		NewProjectsDataSource,
+		NewDatabasesDataSource,
+		NewDatabaseDataSource,
+    }
 }
 
 func New(version string) func() provider.Provider {

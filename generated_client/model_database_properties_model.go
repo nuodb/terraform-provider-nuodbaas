@@ -3,7 +3,7 @@ NuoDB Control Plane REST API
 
 NuoDB Control Plane (CP) allows users to create and manage NuoDB databases remotely using a Database as a Service (DBaaS) model.
 
-API version: 2.2.0
+API version: 2.3.0
 Contact: NuoDB.Support@3ds.com
 */
 
@@ -24,6 +24,12 @@ type DatabasePropertiesModel struct {
 	ArchiveDiskSize *string `json:"archiveDiskSize,omitempty"`
 	// The size of the journal volumes for the database. Can be only updated to increase the volume size.
 	JournalDiskSize *string `json:"journalDiskSize,omitempty"`
+	// Opaque parameters supplied to database service tier.
+	TierParameters *map[string]string `json:"tierParameters,omitempty"`
+	// Whether to inherit tier parameters from the project if the database service tier matches the project.
+	InheritTierParameters *bool `json:"inheritTierParameters,omitempty"`
+	// The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb-ce/tags. If omitted, the database version will be inherited from the project.
+	ProductVersion *string `json:"productVersion,omitempty"`
 }
 
 // NewDatabasePropertiesModel instantiates a new DatabasePropertiesModel object
@@ -107,6 +113,102 @@ func (o *DatabasePropertiesModel) SetJournalDiskSize(v string) {
 	o.JournalDiskSize = &v
 }
 
+// GetTierParameters returns the TierParameters field value if set, zero value otherwise.
+func (o *DatabasePropertiesModel) GetTierParameters() map[string]string {
+	if o == nil || IsNil(o.TierParameters) {
+		var ret map[string]string
+		return ret
+	}
+	return *o.TierParameters
+}
+
+// GetTierParametersOk returns a tuple with the TierParameters field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *DatabasePropertiesModel) GetTierParametersOk() (*map[string]string, bool) {
+	if o == nil || IsNil(o.TierParameters) {
+		return nil, false
+	}
+	return o.TierParameters, true
+}
+
+// HasTierParameters returns a boolean if a field has been set.
+func (o *DatabasePropertiesModel) HasTierParameters() bool {
+	if o != nil && !IsNil(o.TierParameters) {
+		return true
+	}
+
+	return false
+}
+
+// SetTierParameters gets a reference to the given map[string]string and assigns it to the TierParameters field.
+func (o *DatabasePropertiesModel) SetTierParameters(v map[string]string) {
+	o.TierParameters = &v
+}
+
+// GetInheritTierParameters returns the InheritTierParameters field value if set, zero value otherwise.
+func (o *DatabasePropertiesModel) GetInheritTierParameters() bool {
+	if o == nil || IsNil(o.InheritTierParameters) {
+		var ret bool
+		return ret
+	}
+	return *o.InheritTierParameters
+}
+
+// GetInheritTierParametersOk returns a tuple with the InheritTierParameters field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *DatabasePropertiesModel) GetInheritTierParametersOk() (*bool, bool) {
+	if o == nil || IsNil(o.InheritTierParameters) {
+		return nil, false
+	}
+	return o.InheritTierParameters, true
+}
+
+// HasInheritTierParameters returns a boolean if a field has been set.
+func (o *DatabasePropertiesModel) HasInheritTierParameters() bool {
+	if o != nil && !IsNil(o.InheritTierParameters) {
+		return true
+	}
+
+	return false
+}
+
+// SetInheritTierParameters gets a reference to the given bool and assigns it to the InheritTierParameters field.
+func (o *DatabasePropertiesModel) SetInheritTierParameters(v bool) {
+	o.InheritTierParameters = &v
+}
+
+// GetProductVersion returns the ProductVersion field value if set, zero value otherwise.
+func (o *DatabasePropertiesModel) GetProductVersion() string {
+	if o == nil || IsNil(o.ProductVersion) {
+		var ret string
+		return ret
+	}
+	return *o.ProductVersion
+}
+
+// GetProductVersionOk returns a tuple with the ProductVersion field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *DatabasePropertiesModel) GetProductVersionOk() (*string, bool) {
+	if o == nil || IsNil(o.ProductVersion) {
+		return nil, false
+	}
+	return o.ProductVersion, true
+}
+
+// HasProductVersion returns a boolean if a field has been set.
+func (o *DatabasePropertiesModel) HasProductVersion() bool {
+	if o != nil && !IsNil(o.ProductVersion) {
+		return true
+	}
+
+	return false
+}
+
+// SetProductVersion gets a reference to the given string and assigns it to the ProductVersion field.
+func (o *DatabasePropertiesModel) SetProductVersion(v string) {
+	o.ProductVersion = &v
+}
+
 func (o DatabasePropertiesModel) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -122,6 +224,15 @@ func (o DatabasePropertiesModel) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.JournalDiskSize) {
 		toSerialize["journalDiskSize"] = o.JournalDiskSize
+	}
+	if !IsNil(o.TierParameters) {
+		toSerialize["tierParameters"] = o.TierParameters
+	}
+	if !IsNil(o.InheritTierParameters) {
+		toSerialize["inheritTierParameters"] = o.InheritTierParameters
+	}
+	if !IsNil(o.ProductVersion) {
+		toSerialize["productVersion"] = o.ProductVersion
 	}
 	return toSerialize, nil
 }

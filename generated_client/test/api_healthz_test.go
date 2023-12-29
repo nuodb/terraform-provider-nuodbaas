@@ -11,11 +11,10 @@ package nuodbaas
 
 import (
 	"context"
-	"testing"
-
-	openapiclient "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"testing"
+	openapiclient "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 func Test_nuodbaas_HealthzAPIService(t *testing.T) {

@@ -3,7 +3,7 @@ NuoDB Control Plane REST API
 
 NuoDB Control Plane (CP) allows users to create and manage NuoDB databases remotely using a Database as a Service (DBaaS) model.
 
-API version: 2.2.0
+API version: 2.3.0
 Contact: NuoDB.Support@3ds.com
 */
 
@@ -137,7 +137,7 @@ func (a *UsersAPIService) CreateUserExecute(r ApiCreateUserRequest) (*http.Respo
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -148,7 +148,7 @@ func (a *UsersAPIService) CreateUserExecute(r ApiCreateUserRequest) (*http.Respo
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -159,7 +159,7 @@ func (a *UsersAPIService) CreateUserExecute(r ApiCreateUserRequest) (*http.Respo
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -170,7 +170,7 @@ func (a *UsersAPIService) CreateUserExecute(r ApiCreateUserRequest) (*http.Respo
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -181,7 +181,7 @@ func (a *UsersAPIService) CreateUserExecute(r ApiCreateUserRequest) (*http.Respo
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 409 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -192,7 +192,7 @@ func (a *UsersAPIService) CreateUserExecute(r ApiCreateUserRequest) (*http.Respo
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 415 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -203,7 +203,7 @@ func (a *UsersAPIService) CreateUserExecute(r ApiCreateUserRequest) (*http.Respo
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -223,6 +223,13 @@ type ApiDeleteUserRequest struct {
 	ApiService *UsersAPIService
 	organization string
 	user string
+	timeoutSeconds *int32
+}
+
+// The number of seconds to wait for the deletion to be finalized, unless 0 is specified which indicates not to wait
+func (r ApiDeleteUserRequest) TimeoutSeconds(timeoutSeconds int32) ApiDeleteUserRequest {
+	r.timeoutSeconds = &timeoutSeconds
+	return r
 }
 
 func (r ApiDeleteUserRequest) Execute() (*http.Response, error) {
@@ -267,6 +274,12 @@ func (a *UsersAPIService) DeleteUserExecute(r ApiDeleteUserRequest) (*http.Respo
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
+	if r.timeoutSeconds != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "timeoutSeconds", r.timeoutSeconds, "")
+	} else {
+		var defaultValue int32 = 0
+		r.timeoutSeconds = &defaultValue
+	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
@@ -307,7 +320,7 @@ func (a *UsersAPIService) DeleteUserExecute(r ApiDeleteUserRequest) (*http.Respo
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -318,7 +331,7 @@ func (a *UsersAPIService) DeleteUserExecute(r ApiDeleteUserRequest) (*http.Respo
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -329,7 +342,7 @@ func (a *UsersAPIService) DeleteUserExecute(r ApiDeleteUserRequest) (*http.Respo
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -340,7 +353,18 @@ func (a *UsersAPIService) DeleteUserExecute(r ApiDeleteUserRequest) (*http.Respo
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+			return localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 408 {
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -351,7 +375,7 @@ func (a *UsersAPIService) DeleteUserExecute(r ApiDeleteUserRequest) (*http.Respo
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -364,6 +388,169 @@ func (a *UsersAPIService) DeleteUserExecute(r ApiDeleteUserRequest) (*http.Respo
 	}
 
 	return localVarHTTPResponse, nil
+}
+
+type ApiGetAllUsersRequest struct {
+	ctx context.Context
+	ApiService *UsersAPIService
+	labelFilter *string
+	listAccessible *bool
+}
+
+// Comma-separated list of filters to apply based on labels, which are composed using &#x60;AND&#x60;. Acceptable filter expressions are: * &#x60;key&#x60; - Only return resources that have label with specified key * &#x60;key&#x3D;value&#x60; - Only return resources that have label with specified key set to value * &#x60;!key&#x60; - Only return resources that do _not_ have label with specified key * &#x60;key!&#x3D;value&#x60; - Only return resources that do _not_ have label with specified key set to value
+func (r ApiGetAllUsersRequest) LabelFilter(labelFilter string) ApiGetAllUsersRequest {
+	r.labelFilter = &labelFilter
+	return r
+}
+
+// Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
+func (r ApiGetAllUsersRequest) ListAccessible(listAccessible bool) ApiGetAllUsersRequest {
+	r.listAccessible = &listAccessible
+	return r
+}
+
+func (r ApiGetAllUsersRequest) Execute() (*ItemListString, *http.Response, error) {
+	return r.ApiService.GetAllUsersExecute(r)
+}
+
+/*
+GetAllUsers List the users in the cluster
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @return ApiGetAllUsersRequest
+*/
+func (a *UsersAPIService) GetAllUsers(ctx context.Context) ApiGetAllUsersRequest {
+	return ApiGetAllUsersRequest{
+		ApiService: a,
+		ctx: ctx,
+	}
+}
+
+// Execute executes the request
+//  @return ItemListString
+func (a *UsersAPIService) GetAllUsersExecute(r ApiGetAllUsersRequest) (*ItemListString, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodGet
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *ItemListString
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "UsersAPIService.GetAllUsers")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/users"
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	if r.labelFilter != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "labelFilter", r.labelFilter, "")
+	}
+	if r.listAccessible != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "listAccessible", r.listAccessible, "")
+	} else {
+		var defaultValue bool = false
+		r.listAccessible = &defaultValue
+	}
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 400 {
+			var v ErrorContent
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 401 {
+			var v ErrorContent
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 403 {
+			var v ErrorContent
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 500 {
+			var v ErrorContent
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
 type ApiGetUserRequest struct {
@@ -457,7 +644,7 @@ func (a *UsersAPIService) GetUserExecute(r ApiGetUserRequest) (*DbaasUserModel, 
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -468,7 +655,7 @@ func (a *UsersAPIService) GetUserExecute(r ApiGetUserRequest) (*DbaasUserModel, 
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -479,7 +666,7 @@ func (a *UsersAPIService) GetUserExecute(r ApiGetUserRequest) (*DbaasUserModel, 
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -490,7 +677,7 @@ func (a *UsersAPIService) GetUserExecute(r ApiGetUserRequest) (*DbaasUserModel, 
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -501,7 +688,7 @@ func (a *UsersAPIService) GetUserExecute(r ApiGetUserRequest) (*DbaasUserModel, 
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -529,6 +716,20 @@ type ApiGetUsersRequest struct {
 	ctx context.Context
 	ApiService *UsersAPIService
 	organization string
+	labelFilter *string
+	listAccessible *bool
+}
+
+// Comma-separated list of filters to apply based on labels, which are composed using &#x60;AND&#x60;. Acceptable filter expressions are: * &#x60;key&#x60; - Only return resources that have label with specified key * &#x60;key&#x3D;value&#x60; - Only return resources that have label with specified key set to value * &#x60;!key&#x60; - Only return resources that do _not_ have label with specified key * &#x60;key!&#x3D;value&#x60; - Only return resources that do _not_ have label with specified key set to value
+func (r ApiGetUsersRequest) LabelFilter(labelFilter string) ApiGetUsersRequest {
+	r.labelFilter = &labelFilter
+	return r
+}
+
+// Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
+func (r ApiGetUsersRequest) ListAccessible(listAccessible bool) ApiGetUsersRequest {
+	r.listAccessible = &listAccessible
+	return r
 }
 
 func (r ApiGetUsersRequest) Execute() (*ItemListString, *http.Response, error) {
@@ -572,6 +773,15 @@ func (a *UsersAPIService) GetUsersExecute(r ApiGetUsersRequest) (*ItemListString
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
+	if r.labelFilter != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "labelFilter", r.labelFilter, "")
+	}
+	if r.listAccessible != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "listAccessible", r.listAccessible, "")
+	} else {
+		var defaultValue bool = false
+		r.listAccessible = &defaultValue
+	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
@@ -612,7 +822,7 @@ func (a *UsersAPIService) GetUsersExecute(r ApiGetUsersRequest) (*ItemListString
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -623,7 +833,7 @@ func (a *UsersAPIService) GetUsersExecute(r ApiGetUsersRequest) (*ItemListString
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -634,7 +844,7 @@ func (a *UsersAPIService) GetUsersExecute(r ApiGetUsersRequest) (*ItemListString
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -645,7 +855,7 @@ func (a *UsersAPIService) GetUsersExecute(r ApiGetUsersRequest) (*ItemListString
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -782,7 +992,7 @@ func (a *UsersAPIService) PatchUserExecute(r ApiPatchUserRequest) (*http.Respons
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -793,7 +1003,7 @@ func (a *UsersAPIService) PatchUserExecute(r ApiPatchUserRequest) (*http.Respons
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -804,7 +1014,7 @@ func (a *UsersAPIService) PatchUserExecute(r ApiPatchUserRequest) (*http.Respons
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -815,7 +1025,7 @@ func (a *UsersAPIService) PatchUserExecute(r ApiPatchUserRequest) (*http.Respons
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 404 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -826,7 +1036,7 @@ func (a *UsersAPIService) PatchUserExecute(r ApiPatchUserRequest) (*http.Respons
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 409 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -837,7 +1047,7 @@ func (a *UsersAPIService) PatchUserExecute(r ApiPatchUserRequest) (*http.Respons
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 415 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
@@ -848,7 +1058,7 @@ func (a *UsersAPIService) PatchUserExecute(r ApiPatchUserRequest) (*http.Respons
 			return localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 500 {
-			var v ErrorContentString
+			var v ErrorContent
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()

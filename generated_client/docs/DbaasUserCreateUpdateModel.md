@@ -6,6 +6,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **Organization** | Pointer to **string** |  | [optional] 
 **Name** | Pointer to **string** |  | [optional] 
+**Labels** | Pointer to **map[string]string** | User-defined labels attached to the resource that can be used for filtering | [optional] 
 **Password** | Pointer to **string** | The password for the user | [optional] 
 **AccessRule** | [**DbaasAccessRuleModel**](DbaasAccessRuleModel.md) |  | 
 **ResourceVersion** | Pointer to **string** | The version of the resource. When specified in a &#x60;PUT&#x60; request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates. | [optional] 
@@ -78,6 +79,31 @@ SetName sets Name field to given value.
 `func (o *DbaasUserCreateUpdateModel) HasName() bool`
 
 HasName returns a boolean if a field has been set.
+
+### GetLabels
+
+`func (o *DbaasUserCreateUpdateModel) GetLabels() map[string]string`
+
+GetLabels returns the Labels field if non-nil, zero value otherwise.
+
+### GetLabelsOk
+
+`func (o *DbaasUserCreateUpdateModel) GetLabelsOk() (*map[string]string, bool)`
+
+GetLabelsOk returns a tuple with the Labels field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetLabels
+
+`func (o *DbaasUserCreateUpdateModel) SetLabels(v map[string]string)`
+
+SetLabels sets Labels field to given value.
+
+### HasLabels
+
+`func (o *DbaasUserCreateUpdateModel) HasLabels() bool`
+
+HasLabels returns a boolean if a field has been set.
 
 ### GetPassword
 

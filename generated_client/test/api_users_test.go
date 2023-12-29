@@ -11,11 +11,10 @@ package nuodbaas
 
 import (
 	"context"
-	"testing"
-
-	openapiclient "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"testing"
+	openapiclient "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 func Test_nuodbaas_UsersAPIService(t *testing.T) {
@@ -47,6 +46,18 @@ func Test_nuodbaas_UsersAPIService(t *testing.T) {
 		httpRes, err := apiClient.UsersAPI.DeleteUser(context.Background(), organization, user).Execute()
 
 		require.Nil(t, err)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
+	t.Run("Test UsersAPIService GetAllUsers", func(t *testing.T) {
+
+		t.Skip("skip test")  // remove to run test
+
+		resp, httpRes, err := apiClient.UsersAPI.GetAllUsers(context.Background()).Execute()
+
+		require.Nil(t, err)
+		require.NotNil(t, resp)
 		assert.Equal(t, 200, httpRes.StatusCode)
 
 	})

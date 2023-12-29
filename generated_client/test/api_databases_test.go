@@ -11,11 +11,10 @@ package nuodbaas
 
 import (
 	"context"
-	"testing"
-
-	openapiclient "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"testing"
+	openapiclient "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 func Test_nuodbaas_DatabasesAPIService(t *testing.T) {
@@ -53,6 +52,18 @@ func Test_nuodbaas_DatabasesAPIService(t *testing.T) {
 
 	})
 
+	t.Run("Test DatabasesAPIService GetAllDatabases", func(t *testing.T) {
+
+		t.Skip("skip test")  // remove to run test
+
+		resp, httpRes, err := apiClient.DatabasesAPI.GetAllDatabases(context.Background()).Execute()
+
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
 	t.Run("Test DatabasesAPIService GetDatabase", func(t *testing.T) {
 
 		t.Skip("skip test")  // remove to run test
@@ -77,6 +88,20 @@ func Test_nuodbaas_DatabasesAPIService(t *testing.T) {
 		var project string
 
 		resp, httpRes, err := apiClient.DatabasesAPI.GetDatabases(context.Background(), organization, project).Execute()
+
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		assert.Equal(t, 200, httpRes.StatusCode)
+
+	})
+
+	t.Run("Test DatabasesAPIService GetOrganizationDatabases", func(t *testing.T) {
+
+		t.Skip("skip test")  // remove to run test
+
+		var organization string
+
+		resp, httpRes, err := apiClient.DatabasesAPI.GetOrganizationDatabases(context.Background(), organization).Execute()
 
 		require.Nil(t, err)
 		require.NotNil(t, resp)

@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/helper"
+
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/model"
 
 	nuodbaas_client "github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/internal/client"
@@ -18,14 +20,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var (
-	_ resource.Resource = &ProjectResource{}
-	_ resource.ResourceWithImportState = &ProjectResource{}
 )
 
 func NewProjectResource() resource.Resource {
@@ -90,6 +89,15 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
                     stringplanmodifier.UseStateForUnknown(),
                 },
 			},
+			"properties": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"tier_parameters": schema.MapAttribute{
+						Optional: true,
+						ElementType: types.StringType,
+					},
+				},
+			},
 		},
 	}
 }
@@ -105,7 +113,7 @@ func (r *ProjectResource) Configure(ctx context.Context, req resource.ConfigureR
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *nuodbaas.APIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *nuodbaas.APIClient, got: %T. Please report this issue to NuoDB.Support@3ds.com", req.ProviderData),
 		)
 		return
 	}
@@ -123,28 +131,23 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	var maintenanceModel maintenanceModel
-	resp.Diagnostics.Append(state.Maintenance.As(ctx, &maintenanceModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 	projectClient := nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString())
-	_, err := projectClient.CreateProject(state, maintenanceModel)
+	err := projectClient.CreateProject(state)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating project",
-			"Could not create project, unexpected error: "+ err.Error(),
+			helper.GetApiErrorMessage(err, "Could not create project, unexpected error:"),
 		)
 		return
 	}
 
-	getProjectModel, _, err := projectClient.GetProject()
+	getProjectModel, err := projectClient.GetProject()
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading Project",
-			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + err.Error(),
+			"Error Reading Project",
+			helper.GetApiErrorMessage(err, fmt.Sprintf("Could not get NuoDbaas project %+v", state.Name.ValueString())),
 		)
 		return
 	}
@@ -166,24 +169,61 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	projectClient := nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString())
-	projectModel, _, err := projectClient.GetProject()
+	projectModel, err := projectClient.GetProject()
+
+	if err != nil {
+		if errObj := helper.GetErrorContentObj(err); errObj != nil {
+			if errObj.GetStatus() == "HTTP 404 Not Found" {
+				resp.State.RemoveResource(ctx)
+				return
+			}
+		}
+	}
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading Project",
-			"Could not get NuoDbaas project " + state.Name.ValueString()+" : " + err.Error(),
+			"Error Reading Project",
+			helper.GetApiErrorMessage(err, fmt.Sprintf("Could not get NuoDbaas project %+v", state.Name.ValueString())),
 		)
 		return
 	}
 
+	if projectModel.Maintenance != nil {
+		var maintenance = state.Maintenance
+		
+		if projectModel.Maintenance.IsDisabled != nil {
+			if (state.Maintenance != nil && state.Maintenance.IsDisabled.IsNull() && *projectModel.Maintenance.IsDisabled) || (state.Maintenance!= nil && !state.Maintenance.IsDisabled.IsNull()) {
+				maintenance.IsDisabled = types.BoolValue(*projectModel.Maintenance.IsDisabled)
+			}
+		}
+		state.Maintenance = maintenance
+	}
+
+	if projectModel.Properties != nil {
+		propertiesModel := model.ProjectProperties{
+			TierParameters: types.MapNull(types.StringType),
+		}
+
+		if len(*projectModel.Properties.TierParameters) != 0 {
+			mapValue, diags := helper.ConvertMapToTfMap(projectModel.Properties.TierParameters)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			propertiesModel.TierParameters = mapValue
+		}
+		if len(*projectModel.Properties.TierParameters) != 0 {
+			state.Properties = &propertiesModel
+		}
+		
+	}
+
+	state.Tier = types.StringValue(projectModel.Tier)
 	state.ResourceVersion = types.StringValue(*projectModel.ResourceVersion)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -195,20 +235,14 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	var maintenanceModel maintenanceModel
-	resp.Diagnostics.Append(data.Maintenance.As(ctx, &maintenanceModel, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true})...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 	
 	projectClient := nuodbaas_client.NewProjectClient(r.client, ctx, data.Organization.ValueString(), data.Name.ValueString())
-	_, err := projectClient.UpdateProject(data, maintenanceModel)
+	err := projectClient.UpdateProject(data)
 
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating project",
-			"Could not update project, unexpected error: "+ err.Error(),
+			helper.GetApiErrorMessage(err, "Could not update project, unexpected error:"),
 		)
 		return
 	}
@@ -216,9 +250,6 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -231,12 +262,13 @@ func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	_, err :=  nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString()).DeleteProject()
+	err :=  nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString()).DeleteProject()
 
 	if err!=nil {
-		resp.Diagnostics.AddError("Error deleting project", 
-			fmt.Sprintf("Unable to delete project %s, unexpected error: %v", 
-			state.Name.ValueString(), err.Error()))
+		resp.Diagnostics.AddError(
+			"Error deleting project", 
+			helper.GetApiErrorMessage(err, fmt.Sprintf("Unable to delete project %s, unexpected error:", state.Name.ValueString())),
+		)
 		return
 	}
 }

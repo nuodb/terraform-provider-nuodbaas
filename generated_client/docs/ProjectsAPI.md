@@ -6,6 +6,7 @@ Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**CreateProject**](ProjectsAPI.md#CreateProject) | **Put** /projects/{organization}/{project} | Create or update a project
 [**DeleteProject**](ProjectsAPI.md#DeleteProject) | **Delete** /projects/{organization}/{project} | Delete an existing project
+[**GetAllProjects**](ProjectsAPI.md#GetAllProjects) | **Get** /projects | List the projects in the cluster
 [**GetProject**](ProjectsAPI.md#GetProject) | **Get** /projects/{organization}/{project} | Get an existing project
 [**GetProjects**](ProjectsAPI.md#GetProjects) | **Get** /projects/{organization} | List the projects in an organization
 [**PatchProject**](ProjectsAPI.md#PatchProject) | **Patch** /projects/{organization}/{project} | Update an existing project
@@ -85,7 +86,7 @@ Name | Type | Description  | Notes
 
 ## DeleteProject
 
-> DeleteProject(ctx, organization, project).Execute()
+> DeleteProject(ctx, organization, project).TimeoutSeconds(timeoutSeconds).Execute()
 
 Delete an existing project
 
@@ -104,10 +105,11 @@ import (
 func main() {
     organization := "organization_example" // string | 
     project := "project_example" // string | 
+    timeoutSeconds := int32(56) // int32 | The number of seconds to wait for the deletion to be finalized, unless 0 is specified which indicates not to wait (optional) (default to 0)
 
     configuration := openapiclient.NewConfiguration()
     apiClient := openapiclient.NewAPIClient(configuration)
-    r, err := apiClient.ProjectsAPI.DeleteProject(context.Background(), organization, project).Execute()
+    r, err := apiClient.ProjectsAPI.DeleteProject(context.Background(), organization, project).TimeoutSeconds(timeoutSeconds).Execute()
     if err != nil {
         fmt.Fprintf(os.Stderr, "Error when calling `ProjectsAPI.DeleteProject``: %v\n", err)
         fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
@@ -133,10 +135,77 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
 
 
+ **timeoutSeconds** | **int32** | The number of seconds to wait for the deletion to be finalized, unless 0 is specified which indicates not to wait | [default to 0]
 
 ### Return type
 
  (empty response body)
+
+### Authorization
+
+[basicAuth](../README.md#basicAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
+## GetAllProjects
+
+> ItemListString GetAllProjects(ctx).LabelFilter(labelFilter).ListAccessible(listAccessible).Execute()
+
+List the projects in the cluster
+
+### Example
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "os"
+    openapiclient "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
+)
+
+func main() {
+    labelFilter := "labelFilter_example" // string | Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are: * `key` - Only return resources that have label with specified key * `key=value` - Only return resources that have label with specified key set to value * `!key` - Only return resources that do _not_ have label with specified key * `key!=value` - Only return resources that do _not_ have label with specified key set to value (optional)
+    listAccessible := true // bool | Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level (optional) (default to false)
+
+    configuration := openapiclient.NewConfiguration()
+    apiClient := openapiclient.NewAPIClient(configuration)
+    resp, r, err := apiClient.ProjectsAPI.GetAllProjects(context.Background()).LabelFilter(labelFilter).ListAccessible(listAccessible).Execute()
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Error when calling `ProjectsAPI.GetAllProjects``: %v\n", err)
+        fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+    }
+    // response from `GetAllProjects`: ItemListString
+    fmt.Fprintf(os.Stdout, "Response from `ProjectsAPI.GetAllProjects`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiGetAllProjectsRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **labelFilter** | **string** | Comma-separated list of filters to apply based on labels, which are composed using &#x60;AND&#x60;. Acceptable filter expressions are: * &#x60;key&#x60; - Only return resources that have label with specified key * &#x60;key&#x3D;value&#x60; - Only return resources that have label with specified key set to value * &#x60;!key&#x60; - Only return resources that do _not_ have label with specified key * &#x60;key!&#x3D;value&#x60; - Only return resources that do _not_ have label with specified key set to value | 
+ **listAccessible** | **bool** | Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level | [default to false]
+
+### Return type
+
+[**ItemListString**](ItemListString.md)
 
 ### Authorization
 
@@ -225,7 +294,7 @@ Name | Type | Description  | Notes
 
 ## GetProjects
 
-> ItemListString GetProjects(ctx, organization).Execute()
+> ItemListString GetProjects(ctx, organization).LabelFilter(labelFilter).ListAccessible(listAccessible).Execute()
 
 List the projects in an organization
 
@@ -243,10 +312,12 @@ import (
 
 func main() {
     organization := "organization_example" // string | 
+    labelFilter := "labelFilter_example" // string | Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are: * `key` - Only return resources that have label with specified key * `key=value` - Only return resources that have label with specified key set to value * `!key` - Only return resources that do _not_ have label with specified key * `key!=value` - Only return resources that do _not_ have label with specified key set to value (optional)
+    listAccessible := true // bool | Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level (optional) (default to false)
 
     configuration := openapiclient.NewConfiguration()
     apiClient := openapiclient.NewAPIClient(configuration)
-    resp, r, err := apiClient.ProjectsAPI.GetProjects(context.Background(), organization).Execute()
+    resp, r, err := apiClient.ProjectsAPI.GetProjects(context.Background(), organization).LabelFilter(labelFilter).ListAccessible(listAccessible).Execute()
     if err != nil {
         fmt.Fprintf(os.Stderr, "Error when calling `ProjectsAPI.GetProjects``: %v\n", err)
         fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
@@ -272,6 +343,8 @@ Other parameters are passed through a pointer to a apiGetProjectsRequest struct 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
 
+ **labelFilter** | **string** | Comma-separated list of filters to apply based on labels, which are composed using &#x60;AND&#x60;. Acceptable filter expressions are: * &#x60;key&#x60; - Only return resources that have label with specified key * &#x60;key&#x3D;value&#x60; - Only return resources that have label with specified key set to value * &#x60;!key&#x60; - Only return resources that do _not_ have label with specified key * &#x60;key!&#x3D;value&#x60; - Only return resources that do _not_ have label with specified key set to value | 
+ **listAccessible** | **bool** | Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level | [default to false]
 
 ### Return type
 

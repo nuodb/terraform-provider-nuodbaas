@@ -3,7 +3,7 @@ NuoDB Control Plane REST API
 
 NuoDB Control Plane (CP) allows users to create and manage NuoDB databases remotely using a Database as a Service (DBaaS) model.
 
-API version: 2.2.0
+API version: 2.3.0
 Contact: NuoDB.Support@3ds.com
 */
 
@@ -23,6 +23,8 @@ type DatabaseModel struct {
 	Organization *string `json:"organization,omitempty"`
 	Project *string `json:"project,omitempty"`
 	Name *string `json:"name,omitempty"`
+	// User-defined labels attached to the resource that can be used for filtering
+	Labels *map[string]string `json:"labels,omitempty"`
 	// The service tier for the database. If omitted, the project service tier is inherited.
 	Tier *string `json:"tier,omitempty"`
 	Maintenance *MaintenanceModel `json:"maintenance,omitempty"`
@@ -143,6 +145,38 @@ func (o *DatabaseModel) HasName() bool {
 // SetName gets a reference to the given string and assigns it to the Name field.
 func (o *DatabaseModel) SetName(v string) {
 	o.Name = &v
+}
+
+// GetLabels returns the Labels field value if set, zero value otherwise.
+func (o *DatabaseModel) GetLabels() map[string]string {
+	if o == nil || IsNil(o.Labels) {
+		var ret map[string]string
+		return ret
+	}
+	return *o.Labels
+}
+
+// GetLabelsOk returns a tuple with the Labels field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *DatabaseModel) GetLabelsOk() (*map[string]string, bool) {
+	if o == nil || IsNil(o.Labels) {
+		return nil, false
+	}
+	return o.Labels, true
+}
+
+// HasLabels returns a boolean if a field has been set.
+func (o *DatabaseModel) HasLabels() bool {
+	if o != nil && !IsNil(o.Labels) {
+		return true
+	}
+
+	return false
+}
+
+// SetLabels gets a reference to the given map[string]string and assigns it to the Labels field.
+func (o *DatabaseModel) SetLabels(v map[string]string) {
+	o.Labels = &v
 }
 
 // GetTier returns the Tier field value if set, zero value otherwise.
@@ -323,6 +357,9 @@ func (o DatabaseModel) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.Name) {
 		toSerialize["name"] = o.Name
+	}
+	if !IsNil(o.Labels) {
+		toSerialize["labels"] = o.Labels
 	}
 	if !IsNil(o.Tier) {
 		toSerialize["tier"] = o.Tier
