@@ -191,30 +191,18 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 	// was successful or 403 Forbidden, which means that the user was
 	// authenticated but does not have access to 'GET /healthz'. Do we
 	// actually need to check this eagerly?
-	httpsRes, error := apiClient.HealthzAPI.GetHealth(ctx).Execute()
+	httpsRes, err := apiClient.HealthzAPI.GetHealth(ctx).Execute()
 
-	// TODO: Why is this specifically checking for a timeout error?
-	if helper.IsTimeoutError(error) {
-		resp.Diagnostics.AddError("Timeout error", "Unable to connect to "+urlBase)
+	// Check for error on client side
+	serverErr := helper.GetErrorContentObj(err)
+	if err != nil && serverErr == nil {
+		resp.Diagnostics.AddError("Unable to connect to server", err.Error())
 		return
 	}
-	if error != nil {
-		resp.Diagnostics.AddError("Unable to connect to server", error.Error())
-		return
-	}
-	// Checking for error other than 403 Forbidden
-	if httpsRes.StatusCode != http.StatusForbidden && httpsRes.StatusCode >= http.StatusBadRequest {
-		// Read response payload
-		var msg string
-		buf := make([]byte, httpsRes.ContentLength)
-		if bytesRead, err := httpsRes.Body.Read(buf); err == nil {
-			msg = fmt.Sprintf("status=%s, body=%s", httpsRes.Status, string(buf[:bytesRead]))
-		} else {
-			// Unable to read the payload, so just include the
-			// status code
-			msg = "status=" + httpsRes.Status
-		}
-		resp.Diagnostics.AddError("Unexpected response", msg)
+	// Check for error other than 403 Forbidden
+	if serverErr != nil && httpsRes.StatusCode != http.StatusForbidden {
+		msg := fmt.Sprintf("code=%s, status=%s, detail=%s", serverErr.GetCode(), serverErr.GetStatus(), serverErr.GetDetail())
+		resp.Diagnostics.AddError("Error response from server", msg)
 		return
 	}
 
