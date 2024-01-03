@@ -31,13 +31,13 @@ type databasesDataSource struct {
 }
 
 type databaseFilterModel struct {
-	Organization 	types.String   	`tfsdk:"organization"`
-	Project      	types.String	`tfsdk:"project"`
+	Organization types.String `tfsdk:"organization"`
+	Project      types.String `tfsdk:"project"`
 }
 
 type databasesModel struct {
-	Filter		*databaseFilterModel   `tfsdk:"filter"`
-	Databases   []model.DatabasesDataSourceResponseModel  `tfsdk:"databases"`
+	Filter    *databaseFilterModel                     `tfsdk:"filter"`
+	Databases []model.DatabasesDataSourceResponseModel `tfsdk:"databases"`
 }
 
 // Schema implements datasource.DataSource.
@@ -47,7 +47,7 @@ func (d *databasesDataSource) Schema(_ context.Context, req datasource.SchemaReq
 			"databases": schema.ListNestedAttribute{
 				Computed: true,
 				NestedObject: schema.NestedAttributeObject{
-					Attributes : map[string]schema.Attribute{
+					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
 							Computed: true,
 						},
@@ -58,17 +58,16 @@ func (d *databasesDataSource) Schema(_ context.Context, req datasource.SchemaReq
 							Computed: true,
 						},
 					},
-
 				},
 			},
 		},
 		Blocks: map[string]schema.Block{
-			"filter" : schema.SingleNestedBlock{
-				Attributes:  map[string]schema.Attribute{
-					"organization" : schema.StringAttribute{
+			"filter": schema.SingleNestedBlock{
+				Attributes: map[string]schema.Attribute{
+					"organization": schema.StringAttribute{
 						Optional: true,
 					},
-					"project" : schema.StringAttribute{
+					"project": schema.StringAttribute{
 						Optional: true,
 					},
 				},
@@ -93,11 +92,11 @@ func (d *databasesDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	var (
 		organization = ""
-		project = ""
+		project      = ""
 	)
 
 	if state.Filter != nil {
-		if  state.Filter.Organization.IsNull() && !state.Filter.Project.IsNull() {
+		if state.Filter.Organization.IsNull() && !state.Filter.Project.IsNull() {
 			resp.Diagnostics.AddError(
 				"Organization Missing",
 				"Organization is required if project is supplied",
@@ -112,7 +111,7 @@ func (d *databasesDataSource) Read(ctx context.Context, req datasource.ReadReque
 		}
 	}
 
-	databaseClient := nuodbaas_client.NewDatabaseClient(d.client,ctx, organization, project, "")
+	databaseClient := nuodbaas_client.NewDatabaseClient(d.client, ctx, organization, project, "")
 
 	databases, err := databaseClient.GetDatabases()
 	if err != nil {
@@ -147,4 +146,3 @@ func (d *databasesDataSource) Configure(_ context.Context, req datasource.Config
 
 	d.client = client
 }
-

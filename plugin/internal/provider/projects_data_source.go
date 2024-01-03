@@ -31,12 +31,12 @@ type projectsDataSource struct {
 }
 
 type projectsModel struct {
-	Filter		 *projectFilterModel     				 `tfsdk:"filter"`
-	Projects     []model.ProjectDataSourceResponseModel  `tfsdk:"projects"`
+	Filter   *projectFilterModel                    `tfsdk:"filter"`
+	Projects []model.ProjectDataSourceResponseModel `tfsdk:"projects"`
 }
 
 type projectFilterModel struct {
-	Organization types.String     `tfsdk:"organization"`
+	Organization types.String `tfsdk:"organization"`
 }
 
 // Schema implements datasource.DataSource.
@@ -46,7 +46,7 @@ func (d *projectsDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 			"projects": schema.ListNestedAttribute{
 				Computed: true,
 				NestedObject: schema.NestedAttributeObject{
-					Attributes : map[string]schema.Attribute{
+					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
 							Computed: true,
 						},
@@ -54,14 +54,13 @@ func (d *projectsDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 							Computed: true,
 						},
 					},
-
 				},
 			},
 		},
 		Blocks: map[string]schema.Block{
-			"filter" : schema.SingleNestedBlock{
-				Attributes:  map[string]schema.Attribute{
-					"organization" : schema.StringAttribute{
+			"filter": schema.SingleNestedBlock{
+				Attributes: map[string]schema.Attribute{
+					"organization": schema.StringAttribute{
 						Optional: true,
 					},
 				},
@@ -86,18 +85,16 @@ func (d *projectsDataSource) Read(ctx context.Context, req datasource.ReadReques
 
 	filter := state.Filter
 
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	var organization = ""
 
 	if filter != nil && !filter.Organization.IsNull() {
 		organization = filter.Organization.ValueString()
 	}
 
-	projectClient := nuodbaas_client.NewProjectClient(d.client,ctx,organization,"")
+	projectClient := nuodbaas_client.NewProjectClient(d.client, ctx, organization, "")
 
+	// TODO: This treats organization as optional, but the client does not
+	// seem to support that
 	projects, err := projectClient.GetProjects()
 
 	if err != nil {
@@ -109,7 +106,6 @@ func (d *projectsDataSource) Read(ctx context.Context, req datasource.ReadReques
 	}
 
 	projectDataSourceResponseList := helper.GetProjectDataSourceResponse(projects)
-	
 
 	state.Projects = projectDataSourceResponseList
 

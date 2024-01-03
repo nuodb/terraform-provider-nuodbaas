@@ -36,19 +36,19 @@ func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaReque
 		Attributes: map[string]schema.Attribute{
 			"organization": schema.StringAttribute{
 				MarkdownDescription: "Name of the organization for which project is created",
-				Required: true,
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of the project",
-				Required: true,
+				Required:            true,
 			},
 			"sla": schema.StringAttribute{
 				MarkdownDescription: "The SLA for the project. Cannot be updated once the project is created.",
-				Computed: true,
+				Computed:            true,
 			},
 			"tier": schema.StringAttribute{
 				MarkdownDescription: "The Tier for the project. Cannot be updated once the project is created.",
-				Computed: true,
+				Computed:            true,
 			},
 			"maintenance": schema.SingleNestedAttribute{
 				Computed: true,
@@ -65,7 +65,7 @@ func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaReque
 				Computed: true,
 				Attributes: map[string]schema.Attribute{
 					"tier_parameters": schema.MapAttribute{
-						Optional: true,
+						Optional:    true,
 						ElementType: types.StringType,
 					},
 				},
@@ -88,10 +88,10 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	projectClient := nuodbaas_client.NewProjectClient(d.client,ctx,state.Organization.ValueString(),state.Name.ValueString())
+	projectClient := nuodbaas_client.NewProjectClient(d.client, ctx, state.Organization.ValueString(), state.Name.ValueString())
 
 	project, err := projectClient.GetProject()
-	
+
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error getting projects",
@@ -101,16 +101,16 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	}
 
 	projectStateModel := model.ProjectResourceModel{
-		Organization: types.StringValue(*project.Organization),
-		Name: types.StringValue(*project.Name),
-		Sla: types.StringValue(project.Sla),
-		Tier: types.StringValue(project.Tier),
+		Organization:    types.StringValue(*project.Organization),
+		Name:            types.StringValue(*project.Name),
+		Sla:             types.StringValue(project.Sla),
+		Tier:            types.StringValue(project.Tier),
 		ResourceVersion: types.StringValue(*project.ResourceVersion),
 	}
 
 	if project.Maintenance != nil {
 		maintenanceModel := model.MaintenanceModel{}
-	
+
 		if project.Maintenance.IsDisabled != nil {
 			maintenanceModel.IsDisabled = types.BoolValue(*project.Maintenance.IsDisabled)
 		}
