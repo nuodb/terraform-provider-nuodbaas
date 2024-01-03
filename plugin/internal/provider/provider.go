@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -52,21 +53,21 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"organization": schema.StringAttribute{
-				Description: "Name of the organization",
-				Optional: true,
+				Description: "The name of the organization for the user",
+				Optional:    true,
 			},
 			"username": schema.StringAttribute{
-				Optional: true,
-				Description: "Username for Dbaas Client.",
+				Description: "The name of the user",
+				Optional:    true,
 			},
 			"password": schema.StringAttribute{
-				Optional: true,
-				Sensitive: true,
-				Description: "Password for Dbaas Client",
+				Description: "The password for the user",
+				Optional:    true,
+				Sensitive:   true,
 			},
 			"url_base": schema.StringAttribute{
-				Optional: true,
 				Description: "The base URL for the server, including the protocol",
+				Optional:    true,
 			},
 		},
 	}
@@ -84,36 +85,36 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 	if config.Organization.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("organization"),
-			"Unknown Dbaas organization type",
-			"The provider cannot create the NuoDB Dbaas API client as there is an unknown configuration value for the NuoDB Dbaas API organization. "+
-                "Either target apply the source of the value first, set the value statically in the configuration, or use the NUODB_CP_ORGANIZATION environment variable.",
+			"Unknown organization",
+			"The provider cannot create the NuoDB DBaaS client as there is an unknown configuration value for the organization of the user. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the NUODB_CP_ORGANIZATION environment variable.",
 		)
 	}
 
 	if config.Username.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("username"),
-			"Unknown Dbaas username type",
-			"The provider cannot create the NuoDB Dbaas API client as there is an unknown configuration value for the NuoDB Dbaas API username. "+
-                "Either target apply the source of the value first, set the value statically in the configuration, or use the NUODB_CP_USER environment variable.",
+			"Unknown username",
+			"The provider cannot create the NuoDB DBaaS client as there is an unknown configuration value for the user. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the NUODB_CP_USER environment variable.",
 		)
 	}
 
 	if config.Password.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("password"),
-			"Unknown Dbaas password type",
-			"The provider cannot create the NuoDB Dbaas API client as there is an unknown configuration value for the NuoDB Dbaas API password. "+
-                "Either target apply the source of the value first, set the value statically in the configuration, or use the NUODB_CP_PASSWORD environment variable.",
+			"Unknown password",
+			"The provider cannot create the NuoDB DBaaS client as there is an unknown configuration value for the password. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the NUODB_CP_PASSWORD environment variable.",
 		)
 	}
 
 	if config.BaseUrl.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("url_base"),
-			"Unknown url type",
-			"The provider cannot create the NuoDB Dbaas API client as there is an unknown configuration value for the Url. "+
-                "Either target apply the source of the value first, set the value statically in the configuration, or use the NUODB_CP_URL_BASE environment variable.",
+			"Unknown server URL",
+			"The provider cannot create the NuoDB DBaaS client as there is an unknown configuration value for the server URL. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the NUODB_CP_URL_BASE environment variable.",
 		)
 	}
 
@@ -122,56 +123,56 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 	}
 
 	organization := os.Getenv("NUODB_CP_ORGANIZATION")
-    username := os.Getenv("NUODB_CP_USER")
-    password := os.Getenv("NUODB_CP_PASSWORD")
-	host := os.Getenv("NUODB_CP_URL_BASE")
+	username := os.Getenv("NUODB_CP_USER")
+	password := os.Getenv("NUODB_CP_PASSWORD")
+	urlBase := os.Getenv("NUODB_CP_URL_BASE")
 
-    if !config.Organization.IsNull() {
-        organization = config.Organization.ValueString()
-    }
+	if !config.Organization.IsNull() {
+		organization = config.Organization.ValueString()
+	}
 
-    if !config.Username.IsNull() {
-        username = config.Username.ValueString()
-    }
+	if !config.Username.IsNull() {
+		username = config.Username.ValueString()
+	}
 
-    if !config.Password.IsNull() {
-        password = config.Password.ValueString()
-    }
+	if !config.Password.IsNull() {
+		password = config.Password.ValueString()
+	}
 
 	if !config.BaseUrl.IsNull() {
-		host = config.BaseUrl.ValueString()
+		urlBase = config.BaseUrl.ValueString()
 	}
 
 	if organization == "" {
 		resp.Diagnostics.AddAttributeError(
-            path.Root("organization"),
-            "Missing NuoDB DBAAS API Organization",
+			path.Root("organization"),
+			"Missing organization for user",
 			helper.GetProviderValidatorErrorMessage("organization", "NUODB_CP_ORGANIZATION"),
-        )
+		)
 	}
 
 	if username == "" {
 		resp.Diagnostics.AddAttributeError(
-            path.Root("username"),
-            "Missing NuoDB DBAAS API Username",
+			path.Root("username"),
+			"Missing username",
 			helper.GetProviderValidatorErrorMessage("username", "NUODB_CP_USER"),
-        )
+		)
 	}
 
 	if password == "" {
 		resp.Diagnostics.AddAttributeError(
-            path.Root("password"),
-            "Missing NuoDB DBAAS API Password",
+			path.Root("password"),
+			"Missing password",
 			helper.GetProviderValidatorErrorMessage("password", "NUODB_CP_PASSWORD"),
-        )
+		)
 	}
 
-	if host == "" {
+	if urlBase == "" {
 		resp.Diagnostics.AddAttributeError(
-            path.Root("host"),
-            "Missing Url base",
-			helper.GetProviderValidatorErrorMessage("host", "NUODB_CP_URL_BASE"),
-        )
+			path.Root("url_base"),
+			"Missing server URL",
+			helper.GetProviderValidatorErrorMessage("url_base", "NUODB_CP_URL_BASE"),
+		)
 	}
 
 	if resp.Diagnostics.HasError() {
@@ -179,32 +180,41 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 	}
 
 	configuration := nuodbaas.NewConfiguration()
-	serverConfig := nuodbaas.ServerConfigurations{{URL: host, Description: "The base URL for the server, including the protocol"}}
+	serverConfig := nuodbaas.ServerConfigurations{{URL: urlBase, Description: "The base URL for the server, including the protocol"}}
 	basicUsername := fmt.Sprintf("%s/%s", organization, username)
 	configuration.DefaultHeader["Authorization"] = fmt.Sprintf("Basic %s", basicAuth(basicUsername, password))
 	configuration.Servers = serverConfig
 	apiClient := nuodbaas.NewAPIClient(configuration)
-	ctx, cancel := context.WithTimeout(ctx, time.Second * 30)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
+	// TODO: This is issuing a health check and then checking if the request
+	// was successful or 403 Forbidden, which means that the user was
+	// authenticated but does not have access to 'GET /healthz'. Do we
+	// actually need to check this eagerly?
 	httpsRes, error := apiClient.HealthzAPI.GetHealth(ctx).Execute()
 
+	// TODO: Why is this specifically checking for a timeout error?
 	if helper.IsTimeoutError(error) {
-		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Unable to connect with %+v", host))
+		resp.Diagnostics.AddError("Timeout error", "Unable to connect to "+urlBase)
 		return
 	}
-
-	if httpsRes==nil && error!=nil {
-		resp.Diagnostics.AddError("Something went wrong", fmt.Sprintf("Something went wrong %s", error.Error()))
+	if error != nil {
+		resp.Diagnostics.AddError("Unable to connect to server", error.Error())
 		return
 	}
-	if httpsRes.StatusCode != 403 && httpsRes.StatusCode >= 300 {
-		resp.Diagnostics.AddError(
-            "Something went wrong",
-			fmt.Sprintf("Something went wrong %s", error.Error()),
-        )
-	}
-
-	if resp.Diagnostics.HasError() {
+	// Checking for error other than 403 Forbidden
+	if httpsRes.StatusCode != http.StatusForbidden && httpsRes.StatusCode >= http.StatusBadRequest {
+		// Read response payload
+		var msg string
+		buf := make([]byte, httpsRes.ContentLength)
+		if bytesRead, err := httpsRes.Body.Read(buf); err == nil {
+			msg = fmt.Sprintf("status=%s, body=%s", httpsRes.Status, string(buf[:bytesRead]))
+		} else {
+			// Unable to read the payload, so just include the
+			// status code
+			msg = "status=" + httpsRes.Status
+		}
+		resp.Diagnostics.AddError("Unexpected response", msg)
 		return
 	}
 
@@ -213,19 +223,19 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 }
 
 func (p *NuoDbaasProvider) Resources(ctx context.Context) []func() resource.Resource {
-	return []func() resource.Resource {
+	return []func() resource.Resource{
 		NewProjectResource,
 		NewDatabaseResource,
 	}
 }
 
 func (p *NuoDbaasProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource {
-        NewProjectDataSource,
+	return []func() datasource.DataSource{
+		NewProjectDataSource,
 		NewProjectsDataSource,
 		NewDatabasesDataSource,
 		NewDatabaseDataSource,
-    }
+	}
 }
 
 func New(version string) func() provider.Provider {

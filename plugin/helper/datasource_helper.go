@@ -33,8 +33,8 @@ func GetDatabaseDataSourceResponse(list *nuodbaas.ItemListString) []model.Databa
 		splitArr := strings.Split(item, "/")
 		databaseDataSourceList = append(databaseDataSourceList, model.DatabasesDataSourceResponseModel{
 			Organization: types.StringValue(splitArr[0]),
-			Project:         types.StringValue(splitArr[1]),
-			Name:		types.StringValue(splitArr[2]),
+			Project:      types.StringValue(splitArr[1]),
+			Name:         types.StringValue(splitArr[2]),
 		})
 	}
 	return databaseDataSourceList

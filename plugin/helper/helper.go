@@ -26,16 +26,16 @@ func GetProviderValidatorErrorMessage(valueType string, envVariable string) stri
 func GetApiErrorMessage(err error, message string) string {
 	errorObj := GetErrorContentObj(err)
 	extendedErrorMessage := err.Error()
-	if errorObj!=nil {
+	if errorObj != nil {
 		extendedErrorMessage = errorObj.GetDetail()
 	}
-	return  fmt.Sprintf("%s %s", message, extendedErrorMessage)
+	return fmt.Sprintf("%s %s", message, extendedErrorMessage)
 }
 
-//Return a Error Content object
+// Return a Error Content object
 func GetErrorContentObj(err error) *nuodbaas.ErrorContent {
 	if serverErr, ok := err.(*nuodbaas.GenericOpenAPIError); ok {
-		if errModel, ok:= serverErr.Model().(nuodbaas.ErrorContent); ok {
+		if errModel, ok := serverErr.Model().(nuodbaas.ErrorContent); ok {
 			return &errModel
 		}
 	}
@@ -58,9 +58,9 @@ func RemoveDoubleQuotes(s string) string {
 }
 
 // Converts map[string]string to basetypes.MapValue
-func ConvertMapToTfMap(mapObj *map[string]string) (basetypes.MapValue, diag.Diagnostics){
+func ConvertMapToTfMap(mapObj *map[string]string) (basetypes.MapValue, diag.Diagnostics) {
 	mapValue := map[string]attr.Value{}
-	for k,v := range *mapObj {
+	for k, v := range *mapObj {
 		mapValue[k] = types.StringValue(v)
 	}
 	tfMapValue, diags := types.MapValue(types.StringType, mapValue)
@@ -68,7 +68,7 @@ func ConvertMapToTfMap(mapObj *map[string]string) (basetypes.MapValue, diag.Diag
 }
 
 func ComputeWaitTime(i int, maxWait int) int {
-	if(i * 2 < maxWait) {
+	if i*2 < maxWait {
 		return i * 2
 	} else {
 		return maxWait

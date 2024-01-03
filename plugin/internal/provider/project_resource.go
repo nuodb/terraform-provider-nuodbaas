@@ -25,6 +25,7 @@ import (
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var (
+	_ resource.ResourceWithImportState = &ProjectResource{}
 )
 
 func NewProjectResource() resource.Resource {
@@ -51,7 +52,7 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 		Attributes: map[string]schema.Attribute{
 			"organization": schema.StringAttribute{
 				MarkdownDescription: "Name of the organization for which project is created",
-				Required: true,
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -69,7 +70,6 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
-				
 			},
 			"tier": schema.StringAttribute{
 				MarkdownDescription: "The Tier for the project. Cannot be updated once the project is created.",
@@ -86,14 +86,14 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 			"resource_version": schema.StringAttribute{
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
-                    stringplanmodifier.UseStateForUnknown(),
-                },
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"properties": schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"tier_parameters": schema.MapAttribute{
-						Optional: true,
+						Optional:    true,
 						ElementType: types.StringType,
 					},
 				},
@@ -190,9 +190,9 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	if projectModel.Maintenance != nil {
 		var maintenance = state.Maintenance
-		
+
 		if projectModel.Maintenance.IsDisabled != nil {
-			if (state.Maintenance != nil && state.Maintenance.IsDisabled.IsNull() && *projectModel.Maintenance.IsDisabled) || (state.Maintenance!= nil && !state.Maintenance.IsDisabled.IsNull()) {
+			if (state.Maintenance != nil && state.Maintenance.IsDisabled.IsNull() && *projectModel.Maintenance.IsDisabled) || (state.Maintenance != nil && !state.Maintenance.IsDisabled.IsNull()) {
 				maintenance.IsDisabled = types.BoolValue(*projectModel.Maintenance.IsDisabled)
 			}
 		}
@@ -215,7 +215,7 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		if len(*projectModel.Properties.TierParameters) != 0 {
 			state.Properties = &propertiesModel
 		}
-		
+
 	}
 
 	state.Tier = types.StringValue(projectModel.Tier)
@@ -235,7 +235,7 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	
+
 	projectClient := nuodbaas_client.NewProjectClient(r.client, ctx, data.Organization.ValueString(), data.Name.ValueString())
 	err := projectClient.UpdateProject(data)
 
@@ -262,11 +262,11 @@ func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	err :=  nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString()).DeleteProject()
+	err := nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString()).DeleteProject()
 
-	if err!=nil {
+	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error deleting project", 
+			"Error deleting project",
 			helper.GetApiErrorMessage(err, fmt.Sprintf("Unable to delete project %s, unexpected error:", state.Name.ValueString())),
 		)
 		return

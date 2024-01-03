@@ -17,19 +17,18 @@ import (
 )
 
 type nuodbaasProjectClient struct {
-	client		*nuodbaas.APIClient
-	org    		string
+	client      *nuodbaas.APIClient
+	org         string
 	projectName string
 	ctx         context.Context
 }
 
-
 func (client *nuodbaasProjectClient) createUpdateProject(projectModel *nuodbaas.ProjectModel, projectResourceModel model.ProjectResourceModel) error {
-	apiRequestObject := client.client.ProjectsAPI.CreateProject(client.ctx,client.org, client.projectName)
+	apiRequestObject := client.client.ProjectsAPI.CreateProject(client.ctx, client.org, client.projectName)
 	projectModel.SetSla(projectResourceModel.Sla.ValueString())
 	projectModel.SetTier(projectResourceModel.Tier.ValueString())
 
-	maintenanceModel:= projectResourceModel.Maintenance
+	maintenanceModel := projectResourceModel.Maintenance
 
 	if maintenanceModel != nil {
 		var openApiMaintenanceModel = nuodbaas.MaintenanceModel{}
@@ -67,7 +66,7 @@ func (client *nuodbaasProjectClient) CreateProject(projectResourceModel model.Pr
 	return client.createUpdateProject(projectModel, projectResourceModel)
 }
 
-func (client *nuodbaasProjectClient) UpdateProject(projectResourceModel model.ProjectResourceModel)  error {
+func (client *nuodbaasProjectClient) UpdateProject(projectResourceModel model.ProjectResourceModel) error {
 	if len(projectResourceModel.ResourceVersion.ValueString()) == 0 {
 		errorMessage := "cannot update the project. Resource version is missing"
 		return errors.New(errorMessage)
@@ -84,6 +83,7 @@ func (client *nuodbaasProjectClient) GetProject() (*nuodbaas.ProjectModel, error
 }
 
 func (client *nuodbaasProjectClient) GetProjects() (*nuodbaas.ItemListString, error) {
+	// TODO: Allow listing of projects across organizations
 	itemList, _, err := client.client.ProjectsAPI.GetProjects(client.ctx, client.org).Execute()
 	if err != nil {
 		return nil, err
@@ -109,10 +109,10 @@ func (client *nuodbaasProjectClient) DeleteProject() error {
 
 func NewProjectClient(client *nuodbaas.APIClient, ctx context.Context, org string, projectName string) *nuodbaasProjectClient {
 	nuoClient := nuodbaasProjectClient{
-		client: 		client,
-		org: 			org,
-		projectName:	projectName,
-		ctx:			ctx,
+		client:      client,
+		org:         org,
+		projectName: projectName,
+		ctx:         ctx,
 	}
 	return &nuoClient
 }

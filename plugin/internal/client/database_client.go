@@ -17,11 +17,11 @@ import (
 )
 
 type NuodbaasDatabaseClient struct {
-	client			*nuodbaas.APIClient
-	org    			string
-	projectName 	string
-	ctx         	context.Context
-	databaseName 	string
+	client       *nuodbaas.APIClient
+	org          string
+	projectName  string
+	ctx          context.Context
+	databaseName string
 }
 
 func (client *NuodbaasDatabaseClient) CreateDatabase(databaseResourceModel model.DatabaseResourceModel, propertiesResourceModel *model.DatabasePropertiesResourceModel) error {
@@ -30,7 +30,7 @@ func (client *NuodbaasDatabaseClient) CreateDatabase(databaseResourceModel model
 }
 
 func (client *NuodbaasDatabaseClient) createDatabase(databaseModel *nuodbaas.DatabaseCreateUpdateModel, databaseResourceModel model.DatabaseResourceModel,
-	 propertiesResourceModel *model.DatabasePropertiesResourceModel) error {
+	propertiesResourceModel *model.DatabasePropertiesResourceModel) error {
 	apiRequestObject := client.client.DatabasesAPI.CreateDatabase(client.ctx, client.org, client.projectName, client.databaseName)
 	if databaseModel.ResourceVersion == nil {
 		databaseModel.SetDbaPassword(databaseResourceModel.Password.ValueString())
@@ -44,7 +44,6 @@ func (client *NuodbaasDatabaseClient) createDatabase(databaseModel *nuodbaas.Dat
 		}
 		databaseModel.SetMaintenance(openApiMaintenanceModel)
 	}
-	
 
 	var openApiDatabasePropertiesModel = nuodbaas.DatabasePropertiesModel{}
 	if propertiesResourceModel != nil {
@@ -63,9 +62,9 @@ func (client *NuodbaasDatabaseClient) createDatabase(databaseModel *nuodbaas.Dat
 			openApiDatabasePropertiesModel.TierParameters = &tierParamters
 		}
 	}
-	
+
 	databaseModel.SetProperties(openApiDatabasePropertiesModel)
-	apiRequestObject= apiRequestObject.DatabaseCreateUpdateModel(*databaseModel)
+	apiRequestObject = apiRequestObject.DatabaseCreateUpdateModel(*databaseModel)
 	_, err := client.client.DatabasesAPI.CreateDatabaseExecute(apiRequestObject)
 	return err
 }
@@ -81,24 +80,32 @@ func (client *NuodbaasDatabaseClient) UpdateDatabase(databaseResourceModel model
 
 func (client *NuodbaasDatabaseClient) GetDatabase() (*nuodbaas.DatabaseModel, error) {
 	apiRequestObject := client.client.DatabasesAPI.GetDatabase(client.ctx, client.org, client.projectName, client.databaseName)
-	model, _, err:= client.client.DatabasesAPI.GetDatabaseExecute(apiRequestObject)
+	model, _, err := client.client.DatabasesAPI.GetDatabaseExecute(apiRequestObject)
 	return model, err
 }
 
 func (client *NuodbaasDatabaseClient) DeleteDatabase() error {
-	
-	_, err:= client.client.DatabasesAPI.DeleteDatabase(client.ctx, client.org, client.projectName, client.databaseName).Execute()
+
+	_, err := client.client.DatabasesAPI.DeleteDatabase(client.ctx, client.org, client.projectName, client.databaseName).Execute()
 	return err
 }
 
 func (client *NuodbaasDatabaseClient) GetDatabases() (*nuodbaas.ItemListString, error) {
 	var (
 		itemList *nuodbaas.ItemListString
-		err error
+		err      error
 	)
 	if len(client.org) == 0 && len(client.projectName) == 0 {
+		// TODO: This is specifying listAccessible=true, but none of the
+		// other GET invocations specify it. Should it be exposed or at
+		// least specified consistently?
 		itemList, _, err = client.client.DatabasesAPI.GetAllDatabases(client.ctx).ListAccessible(true).Execute()
 	} else {
+		// TODO: The above clause lists all databases across all
+		// organizations, and this one lists all databases in a specific
+		// project. There should also be a clause that lists all
+		// databases across all projects in a specific organization for
+		// when the organization is specified but project is not.
 		itemList, _, err = client.client.DatabasesAPI.GetDatabases(client.ctx, client.org, client.projectName).Execute()
 	}
 
@@ -109,28 +116,28 @@ func (client *NuodbaasDatabaseClient) GetDatabases() (*nuodbaas.ItemListString, 
 	newListItems := itemList.Items
 	if len(client.projectName) > 0 {
 		for index, item := range itemList.GetItems() {
-			newListItems[index] =  fmt.Sprintf("%s/%s", client.projectName, item)
+			newListItems[index] = fmt.Sprintf("%s/%s", client.projectName, item)
 		}
 	}
 
 	if len(client.org) > 0 {
 		for index, item := range itemList.GetItems() {
-			newListItems[index] =  fmt.Sprintf("%s/%s", client.org, item)
+			newListItems[index] = fmt.Sprintf("%s/%s", client.org, item)
 		}
 	}
 
 	itemList.SetItems(newListItems)
 	return itemList, err
-	
+
 }
 
 func NewDatabaseClient(client *nuodbaas.APIClient, ctx context.Context, org string, projectName string, databaseName string) *NuodbaasDatabaseClient {
 	databaseClient := NuodbaasDatabaseClient{
-		client: 		client,
-		org: 			org,
-		projectName:	projectName,
-		ctx:			ctx,
-		databaseName: 	databaseName,
+		client:       client,
+		org:          org,
+		projectName:  projectName,
+		ctx:          ctx,
+		databaseName: databaseName,
 	}
 	return &databaseClient
 }
