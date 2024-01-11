@@ -274,5 +274,6 @@ func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest
 }
 
 func (r *ProjectResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	//TODO: Does not work
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

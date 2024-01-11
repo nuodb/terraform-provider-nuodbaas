@@ -35,7 +35,9 @@ func (client *NuodbaasDatabaseClient) createDatabase(databaseModel *nuodbaas.Dat
 	if databaseModel.ResourceVersion == nil {
 		databaseModel.SetDbaPassword(databaseResourceModel.Password.ValueString())
 	}
-	databaseModel.SetTier(databaseResourceModel.Tier.ValueString())
+	if !(databaseResourceModel.Tier.IsNull() || databaseResourceModel.Tier.IsUnknown()) {
+		databaseModel.SetTier(databaseResourceModel.Tier.ValueString())
+	}
 	maintenanceModel := databaseResourceModel.Maintenance
 	if maintenanceModel != nil {
 		var openApiMaintenanceModel = nuodbaas.MaintenanceModel{}

@@ -478,5 +478,6 @@ func (r *DatabaseResource) updateContextWithTimeout(ctx context.Context, state m
 }
 
 func (r *DatabaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	//TODO: Does not work
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

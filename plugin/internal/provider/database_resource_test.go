@@ -1,0 +1,88 @@
+/* (C) Copyright 2016-2024 Dassault Systemes SE.
+All Rights Reserved.
+*/
+
+package provider
+
+import (
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-testing/config"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+)
+
+func TestAccDatabaseResource(t *testing.T) {
+	projConfig := providerConfig + `
+	resource "nuodbaas_project" "proj" {
+		organization = var.org_name
+		name         = "proj"
+		sla          = "dev"
+		tier         = "n0.small"
+	}
+	`
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// Create a project
+				Config: projConfig + `
+				resource "nuodbaas_database" "db" {
+					organization = var.org_name
+					project      = nuodbaas_project.proj.name
+					name         = "db"
+					dba_password = "changeMe"
+				}
+				`,
+				ConfigVariables: config.Variables{"org_name": config.StringVariable("acme")},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "organization", "acme"),
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "name", "db"),
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "project", "proj"),
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "dba_password", "changeMe"),
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "tier", "n0.small"),
+					resource.TestCheckResourceAttrSet("nuodbaas_database.db", "resource_version"),
+				),
+			},
+			{
+				// Test that we can read it back
+				RefreshState: true,
+			},
+			{
+				// Import it
+				ConfigVariables:   config.Variables{"org_name": config.StringVariable("acme")},
+				ResourceName:      "nuodbaas_database.db",
+				ImportState:       true,
+				ImportStateVerify: true,
+				SkipFunc:          func() (bool, error) { return true, nil }, //TODO: Import does not work
+				// This is not normally necessary, but is here because this
+				// example code does not have an actual upstream service.
+				// Once the Read method is able to refresh information from
+				// the upstream service, this can be removed.
+				//ImportStateVerifyIgnore: []string{"configurable_attribute", "defaulted"},
+			},
+			{
+				// Change the project tier
+				Config: projConfig + `
+				resource "nuodbaas_database" "db" {
+					organization = var.org_name
+					project      = nuodbaas_project.proj.name
+					name         = "db"
+					dba_password = "changeMe"
+					tier         = "n0.nano"
+				}
+				`,
+				ConfigVariables: config.Variables{"org_name": config.StringVariable("acme")},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "tier", "n0.nano"),
+				),
+			},
+		},
+		CheckDestroy: func(s *terraform.State) error {
+			//TODO: Verify that database was cleaned up
+			return nil
+		},
+	})
+}
