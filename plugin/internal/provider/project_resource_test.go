@@ -27,9 +27,9 @@ func TestAccProjectResource(t *testing.T) {
 						tier         = "n0.small"
 					}
 				`,
-				ConfigVariables: config.Variables{"org_name": config.StringVariable("acme")},
+				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("nuodbaas_project.proj", "organization", "acme"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "organization", testOrgName),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "name", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "sla", "dev"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "tier", "n0.small"),
@@ -42,7 +42,7 @@ func TestAccProjectResource(t *testing.T) {
 			},
 			{
 				// Import it
-				ConfigVariables:   config.Variables{"org_name": config.StringVariable("acme")},
+				ConfigVariables:   config.Variables{"org_name": config.StringVariable(testOrgName)},
 				ResourceName:      "nuodbaas_project.proj",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -63,7 +63,7 @@ func TestAccProjectResource(t *testing.T) {
 					tier         = "n0.nano"
 				}
 				`,
-				ConfigVariables: config.Variables{"org_name": config.StringVariable("acme")},
+				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "tier", "n0.nano"),
 				),

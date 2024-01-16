@@ -5,6 +5,7 @@ All Rights Reserved.
 package provider
 
 import (
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
@@ -17,12 +18,7 @@ const (
 			description = "The name of the organization for the user"
 			type        = string
 		}
-		provider "nuodbaas" {
-			organization = var.org_name
-			username     = "orgadmin"
-			password     = "orgS3cr3t"
-			url_base     = "http://127.0.0.1:8080"
-		}
+		provider "nuodbaas" { }
   `
 )
 
@@ -33,6 +29,8 @@ const (
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
 	"nuodbaas": providerserver.NewProtocol6WithError(New("test")()),
 }
+
+var testOrgName = os.Getenv("NUODB_CP_ORGANIZATION")
 
 func testAccPreCheck(t *testing.T) {
 	// TODO: Verify that DBaaS is up

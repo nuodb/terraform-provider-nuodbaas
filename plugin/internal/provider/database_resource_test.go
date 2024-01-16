@@ -36,9 +36,9 @@ func TestAccDatabaseResource(t *testing.T) {
 					dba_password = "changeMe"
 				}
 				`,
-				ConfigVariables: config.Variables{"org_name": config.StringVariable("acme")},
+				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("nuodbaas_database.db", "organization", "acme"),
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "organization", testOrgName),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "name", "db"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "project", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "dba_password", "changeMe"),
@@ -52,7 +52,7 @@ func TestAccDatabaseResource(t *testing.T) {
 			},
 			{
 				// Import it
-				ConfigVariables:   config.Variables{"org_name": config.StringVariable("acme")},
+				ConfigVariables:   config.Variables{"org_name": config.StringVariable(testOrgName)},
 				ResourceName:      "nuodbaas_database.db",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -74,7 +74,7 @@ func TestAccDatabaseResource(t *testing.T) {
 					tier         = "n0.nano"
 				}
 				`,
-				ConfigVariables: config.Variables{"org_name": config.StringVariable("acme")},
+				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "tier", "n0.nano"),
 				),
