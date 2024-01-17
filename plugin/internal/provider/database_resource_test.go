@@ -18,7 +18,7 @@ func TestAccDatabaseResource(t *testing.T) {
 		organization = var.org_name
 		name         = "proj"
 		sla          = "dev"
-		tier         = "n0.small"
+		tier         = "n0.nano"
 	}
 	`
 
@@ -42,7 +42,7 @@ func TestAccDatabaseResource(t *testing.T) {
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "name", "db"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "project", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "dba_password", "changeMe"),
-					resource.TestCheckResourceAttr("nuodbaas_database.db", "tier", "n0.small"),
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "tier", "n0.nano"),
 					resource.TestCheckResourceAttrSet("nuodbaas_database.db", "resource_version"),
 				),
 			},
@@ -70,13 +70,13 @@ func TestAccDatabaseResource(t *testing.T) {
 					organization = var.org_name
 					project      = nuodbaas_project.proj.name
 					name         = "db"
-					dba_password = "changeMe"
+					dba_password = "changed"
 					tier         = "n0.nano"
 				}
 				`,
 				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("nuodbaas_database.db", "tier", "n0.nano"),
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "dba_password", "changed"),
 				),
 			},
 		},

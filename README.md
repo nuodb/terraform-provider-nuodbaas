@@ -1,6 +1,6 @@
 # Terraform Provider for NuoDB Control Plane
 
-[Documentation](plugin/docs/)
+[Documentation](plugin/docs/index.md)
 
 ## Local testing
 
@@ -31,3 +31,9 @@ Ensure that you have a CSI driver configured.
     ```sh
     make testacc
     ```
+
+To run a single test:
+
+```sh
+TESTARGS="-run='TestAccProjectResource'" make discover-test
+```

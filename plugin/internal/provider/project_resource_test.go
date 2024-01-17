@@ -24,7 +24,7 @@ func TestAccProjectResource(t *testing.T) {
 						organization = var.org_name
 						name         = "proj"
 						sla          = "dev"
-						tier         = "n0.small"
+						tier         = "n0.nano"
 					}
 				`,
 				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
@@ -32,7 +32,7 @@ func TestAccProjectResource(t *testing.T) {
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "organization", testOrgName),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "name", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "sla", "dev"),
-					resource.TestCheckResourceAttr("nuodbaas_project.proj", "tier", "n0.small"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "tier", "n0.nano"),
 					resource.TestCheckResourceAttrSet("nuodbaas_project.proj", "resource_version"),
 				),
 			},
@@ -59,13 +59,13 @@ func TestAccProjectResource(t *testing.T) {
 				resource "nuodbaas_project" "proj" {
 					organization = var.org_name
 					name         = "proj"
-					sla          = "dev"
+					sla          = "prod"
 					tier         = "n0.nano"
 				}
 				`,
 				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("nuodbaas_project.proj", "tier", "n0.nano"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "sla", "prod"),
 				),
 			},
 		},
