@@ -4,6 +4,9 @@ JETSTACK_CHART := https://charts.jetstack.io/charts/cert-manager-v$(JETSTACK_CHA
 
 CP_CHARTS_VERSION ?= 2.3.1
 
+HELM_JETSTACK_RELEASE ?= cert-manager
+JETSTACK_CHARTS_VERSION ?= 1.13.3
+
 HELM_CP_CRD_RELEASE ?= nuodb-cp-crd
 CP_CRD_CHART ?= https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(CP_CHARTS_VERSION)/nuodb-cp-crd-$(CP_CHARTS_VERSION).tgz
 
@@ -25,6 +28,10 @@ TEST_RESULTS ?= $(BIN_DIR)/test-results
 GOTESTSUM_VERSION ?= v1.11.0
 GOTESTSUM_BIN := $(BIN_DIR)/gotestsum
 
+
+HELM_NGINX_RELEASE=ingress-nginx
+NGINX_CHART=https://github.com/kubernetes/ingress-nginx/releases/download/helm-chart-4.7.1/ingress-nginx-4.7.1.tgz
+NGINX_INGRESS_VERSION=1.8.1
 
 IGNORE_NOT_FOUND ?= true
 
