@@ -42,30 +42,29 @@ func TestAccProjectResource(t *testing.T) {
 			},
 			{
 				// Import it
-				ConfigVariables:   config.Variables{"org_name": config.StringVariable(testOrgName)},
-				ResourceName:      "nuodbaas_project.proj",
-				ImportState:       true,
-				ImportStateVerify: true,
-				SkipFunc:          func() (bool, error) { return true, nil }, //TODO: Import does not work
-				// This is not normally necessary, but is here because this
-				// example code does not have an actual upstream service.
-				// Once the Read method is able to refresh information from
-				// the upstream service, this can be removed.
-				//ImportStateVerifyIgnore: []string{"configurable_attribute", "defaulted"},
+				ConfigVariables:         config.Variables{"org_name": config.StringVariable(testOrgName)},
+				ResourceName:            "nuodbaas_project.proj",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				SkipFunc:                func() (bool, error) { return true, nil }, //TODO: Import does not work
+				ImportStateVerifyIgnore: []string{"resource_version"},
 			},
 			{
-				// Change the project tier
+				// Update the project by setting it to be disabled
 				Config: providerConfig + `
 				resource "nuodbaas_project" "proj" {
 					organization = var.org_name
 					name         = "proj"
-					sla          = "prod"
+					sla          = "dev"
 					tier         = "n0.nano"
+					maintenance = {
+						is_disabled = true
+					}
 				}
 				`,
 				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("nuodbaas_project.proj", "sla", "prod"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "maintenance.is_disabled", "true"),
 				),
 			},
 		},

@@ -229,7 +229,7 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data projectResourceModel
 
-	// TODO: Refresh project version, otherwise the user cannot delete a database and adjust a project in the same apply.
+	// TODO: Refresh project version
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -240,6 +240,8 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	projectClient := nuodbaas_client.NewProjectClient(r.client, ctx, data.Organization.ValueString(), data.Name.ValueString())
 	err := projectClient.UpdateProject(data)
+
+	//TODO: Retry on CONCURRENT_UPDATE
 
 	if err != nil {
 		resp.Diagnostics.AddError(

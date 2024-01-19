@@ -1,13 +1,17 @@
-HELM_HAPROXY_RELEASE ?= haproxy-ingress
-HAPROXY_CHARTS_VERSION ?= 1.25.1
-HAPROXY_CHART ?= https://github.com/haproxytech/helm-charts/releases/download/kubernetes-ingress-$(HAPROXY_CHARTS_VERSION)/kubernetes-ingress-$(HAPROXY_CHARTS_VERSION).tgz
-
 HELM_JETSTACK_RELEASE ?= cert-manager
 JETSTACK_CHARTS_VERSION ?= 1.13.3
+JETSTACK_CHART=https://charts.jetstack.io/charts/cert-manager-v$(JETSTACK_CHARTS_VERSION).tgz
+
+CP_CHARTS_VERSION ?= 2.3.1
 
 HELM_CP_CRD_RELEASE ?= nuodb-cp-crd
+CP_CRD_CHART ?= https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(CP_CHARTS_VERSION)/nuodb-cp-crd-$(CP_CHARTS_VERSION).tgz
+
 HELM_CP_OPERATOR_RELEASE ?= nuodb-cp-operator
+CP_OPERATOR_CHART ?= https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(CP_CHARTS_VERSION)/nuodb-cp-operator-$(CP_CHARTS_VERSION).tgz
+
 HELM_CP_REST_RELEASE ?= nuodb-cp-rest
+CP_REST_CHART ?= https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(CP_CHARTS_VERSION)/nuodb-cp-rest-$(CP_CHARTS_VERSION).tgz
 
 HELM_NGINX_RELEASE=ingress-nginx
 NGINX_CHART=https://github.com/kubernetes/ingress-nginx/releases/download/helm-chart-4.7.1/ingress-nginx-4.7.1.tgz
@@ -37,34 +41,29 @@ help: ## Display this help.
 
 .PHONY: deploy-cp
 deploy-cp: ## Deploy a local Control Plane
-	helm repo add jetstack https://charts.jetstack.io
-	helm repo add nuodb-cp https://nuodb.github.io/nuodb-cp-releases/charts
-	helm repo update
-
-	helm upgrade --install $(HELM_JETSTACK_RELEASE) jetstack/cert-manager \
-		--version $(JETSTACK_CHARTS_VERSION) \
+	helm upgrade --install $(HELM_JETSTACK_RELEASE) $(JETSTACK_CHART) \
 		--namespace cert-manager \
 		--set installCRDs=true \
 		--create-namespace
 
-	helm upgrade --install "$(HELM_NGINX_RELEASE)" "$(NGINX_CHART)" \
-           --set controller.image.tag="$(NGINX_INGRESS_VERSION)" \
-           --set controller.ingressClassResource.default=true \
-           --set controller.replicaCount=1 \
-           --set controller.service.enablePorts.http=false \
-           --set controller.service.nodePorts.https="30500" \
-           --set controller.extraArgs.enable-ssl-passthrough=true
+	helm upgrade --install $(HELM_NGINX_RELEASE) $(NGINX_CHART) \
+		--set controller.image.tag="$(NGINX_INGRESS_VERSION)" \
+		--set controller.ingressClassResource.default=true \
+		--set controller.replicaCount=1 \
+		--set controller.service.enablePorts.http=false \
+		--set controller.service.nodePorts.https="30500" \
+		--set controller.extraArgs.enable-ssl-passthrough=true
 
-	helm upgrade --install $(HELM_CP_CRD_RELEASE) nuodb-cp/nuodb-cp-crd
+	helm upgrade --install $(HELM_CP_CRD_RELEASE) $(CP_CRD_CHART)
 
 	@# Wait for all Control Plane dependencies to be ready
 	kubectl -n $(HELM_JETSTACK_RELEASE) wait pod --all --for=condition=Ready
 	kubectl -l app.kubernetes.io/instance="$(HELM_NGINX_RELEASE)" wait pod --for=condition=ready --timeout=120s
 
-	helm upgrade --install $(HELM_CP_OPERATOR_RELEASE) nuodb-cp/nuodb-cp-operator \
+	helm upgrade --install $(HELM_CP_OPERATOR_RELEASE) $(CP_OPERATOR_CHART) \
 		--set cpOperator.webhooks.enabled=true
 
-	helm upgrade --install $(HELM_CP_REST_RELEASE) nuodb-cp/nuodb-cp-rest \
+	helm upgrade --install $(HELM_CP_REST_RELEASE) $(CP_REST_CHART) \
 		--set cpRest.ingress.enabled=true \
 		--set cpRest.ingress.className=nginx \
 		--set cpRest.authentication.admin.create=true
@@ -84,9 +83,9 @@ undeploy-cp: ## Uninstall a local Control Plane previously installed by this scr
 
 .PHONY: discover-test
 discover-test: ## Discover a local control plane and run tests against it
-	$(eval HOST := $(or $(shell kubectl get service ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}'), \
-						$(shell kubectl get service ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')))
-	$(eval PORT := $(shell kubectl get service ingress-nginx-controller -o jsonpath='{.spec.ports[?(@.appProtocol=="http")].port}'))
+	$(eval HOST := $(or $(shell kubectl get service $(HELM_NGINX_RELEASE)-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}'), \
+						$(shell kubectl get service $(HELM_NGINX_RELEASE)-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')))
+	$(eval PORT := $(shell kubectl get service $(HELM_NGINX_RELEASE)-controller -o jsonpath='{.spec.ports[?(@.appProtocol=="http")].port}'))
 
 	@NUODB_CP_PASSWORD=$(shell kubectl get secret dbaas-user-system-admin -o jsonpath='{.data.password}' | base64 -d) \
 		NUODB_CP_URL_BASE="http://$(HOST):$(PORT)/nuodb-cp" \

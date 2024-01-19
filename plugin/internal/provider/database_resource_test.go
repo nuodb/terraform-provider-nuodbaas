@@ -52,31 +52,29 @@ func TestAccDatabaseResource(t *testing.T) {
 			},
 			{
 				// Import it
-				ConfigVariables:   config.Variables{"org_name": config.StringVariable(testOrgName)},
-				ResourceName:      "nuodbaas_database.db",
-				ImportState:       true,
-				ImportStateVerify: true,
-				SkipFunc:          func() (bool, error) { return true, nil }, //TODO: Import does not work
-				// This is not normally necessary, but is here because this
-				// example code does not have an actual upstream service.
-				// Once the Read method is able to refresh information from
-				// the upstream service, this can be removed.
-				//ImportStateVerifyIgnore: []string{"configurable_attribute", "defaulted"},
+				ConfigVariables:         config.Variables{"org_name": config.StringVariable(testOrgName)},
+				ResourceName:            "nuodbaas_database.db",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				SkipFunc:                func() (bool, error) { return true, nil }, //TODO: Import does not work
+				ImportStateVerifyIgnore: []string{"resource_version"},
 			},
 			{
-				// Change the project tier
+				// Update the database by setting it to be disabled
 				Config: projConfig + `
 				resource "nuodbaas_database" "db" {
 					organization = var.org_name
 					project      = nuodbaas_project.proj.name
 					name         = "db"
-					dba_password = "changed"
-					tier         = "n0.nano"
+					dba_password = "changeMe"
+					maintenance = {
+						is_disabled = true
+					}
 				}
 				`,
 				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("nuodbaas_database.db", "dba_password", "changed"),
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "maintenance.is_disabled", "true"),
 				),
 			},
 		},
