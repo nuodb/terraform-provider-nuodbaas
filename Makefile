@@ -6,6 +6,9 @@ CP_CHARTS_VERSION ?= 2.3.1
 
 HELM_JETSTACK_RELEASE ?= cert-manager
 JETSTACK_CHARTS_VERSION ?= 1.13.3
+JETSTACK_CHART=https://charts.jetstack.io/charts/cert-manager-v$(JETSTACK_CHARTS_VERSION).tgz
+
+CP_CHARTS_VERSION ?= 2.3.1
 
 HELM_CP_CRD_RELEASE ?= nuodb-cp-crd
 CP_CRD_CHART ?= https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(CP_CHARTS_VERSION)/nuodb-cp-crd-$(CP_CHARTS_VERSION).tgz

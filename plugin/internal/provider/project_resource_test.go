@@ -63,7 +63,7 @@ func TestAccProjectResource(t *testing.T) {
 				resource "nuodbaas_project" "proj" {
 					organization = var.org_name
 					name         = "proj"
-					sla          = "prod"
+					sla          = "dev"
 					tier         = "n0.nano"
 					maintenance = {
 						is_disabled = true
