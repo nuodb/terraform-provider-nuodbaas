@@ -324,7 +324,7 @@ func waitForProject(projectClient *nuodbaas_client.NuodbaasProjectClient) (*nuod
 		if projectModel.Status != nil {
 			isDisabled := projectModel.Maintenance != nil && projectModel.Maintenance.IsDisabled != nil && *projectModel.Maintenance.IsDisabled
 
-			if projectModel.Status.GetState() == "Available" || (isDisabled && projectModel.Status.GetState() == "Stopped") {
+			if (!isDisabled && projectModel.Status.GetState() == "Available") || (isDisabled && projectModel.Status.GetState() == "Stopped") {
 				break
 			}
 		}
