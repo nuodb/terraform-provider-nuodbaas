@@ -24,6 +24,8 @@ jobs:
       - run:
           name: "Run tests"
           command: "make discover-test"
+      - store_test_results: # upload test results for display in Test Summary
+          path: ${TEST_RESULTS}
 
 workflows:
   test:

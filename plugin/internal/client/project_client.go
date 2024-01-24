@@ -16,14 +16,14 @@ import (
 	nuodbaas "github.com/nuodb/nuodbaas-tf-plugin/generated_client"
 )
 
-type nuodbaasProjectClient struct {
+type NuodbaasProjectClient struct {
 	client      *nuodbaas.APIClient
 	org         string
 	projectName string
 	ctx         context.Context
 }
 
-func (client *nuodbaasProjectClient) createUpdateProject(projectModel *nuodbaas.ProjectModel, projectResourceModel model.ProjectResourceModel) error {
+func (client *NuodbaasProjectClient) createUpdateProject(projectModel *nuodbaas.ProjectModel, projectResourceModel model.ProjectResourceModel) error {
 	apiRequestObject := client.client.ProjectsAPI.CreateProject(client.ctx, client.org, client.projectName)
 	projectModel.SetSla(projectResourceModel.Sla.ValueString())
 	projectModel.SetTier(projectResourceModel.Tier.ValueString())
@@ -61,12 +61,12 @@ func (client *nuodbaasProjectClient) createUpdateProject(projectModel *nuodbaas.
 	return err
 }
 
-func (client *nuodbaasProjectClient) CreateProject(projectResourceModel model.ProjectResourceModel) error {
+func (client *NuodbaasProjectClient) CreateProject(projectResourceModel model.ProjectResourceModel) error {
 	projectModel := nuodbaas.NewProjectModelWithDefaults()
 	return client.createUpdateProject(projectModel, projectResourceModel)
 }
 
-func (client *nuodbaasProjectClient) UpdateProject(projectResourceModel model.ProjectResourceModel) error {
+func (client *NuodbaasProjectClient) UpdateProject(projectResourceModel model.ProjectResourceModel) error {
 	if len(projectResourceModel.ResourceVersion.ValueString()) == 0 {
 		errorMessage := "cannot update the project. Resource version is missing"
 		return errors.New(errorMessage)
@@ -76,13 +76,13 @@ func (client *nuodbaasProjectClient) UpdateProject(projectResourceModel model.Pr
 	return client.createUpdateProject(projectModel, projectResourceModel)
 }
 
-func (client *nuodbaasProjectClient) GetProject() (*nuodbaas.ProjectModel, error) {
+func (client *NuodbaasProjectClient) GetProject() (*nuodbaas.ProjectModel, error) {
 	apiGetRequestObject := client.client.ProjectsAPI.GetProject(client.ctx, client.org, client.projectName)
 	projectMdoel, _, err := client.client.ProjectsAPI.GetProjectExecute(apiGetRequestObject)
 	return projectMdoel, err
 }
 
-func (client *nuodbaasProjectClient) GetProjects() (*nuodbaas.ItemListString, error) {
+func (client *NuodbaasProjectClient) GetProjects() (*nuodbaas.ItemListString, error) {
 	// TODO: Allow listing of projects across organizations
 	itemList, _, err := client.client.ProjectsAPI.GetProjects(client.ctx, client.org).Execute()
 	if err != nil {
@@ -102,13 +102,13 @@ func (client *nuodbaasProjectClient) GetProjects() (*nuodbaas.ItemListString, er
 
 }
 
-func (client *nuodbaasProjectClient) DeleteProject() error {
+func (client *NuodbaasProjectClient) DeleteProject() error {
 	_, err := client.client.ProjectsAPI.DeleteProject(client.ctx, client.org, client.projectName).Execute()
 	return err
 }
 
-func NewProjectClient(client *nuodbaas.APIClient, ctx context.Context, org string, projectName string) *nuodbaasProjectClient {
-	nuoClient := nuodbaasProjectClient{
+func NewProjectClient(client *nuodbaas.APIClient, ctx context.Context, org string, projectName string) *NuodbaasProjectClient {
+	nuoClient := NuodbaasProjectClient{
 		client:      client,
 		org:         org,
 		projectName: projectName,

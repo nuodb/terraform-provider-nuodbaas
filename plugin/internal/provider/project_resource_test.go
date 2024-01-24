@@ -29,6 +29,7 @@ func TestAccProjectResource(t *testing.T) {
 				`,
 				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
+					// TODO: Test that the resources match what is in the REST service
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "organization", testOrgName),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "name", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "sla", "dev"),
@@ -39,6 +40,13 @@ func TestAccProjectResource(t *testing.T) {
 			{
 				// Test that we can read it back
 				RefreshState: true,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "organization", testOrgName),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "name", "proj"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "sla", "dev"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "tier", "n0.nano"),
+					resource.TestCheckResourceAttrSet("nuodbaas_project.proj", "resource_version"),
+				),
 			},
 			{
 				// Import it
@@ -64,6 +72,7 @@ func TestAccProjectResource(t *testing.T) {
 				`,
 				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
+					// TODO: Test that the resources match what is in the REST service
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "maintenance.is_disabled", "true"),
 				),
 			},

@@ -400,6 +400,8 @@ func (r *DatabaseResource) waitForDatabase(ctx context.Context, databaseClient *
 		} else if databaseModel.Status != nil && databaseModel.Status.GetState() == "Available" {
 			break
 		}
+
+		//TODO: Error out if the database is in a failed state?
 		time.Sleep(time.Duration(waitTime) * time.Second)
 		waitTime = helper.ComputeWaitTime(waitTime, 10)
 	}

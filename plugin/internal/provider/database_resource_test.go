@@ -38,6 +38,7 @@ func TestAccDatabaseResource(t *testing.T) {
 				`,
 				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
+					// TODO: Test that the resources match what is in the REST service
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "organization", testOrgName),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "name", "db"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "project", "proj"),
@@ -49,6 +50,15 @@ func TestAccDatabaseResource(t *testing.T) {
 			{
 				// Test that we can read it back
 				RefreshState: true,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					// TODO: Test that the resources match what is in the REST service
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "organization", testOrgName),
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "name", "db"),
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "project", "proj"),
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "dba_password", "changeMe"),
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "tier", "n0.nano"),
+					resource.TestCheckResourceAttrSet("nuodbaas_database.db", "resource_version"),
+				),
 			},
 			{
 				// Import it
@@ -74,6 +84,7 @@ func TestAccDatabaseResource(t *testing.T) {
 				`,
 				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
+					// TODO: Test that the resources match what is in the REST service
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "maintenance.is_disabled", "true"),
 				),
 			},

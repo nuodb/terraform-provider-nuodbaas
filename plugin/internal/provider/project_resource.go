@@ -7,6 +7,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/nuodb/nuodbaas-tf-plugin/plugin/terraform-provider-nuodbaas/helper"
 
@@ -142,7 +143,14 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	getProjectModel, err := projectClient.GetProject()
+	getProjectModel, err := waitForProject(projectClient)
+
+	if err != nil && helper.IsTimeoutError(err) {
+		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Unable to get project %+v in ready. You can go ahead and retry creating it", state.Name.ValueString()))
+		projectClient = nuodbaas_client.NewProjectClient(r.client, context.Background(), state.Organization.ValueString(), state.Name.ValueString())
+		projectClient.DeleteProject()
+		return
+	}
 
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -251,7 +259,26 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	// TODO: Wait for the project to come up
+	_, err = waitForProject(projectClient)
+
+	if err != nil && helper.IsTimeoutError(err) {
+		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Project %+v failed to become ready.", data.Name.ValueString()))
+		return
+	}
+
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Reading Project",
+			helper.GetApiErrorMessage(err, fmt.Sprintf("Could not get project status %+v", data.Name.ValueString())),
+		)
+		return
+	}
+
+	// TODO: Save other values?
+
+	// TODO: Uncomment once we remove UseStateForUnknown from ResourceVersion in schema.
+	// This requires fetching resource version at the start of the Update
+	// data.ResourceVersion = types.StringValue(*projectModel.ResourceVersion)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -282,4 +309,28 @@ func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest
 func (r *ProjectResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	//TODO: Does not work
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func waitForProject(projectClient *nuodbaas_client.NuodbaasProjectClient) (*nuodbaas.ProjectModel, error) {
+	var projectModel *nuodbaas.ProjectModel
+	var err error
+	var waitTime = 1
+	for {
+		projectModel, err = projectClient.GetProject()
+		if err != nil {
+			return nil, err
+		}
+
+		if projectModel.Status != nil {
+			isDisabled := projectModel.Maintenance != nil && projectModel.Maintenance.IsDisabled != nil && *projectModel.Maintenance.IsDisabled
+
+			if projectModel.Status.GetState() == "Available" || (isDisabled && projectModel.Status.GetState() == "Stopped") {
+				break
+			}
+		}
+
+		time.Sleep(time.Duration(waitTime) * time.Second)
+		waitTime = helper.ComputeWaitTime(waitTime, 10)
+	}
+	return projectModel, nil
 }

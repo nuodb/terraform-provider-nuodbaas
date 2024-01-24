@@ -1,6 +1,6 @@
 HELM_JETSTACK_RELEASE ?= cert-manager
 JETSTACK_CHARTS_VERSION ?= 1.13.3
-JETSTACK_CHART=https://charts.jetstack.io/charts/cert-manager-v$(JETSTACK_CHARTS_VERSION).tgz
+JETSTACK_CHART := https://charts.jetstack.io/charts/cert-manager-v$(JETSTACK_CHARTS_VERSION).tgz
 
 CP_CHARTS_VERSION ?= 2.3.1
 
@@ -13,9 +13,18 @@ CP_OPERATOR_CHART ?= https://github.com/nuodb/nuodb-cp-releases/releases/downloa
 HELM_CP_REST_RELEASE ?= nuodb-cp-rest
 CP_REST_CHART ?= https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(CP_CHARTS_VERSION)/nuodb-cp-rest-$(CP_CHARTS_VERSION).tgz
 
-HELM_NGINX_RELEASE=ingress-nginx
-NGINX_CHART=https://github.com/kubernetes/ingress-nginx/releases/download/helm-chart-4.7.1/ingress-nginx-4.7.1.tgz
-NGINX_INGRESS_VERSION=1.8.1
+HELM_NGINX_RELEASE ?= ingress-nginx
+NGINX_CHARTS_VERSION ?= 4.7.1
+NGINX_CHART := https://github.com/kubernetes/ingress-nginx/releases/download/helm-chart-$(NGINX_CHARTS_VERSION)/ingress-nginx-$(NGINX_CHARTS_VERSION).tgz
+NGINX_INGRESS_VERSION ?= 1.8.1
+
+PROJECT_DIR := $(shell pwd)
+BIN_DIR ?= 	$(PROJECT_DIR)/bin
+TEST_RESULTS ?= $(BIN_DIR)/test-results
+
+GOTESTSUM_VERSION ?= v1.11.0
+GOTESTSUM_BIN := $(BIN_DIR)/gotestsum
+
 
 IGNORE_NOT_FOUND ?= true
 
@@ -40,7 +49,7 @@ help: ## Display this help.
 ##@ Development
 
 .PHONY: deploy-cp
-deploy-cp: ## Deploy a local Control Plane
+deploy-cp: ## Deploy a local Control Plane to test with
 	helm upgrade --install $(HELM_JETSTACK_RELEASE) $(JETSTACK_CHART) \
 		--namespace cert-manager \
 		--set installCRDs=true \
@@ -61,7 +70,8 @@ deploy-cp: ## Deploy a local Control Plane
 	kubectl -l app.kubernetes.io/instance="$(HELM_NGINX_RELEASE)" wait pod --for=condition=ready --timeout=120s
 
 	helm upgrade --install $(HELM_CP_OPERATOR_RELEASE) $(CP_OPERATOR_CHART) \
-		--set cpOperator.webhooks.enabled=true
+		--set cpOperator.webhooks.enabled=true \
+		--set cpOperator.samples.serviceTiers.enabled=false
 
 	helm upgrade --install $(HELM_CP_REST_RELEASE) $(CP_REST_CHART) \
 		--set cpRest.ingress.enabled=true \
@@ -75,11 +85,25 @@ deploy-cp: ## Deploy a local Control Plane
 
 .PHONY: undeploy-cp
 undeploy-cp: ## Uninstall a local Control Plane previously installed by this script
-	kubectl delete --wait=false -f test/tiers.yaml || $(IGNORE_NOT_FOUND)
+	# Clean up any left over DBaaS resources
+	kubectl get databases.cp.nuodb.com -o name | xargs -r kubectl delete || $(IGNORE_NOT_FOUND)
+	kubectl get domains.cp.nuodb.com -o name | xargs -r kubectl delete || $(IGNORE_NOT_FOUND)
+	kubectl get servicetiers.cp.nuodb.com -o name | xargs -r kubectl delete || $(IGNORE_NOT_FOUND)
+	kubectl get helmfeatures.cp.nuodb.com -o name | xargs -r kubectl delete || $(IGNORE_NOT_FOUND)
+	kubectl get databasequotas.cp.nuodb.com -o name | xargs -r kubectl delete || $(IGNORE_NOT_FOUND)
+	kubectl get pvc -o name --selector=group=nuodb | xargs -r kubectl delete || $(IGNORE_NOT_FOUND)
+
+	# Uninstall DBaaS helm charts
 	helm uninstall $(HELM_CP_REST_RELEASE) $(HELM_CP_OPERATOR_RELEASE) || $(IGNORE_NOT_FOUND)
 	helm uninstall $(HELM_CP_CRD_RELEASE) $(HELM_NGINX_RELEASE) || $(IGNORE_NOT_FOUND)
 	helm uninstall $(HELM_JETSTACK_RELEASE) --namespace cert-manager || $(IGNORE_NOT_FOUND)
 
+	# Delete lease resources so that next time Cert Manager is deployed it does not have to wait for them to expire
+	kubectl -n kube-system delete leases.coordination.k8s.io cert-manager-cainjector-leader-election --ignore-not-found=$(IGNORE_NOT_FOUND)
+	kubectl -n kube-system delete leases.coordination.k8s.io cert-manager-controller --ignore-not-found=$(IGNORE_NOT_FOUND)
+
+$(GOTESTSUM_BIN):
+	$(call go-get-tool,gotest.tools/gotestsum@$(GOTESTSUM_VERSION))
 
 .PHONY: discover-test
 discover-test: ## Discover a local control plane and run tests against it
@@ -95,5 +119,13 @@ discover-test: ## Discover a local control plane and run tests against it
 
 
 .PHONY: testacc
-testacc: ## Run acceptance tests
-	TF_ACC=1 go test ./plugin/... -v $(TESTARGS) -timeout 30m
+testacc: $(GOTESTSUM_BIN) ## Run acceptance tests
+	TF_ACC=1 $(GOTESTSUM_BIN) --junitfile $(TEST_RESULTS)/gotestsum-report.xml --format testname -- -v -timeout 30m $(TESTARGS) ./plugin/...
+
+# Use 'go install' to fetch tool, falling back to 'go get' if the tool is not
+# made available locally. 'go install' should work in Golang versions >=1.16,
+# while 'go get' should work in Golang <1.16.
+define go-get-tool
+@echo "Downloading $(1)"
+export GO111MODULE=on GOBIN=$(BIN_DIR) && go install $(1) || go get $(1)
+endef
