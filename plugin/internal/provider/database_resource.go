@@ -214,7 +214,13 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	if err != nil && helper.IsTimeoutError(err) {
 		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Unable to get database %+v in ready. You can go ahead and retry creating it", state.Name.ValueString()))
 		databaseClient = nuodbaas_client.NewDatabaseClient(r.client, context.Background(), state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-		databaseClient.DeleteDatabase()
+		err = databaseClient.DeleteDatabase()
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error deleting failed database",
+				helper.GetApiErrorMessage(err, "Could not clean up timed out database deploy:"),
+			)
+		}
 		return
 	}
 
@@ -400,6 +406,8 @@ func (r *DatabaseResource) waitForDatabase(ctx context.Context, databaseClient *
 		} else if databaseModel.Status != nil && databaseModel.Status.GetState() == "Available" {
 			break
 		}
+
+		//TODO: Error out if the database is in a failed state?
 		time.Sleep(time.Duration(waitTime) * time.Second)
 		waitTime = helper.ComputeWaitTime(waitTime, 10)
 	}
@@ -478,5 +486,6 @@ func (r *DatabaseResource) updateContextWithTimeout(ctx context.Context, state m
 }
 
 func (r *DatabaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	//TODO: Does not work
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
