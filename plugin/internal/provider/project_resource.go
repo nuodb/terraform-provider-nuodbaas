@@ -167,7 +167,13 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	if err != nil && helper.IsTimeoutError(err) {
 		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Unable to get project %+v in ready. You can go ahead and retry creating it", state.Name.ValueString()))
 		projectClient = nuodbaas_client.NewProjectClient(r.client, context.Background(), state.Organization.ValueString(), state.Name.ValueString())
-		projectClient.DeleteProject()
+		err = projectClient.DeleteProject()
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error deleting failed project",
+				helper.GetApiErrorMessage(err, "Could not clean up timed out project deploy:"),
+			)
+		}
 		return
 	}
 
