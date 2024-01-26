@@ -4,7 +4,10 @@ All Rights Reserved.
 */
 package model
 
-import "github.com/hashicorp/terraform-plugin-framework/types"
+import (
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
 
 type ProjectResourceModel struct {
 	Organization    types.String       `tfsdk:"organization"`
@@ -14,6 +17,7 @@ type ProjectResourceModel struct {
 	Maintenance     *MaintenanceModel  `tfsdk:"maintenance"`
 	ResourceVersion types.String       `tfsdk:"resource_version"`
 	Properties      *ProjectProperties `tfsdk:"properties"`
+	Timeouts        timeouts.Value     `tfsdk:"timeouts"`
 }
 
 type ProjectProperties struct {
