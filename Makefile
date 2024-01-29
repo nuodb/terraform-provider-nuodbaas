@@ -4,12 +4,6 @@ JETSTACK_CHART := https://charts.jetstack.io/charts/cert-manager-v$(JETSTACK_CHA
 
 CP_CHARTS_VERSION ?= 2.3.1
 
-HELM_JETSTACK_RELEASE ?= cert-manager
-JETSTACK_CHARTS_VERSION ?= 1.13.3
-JETSTACK_CHART=https://charts.jetstack.io/charts/cert-manager-v$(JETSTACK_CHARTS_VERSION).tgz
-
-CP_CHARTS_VERSION ?= 2.3.1
-
 HELM_CP_CRD_RELEASE ?= nuodb-cp-crd
 CP_CRD_CHART ?= https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(CP_CHARTS_VERSION)/nuodb-cp-crd-$(CP_CHARTS_VERSION).tgz
 
@@ -31,10 +25,8 @@ TEST_RESULTS ?= $(BIN_DIR)/test-results
 GOTESTSUM_VERSION ?= v1.11.0
 GOTESTSUM_BIN := $(BIN_DIR)/gotestsum
 
-
-HELM_NGINX_RELEASE=ingress-nginx
-NGINX_CHART=https://github.com/kubernetes/ingress-nginx/releases/download/helm-chart-4.7.1/ingress-nginx-4.7.1.tgz
-NGINX_INGRESS_VERSION=1.8.1
+PUBLISH_VERSION ?= 0.1.0
+PUBLISH_DIR ?= $(BIN_DIR)/dist
 
 IGNORE_NOT_FOUND ?= true
 
@@ -131,6 +123,27 @@ discover-test: ## Discover a local control plane and run tests against it
 .PHONY: testacc
 testacc: $(GOTESTSUM_BIN) ## Run acceptance tests
 	TF_ACC=1 $(GOTESTSUM_BIN) --junitfile $(TEST_RESULTS)/gotestsum-report.xml --format testname -- -v -timeout 30m $(TESTARGS) ./plugin/...
+
+.PHONY: package
+package:
+	rm -r $(PUBLISH_DIR) || $(IGNORE_NOT_FOUND)
+	mkdir -p $(PUBLISH_DIR)
+	$(eval PACKAGE_OS ?= darwin linux windows)
+	$(eval PACKAGE_ARCH ?= amd64 arm64)
+	$(foreach OS, $(PACKAGE_OS), \
+		$(foreach ARCH, $(PACKAGE_ARCH), $(call package-os,$(OS),$(ARCH))))
+	$(eval PUBLISH_MIRROR ?= $(PUBLISH_DIR)/pkg_mirror/hashicorp.com/edu/nuodbaas)
+	mkdir -p $(PUBLISH_MIRROR)
+	cp $(PUBLISH_DIR)/*.zip $(PUBLISH_MIRROR)
+
+# Build the release package for a given OS and architechture
+define package-os
+$(eval PUBLISH_STAGING := $(PUBLISH_DIR)/staging_$(1)_$(2))
+$(eval PLUGIN_PKG := $(PUBLISH_DIR)/terraform-provider-nuodbaas_$(PUBLISH_VERSION)_$(1)_$(2).zip)
+mkdir -p $(PUBLISH_STAGING)
+GOOS=$(1) GOARCH=$(2) go build -C plugin -o $(PUBLISH_STAGING)/terraform-provider-nuodbaas_v$(PUBLISH_VERSION)
+cd $(PUBLISH_STAGING) && zip $(PLUGIN_PKG) ./*
+endef
 
 # Use 'go install' to fetch tool, falling back to 'go get' if the tool is not
 # made available locally. 'go install' should work in Golang versions >=1.16,
