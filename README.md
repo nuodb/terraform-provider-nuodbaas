@@ -15,7 +15,7 @@ You can also build the provider locally and install it into your terraform confi
     make package
     ```
 
-2. Add the provider package as a `filesystem_mirror` in your terraform configuration. Either edit `~/.terraformrc` or create a new terraform configuration.
+2. Add the provider package as a [`filesystem_mirror`](https://developer.hashicorp.com/terraform/cli/config/config-file#filesystem_mirror) in your terraform configuration. Either edit `~/.terraformrc` or create a new terraform configuration.
     ```hcl
     provider_installation {
         filesystem_mirror {
@@ -46,7 +46,7 @@ You can also build the provider locally and install it into your terraform confi
     ```sh
     TF_CLI_CONFIG_FILE="config.tfrc" terraform init
     ```
-For more details about overriding providers, see the [Terraform documentation](https://developer.hashicorp.com/terraform/cli/config/config-file#development-overrides-for-provider-developers).
+For more details about terraform cli configuration, see the [documentation](https://developer.hashicorp.com/terraform/cli/config/config-file).
 
 ## Local testing
 
