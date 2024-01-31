@@ -19,29 +19,34 @@ You can also build the provider locally and install it into your terraform confi
     ```hcl
     provider_installation {
         filesystem_mirror {
-            path    = "<REPO PATH>/bin/dist/pkg_mirror"
-            include = ["hashicorp.com/edu/nuodbaas"]
+            path    = "<REPO PATH>/dist/pkg_mirror"
+            include = ["registry.terraform.io/nuodb/nuodbaas"]
         }
         direct {
-            exclude = ["hashicorp.com/edu/nuodbaas"]
+            exclude = ["registry.terraform.io/nuodb/nuodbaas"]
         }
     }
     ```
     Where `<REPO PATH>` is the absolute path of this git repository.
 
-3. Use the provider as you normally would.
+3. In your terraform workspace, delete the `.terraform` dirrectory, which contains cached versions of providers. This needs to be done any time you rebuild the package.
+    ```sh
+    rm -r .terraform
+    ```
+
+4. Use the provider as you normally would.
     ```hcl
     terraform {
         required_providers {
             nuodbaas = {
-                source = "hashicorp.com/edu/nuodbaas"
+                source = "registry.terraform.io/nuodb/nuodbaas"
                 version = "0.1.0"
             }
         }
     }
     ```
 
-4. If you did not edit your `~/.terraformrc` and instead created a custom configuration, don't forget to set `TF_CLI_CONFIG_FILE` to that file.
+5. If you did not edit your `~/.terraformrc` and instead created a custom configuration, don't forget to set `TF_CLI_CONFIG_FILE` to that file.
 
     ```sh
     TF_CLI_CONFIG_FILE="config.tfrc" terraform init

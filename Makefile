@@ -20,13 +20,13 @@ NGINX_INGRESS_VERSION ?= 1.8.1
 
 PROJECT_DIR := $(shell pwd)
 BIN_DIR ?= 	$(PROJECT_DIR)/bin
-TEST_RESULTS ?= $(BIN_DIR)/test-results
+TEST_RESULTS ?= $(PROJECT_DIR)/test-results
 
 GOTESTSUM_VERSION ?= v1.11.0
 GOTESTSUM_BIN := $(BIN_DIR)/gotestsum
 
 PUBLISH_VERSION ?= 0.1.0
-PUBLISH_DIR ?= $(BIN_DIR)/dist
+PUBLISH_DIR ?= $(PROJECT_DIR)/dist
 
 IGNORE_NOT_FOUND ?= true
 
@@ -132,7 +132,7 @@ package:
 	$(eval PACKAGE_ARCH ?= amd64 arm64)
 	$(foreach OS, $(PACKAGE_OS), \
 		$(foreach ARCH, $(PACKAGE_ARCH), $(call package-os,$(OS),$(ARCH))))
-	$(eval PUBLISH_MIRROR ?= $(PUBLISH_DIR)/pkg_mirror/hashicorp.com/edu/nuodbaas)
+	$(eval PUBLISH_MIRROR ?= $(PUBLISH_DIR)/pkg_mirror/registry.terraform.io/nuodb/nuodbaas)
 	mkdir -p $(PUBLISH_MIRROR)
 	cp $(PUBLISH_DIR)/*.zip $(PUBLISH_MIRROR)
 

@@ -41,7 +41,7 @@ func main() {
 
 	opts := providerserver.ServeOpts{
 		// TODO: Update this string with the published name of your provider.
-		Address: "hashicorp.com/edu/nuodbaas",
+		Address: "registry.terraform.io/nuodb/nuodbaas",
 		Debug:   debug,
 	}
 
