@@ -1,6 +1,6 @@
 # Terraform Provider for NuoDB Control Plane
 
-[Documentation](plugin/docs/index.md)
+[Documentation](docs/index.md)
 
 ## Installing
 
