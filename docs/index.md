@@ -16,7 +16,7 @@ description: |-
 terraform {
   required_providers {
     nuodbaas = {
-      source = "hashicorp.com/edu/nuodbaas"
+      source = "registry.terraform.io/nuodb/nuodbaas"
     }
   }
 }
