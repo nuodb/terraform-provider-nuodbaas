@@ -107,6 +107,11 @@ undeploy-cp: ## Uninstall a local Control Plane previously installed by this scr
 $(GOTESTSUM_BIN):
 	$(call go-get-tool,gotest.tools/gotestsum@$(GOTESTSUM_VERSION))
 
+.PHONY: generate
+generate: ## Generate Golang client for the NuoDB REST API and Terraform provider documentation
+	./scripts/generate-client.sh
+	go generate
+
 .PHONY: discover-test
 discover-test: ## Discover a local control plane and run tests against it
 	$(eval HOST := $(or $(shell kubectl get service $(HELM_NGINX_RELEASE)-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}'), \
@@ -122,7 +127,7 @@ discover-test: ## Discover a local control plane and run tests against it
 
 .PHONY: testacc
 testacc: $(GOTESTSUM_BIN) ## Run acceptance tests
-	TF_ACC=1 $(GOTESTSUM_BIN) --junitfile $(TEST_RESULTS)/gotestsum-report.xml --format testname -- -v -timeout 30m $(TESTARGS) ./plugin/...
+	TF_ACC=1 $(GOTESTSUM_BIN) --junitfile $(TEST_RESULTS)/gotestsum-report.xml --format testname -- -v -timeout 30m $(TESTARGS) ./...
 
 ##@ Build
 
@@ -149,7 +154,7 @@ define package-os
 $(eval PUBLISH_STAGING := $(PUBLISH_DIR)/staging_$(1)_$(2))
 $(eval PLUGIN_PKG := $(PUBLISH_DIR)/terraform-provider-nuodbaas_$(PUBLISH_VERSION)_$(1)_$(2).zip)
 mkdir -p $(PUBLISH_STAGING)
-GOOS=$(1) GOARCH=$(2) go build -C plugin -o $(PUBLISH_STAGING)/terraform-provider-nuodbaas_v$(PUBLISH_VERSION)
+GOOS=$(1) GOARCH=$(2) go build -o $(PUBLISH_STAGING)/terraform-provider-nuodbaas_v$(PUBLISH_VERSION)
 cd $(PUBLISH_STAGING) && zip $(PLUGIN_PKG) ./*
 endef
 
