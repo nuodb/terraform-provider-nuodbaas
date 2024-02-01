@@ -10,43 +10,48 @@ You can install the provider from the official repo using **TBD**
 
 You can also build the provider locally and install it into your terraform config.
 
-1. Build the provider and install it into `$GOBIN`:
+1. Build the provider:
     ```sh
-    cd plugin && go install .
+    make package
     ```
 
-2. Add the new executable into the `dev_overrides` section of your terraform configuration. Either edit `~/.terraformrc` or create a new terraform configuration.
+2. Add the provider package as a [`filesystem_mirror`](https://developer.hashicorp.com/terraform/cli/config/config-file#filesystem_mirror) in your terraform configuration. Either edit `~/.terraformrc` or create a new terraform configuration.
     ```hcl
     provider_installation {
-
-        dev_overrides {
-            "hashicorp.com/edu/nuodbaas" = "<GOBIN_PATH>"
+        filesystem_mirror {
+            path    = "<REPO PATH>/dist/pkg_mirror"
+            include = ["registry.terraform.io/nuodb/nuodbaas"]
         }
-
-        # For all other providers, install them directly from their origin provider
-        # registries as normal.
-        direct {}
+        direct {
+            exclude = ["registry.terraform.io/nuodb/nuodbaas"]
+        }
     }
     ```
-    Where `<GOBIN_PATH>` is the absolute path of `$GOBIN`.
+    Where `<REPO PATH>` is the absolute path of this git repository.
 
-3. Use the provider as you normally would. You can omit the `version` since that value will be ignored.
+3. In your terraform workspace, delete the `.terraform` dirrectory, which contains cached versions of providers. This needs to be done any time you rebuild the package.
+    ```sh
+    rm -r .terraform
+    ```
+
+4. Use the provider as you normally would.
     ```hcl
     terraform {
         required_providers {
             nuodbaas = {
-                source = "hashicorp.com/edu/nuodbaas"
+                source = "registry.terraform.io/nuodb/nuodbaas"
+                version = "0.1.0"
             }
         }
     }
     ```
 
-4. If you did not edit your `~/.terraformrc` and instead created a custom configuration, don't forget to set `TF_CLI_CONFIG_FILE` to that file.
+5. If you did not edit your `~/.terraformrc` and instead created a custom configuration, don't forget to set `TF_CLI_CONFIG_FILE` to that file.
 
     ```sh
-    TF_CLI_CONFIG_FILE="config.tfrc" terraform plan
+    TF_CLI_CONFIG_FILE="config.tfrc" terraform init
     ```
-For more details about overriding providers, see the [Terraform documentation](https://developer.hashicorp.com/terraform/cli/config/config-file#development-overrides-for-provider-developers).
+For more details about terraform cli configuration, see the [documentation](https://developer.hashicorp.com/terraform/cli/config/config-file).
 
 ## Local testing
 

@@ -20,11 +20,13 @@ NGINX_INGRESS_VERSION ?= 1.8.1
 
 PROJECT_DIR := $(shell pwd)
 BIN_DIR ?= 	$(PROJECT_DIR)/bin
-TEST_RESULTS ?= $(BIN_DIR)/test-results
+TEST_RESULTS ?= $(PROJECT_DIR)/test-results
 
 GOTESTSUM_VERSION ?= v1.11.0
 GOTESTSUM_BIN := $(BIN_DIR)/gotestsum
 
+PUBLISH_VERSION ?= 0.1.0
+PUBLISH_DIR ?= $(PROJECT_DIR)/dist
 
 IGNORE_NOT_FOUND ?= true
 
@@ -121,6 +123,35 @@ discover-test: ## Discover a local control plane and run tests against it
 .PHONY: testacc
 testacc: $(GOTESTSUM_BIN) ## Run acceptance tests
 	TF_ACC=1 $(GOTESTSUM_BIN) --junitfile $(TEST_RESULTS)/gotestsum-report.xml --format testname -- -v -timeout 30m $(TESTARGS) ./plugin/...
+
+##@ Build
+
+.PHONY: package
+package: ## Generate the provider for this machines OS and Architecture
+	PACKAGE_OS=$(shell go env GOOS) \
+		PACKAGE_ARCH=$(shell go env GOARCH) \
+		$(MAKE) package-all
+
+.PHONY: package-all
+package-all: ## Generate the provider for every OS and Architecture
+	rm -r $(PUBLISH_DIR) || $(IGNORE_NOT_FOUND)
+	mkdir -p $(PUBLISH_DIR)
+	$(eval PACKAGE_OS ?= darwin linux windows)
+	$(eval PACKAGE_ARCH ?= amd64 arm64)
+	$(foreach OS, $(PACKAGE_OS), \
+		$(foreach ARCH, $(PACKAGE_ARCH), $(call package-os,$(OS),$(ARCH))))
+	$(eval PUBLISH_MIRROR ?= $(PUBLISH_DIR)/pkg_mirror/registry.terraform.io/nuodb/nuodbaas)
+	mkdir -p $(PUBLISH_MIRROR)
+	cp $(PUBLISH_DIR)/*.zip $(PUBLISH_MIRROR)
+
+# Build the release package for a given OS and Architecture
+define package-os
+$(eval PUBLISH_STAGING := $(PUBLISH_DIR)/staging_$(1)_$(2))
+$(eval PLUGIN_PKG := $(PUBLISH_DIR)/terraform-provider-nuodbaas_$(PUBLISH_VERSION)_$(1)_$(2).zip)
+mkdir -p $(PUBLISH_STAGING)
+GOOS=$(1) GOARCH=$(2) go build -C plugin -o $(PUBLISH_STAGING)/terraform-provider-nuodbaas_v$(PUBLISH_VERSION)
+cd $(PUBLISH_STAGING) && zip $(PLUGIN_PKG) ./*
+endef
 
 # Use 'go install' to fetch tool, falling back to 'go get' if the tool is not
 # made available locally. 'go install' should work in Golang versions >=1.16,
