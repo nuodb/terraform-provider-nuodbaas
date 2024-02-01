@@ -124,8 +124,16 @@ discover-test: ## Discover a local control plane and run tests against it
 testacc: $(GOTESTSUM_BIN) ## Run acceptance tests
 	TF_ACC=1 $(GOTESTSUM_BIN) --junitfile $(TEST_RESULTS)/gotestsum-report.xml --format testname -- -v -timeout 30m $(TESTARGS) ./plugin/...
 
+##@ Build
+
 .PHONY: package
-package:
+package: ## Generate the provider for this machines OS and Architecture
+	PACKAGE_OS=$(shell go env GOOS) \
+		PACKAGE_ARCH=$(shell go env GOARCH) \
+		$(MAKE) package-all
+
+.PHONY: package-all
+package-all: ## Generate the provider for every OS and Architecture
 	rm -r $(PUBLISH_DIR) || $(IGNORE_NOT_FOUND)
 	mkdir -p $(PUBLISH_DIR)
 	$(eval PACKAGE_OS ?= darwin linux windows)
@@ -136,7 +144,7 @@ package:
 	mkdir -p $(PUBLISH_MIRROR)
 	cp $(PUBLISH_DIR)/*.zip $(PUBLISH_MIRROR)
 
-# Build the release package for a given OS and architechture
+# Build the release package for a given OS and Architecture
 define package-os
 $(eval PUBLISH_STAGING := $(PUBLISH_DIR)/staging_$(1)_$(2))
 $(eval PLUGIN_PKG := $(PUBLISH_DIR)/terraform-provider-nuodbaas_$(PUBLISH_VERSION)_$(1)_$(2).zip)
