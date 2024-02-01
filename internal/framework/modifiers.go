@@ -3,6 +3,7 @@
 // This software is licensed under a BSD 3-Clause License.
 // See the LICENSE file provided with this software.
 
+//nolint:forcetypeassert // Type checker cannot track type guarantees in comments
 package framework
 
 import (

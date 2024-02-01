@@ -22,6 +22,7 @@ require (
 	github.com/rogpeppe/go-internal v1.12.0
 	github.com/stretchr/testify v1.9.0
 	gotest.tools/gotestsum v1.11.0
+	github.com/golangci/golangci-lint v1.55.2
 )
 
 require (
@@ -29,6 +30,7 @@ require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/bitfield/gotestdox v0.2.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/denis-tingaikin/go-header v0.4.3 // indirect
 	github.com/dnephin/pflag v1.0.7 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-openapi/jsonpointer v0.20.3 // indirect
@@ -36,10 +38,34 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/hashicorp/cli v1.1.6 // indirect
 	github.com/invopop/yaml v0.2.0 // indirect
+	github.com/jgautheron/goconst v1.6.0 // indirect
+	github.com/jingyugao/rowserrcheck v1.1.1 // indirect
+	github.com/jirfag/go-printf-func-name v0.0.0-20200119135958-7558a9eaa5af // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/julz/importas v0.1.0 // indirect
+	github.com/kisielk/errcheck v1.6.3 // indirect
+	github.com/kisielk/gotool v1.0.0 // indirect
+	github.com/kkHAIKE/contextcheck v1.1.4 // indirect
+	github.com/kulti/thelper v0.6.3 // indirect
+	github.com/kunwardeep/paralleltest v1.0.8 // indirect
+	github.com/kyoh86/exportloopref v0.1.11 // indirect
+	github.com/ldez/gomoddirectives v0.2.3 // indirect
+	github.com/ldez/tagliatelle v0.5.0 // indirect
+	github.com/leonklingele/grouper v1.1.1 // indirect
+	github.com/lufeee/execinquery v1.2.1 // indirect
+	github.com/macabu/inamedparam v0.1.2 // indirect
+	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
+	github.com/moricho/tparallel v0.3.1 // indirect
+	github.com/nakabonne/nestif v0.3.1 // indirect
+	github.com/nishanths/exhaustive v0.11.0 // indirect
+	github.com/nishanths/predeclared v0.2.2 // indirect
+	github.com/nunnatsa/ginkgolinter v0.14.1 // indirect
+	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/pelletier/go-toml v1.9.5 // indirect
+	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
@@ -50,6 +76,11 @@ require (
 	golang.org/x/tools v0.19.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	honnef.co/go/tools v0.4.6 // indirect
+	mvdan.cc/gofumpt v0.5.0 // indirect
+	mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed // indirect
+	mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b // indirect
+	mvdan.cc/unparam v0.0.0-20221223090309-7455f1af531d // indirect
 )
 
 require (

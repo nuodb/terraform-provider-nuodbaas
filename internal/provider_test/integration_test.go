@@ -93,9 +93,10 @@ func TestFullLifecycle(t *testing.T) {
 
 	// Create Terraform workspace and initialize it with config
 	tf := CreateTerraformWorkspace(t)
-	tf.SetReattachConfig(reattachCfg)
+	err := tf.SetReattachConfig(reattachCfg)
+	require.NoError(t, err)
 	tf.WriteConfigT(t, vars.builder.Build())
-	_, err := tf.Init()
+	_, err = tf.Init()
 	require.NoError(t, err)
 
 	// Run `terraform apply` to create project and database
@@ -106,6 +107,7 @@ func TestFullLifecycle(t *testing.T) {
 	// Use client created from provider config to populate structs with
 	// current state
 	client, err := vars.providerCfg.CreateClient()
+	require.NoError(t, err)
 	actualProject := vars.project
 	err = actualProject.Read(ctx, client)
 	require.NoError(t, err)
@@ -198,6 +200,7 @@ func TestFullLifecycle(t *testing.T) {
 	_, err = tf.Apply()
 	require.NoError(t, err)
 	err = actualDatabase.Read(ctx, client)
+	require.NoError(t, err)
 	require.NotNil(t, actualDatabase.Tier)
 	require.Equal(t, tier, *actualDatabase.Tier)
 	require.Equal(t, vars.database.Labels, actualDatabase.Labels)
@@ -322,9 +325,10 @@ func TestAttributeSerialization(t *testing.T) {
 
 	// Create Terraform workspace and initialize it with config
 	tf := CreateTerraformWorkspace(t)
-	tf.SetReattachConfig(reattachCfg)
+	err := tf.SetReattachConfig(reattachCfg)
+	require.NoError(t, err)
 	tf.WriteConfigT(t, vars.builder.Build())
-	_, err := tf.Init()
+	_, err = tf.Init()
 	require.NoError(t, err)
 	defer tf.DestroySilently()
 
@@ -560,9 +564,10 @@ func TestTimeouts(t *testing.T) {
 
 	// Create Terraform workspace and initialize it with config
 	tf := CreateTerraformWorkspace(t)
-	tf.SetReattachConfig(reattachCfg)
+	err := tf.SetReattachConfig(reattachCfg)
+	require.NoError(t, err)
 	tf.WriteConfigT(t, vars.builder.Build())
-	_, err := tf.Init()
+	_, err = tf.Init()
 	require.NoError(t, err)
 
 	// Run `terraform apply` to create project and database, which should
@@ -672,9 +677,10 @@ func TestNegative(t *testing.T) {
 
 	// Create Terraform workspace and initialize it with config
 	tf := CreateTerraformWorkspace(t)
-	tf.SetReattachConfig(reattachCfg)
+	err := tf.SetReattachConfig(reattachCfg)
+	require.NoError(t, err)
 	tf.WriteConfigT(t, vars.builder.Build())
-	_, err := tf.Init()
+	_, err = tf.Init()
 	require.NoError(t, err)
 	defer tf.DestroySilently()
 
@@ -938,9 +944,10 @@ func TestImmutableAttributeChange(t *testing.T) {
 
 	// Create Terraform workspace and initialize it with config
 	tf := CreateTerraformWorkspace(t)
-	tf.SetReattachConfig(reattachCfg)
+	err := tf.SetReattachConfig(reattachCfg)
+	require.NoError(t, err)
 	tf.WriteConfigT(t, vars.builder.Build())
-	_, err := tf.Init()
+	_, err = tf.Init()
 	require.NoError(t, err)
 	defer tf.DestroySilently()
 
@@ -990,7 +997,7 @@ func TestImmutableAttributeChange(t *testing.T) {
 	// Change the DBA password again, this time with
 	// NUODB_CP_ALLOW_DESTRUCTIVE_REPLACE=true
 	t.Run("applyDbaPasswordChangeWithReplace", func(t *testing.T) {
-		os.Setenv(framework.ALLOW_DESTRUCTIVE_REPLACE_VAR, "true")
+		t.Setenv(framework.ALLOW_DESTRUCTIVE_REPLACE_VAR, "true")
 		defer os.Unsetenv(framework.ALLOW_DESTRUCTIVE_REPLACE_VAR)
 
 		updatedPassword := "updated-again"
@@ -1134,7 +1141,8 @@ func TestImport(t *testing.T) {
 
 	// Create Terraform workspace and initialize it with config
 	tf := CreateTerraformWorkspace(t)
-	tf.SetReattachConfig(reattachCfg)
+	err = tf.SetReattachConfig(reattachCfg)
+	require.NoError(t, err)
 	tf.WriteConfigT(t, vars.builder.Build())
 	_, err = tf.Init()
 	require.NoError(t, err)
@@ -1263,7 +1271,8 @@ func TestDataSourceFiltering(t *testing.T) {
 
 	// Create Terraform workspace and initialize it with config
 	tf := CreateTerraformWorkspace(t)
-	tf.SetReattachConfig(reattachCfg)
+	err = tf.SetReattachConfig(reattachCfg)
+	require.NoError(t, err)
 	tf.WriteConfigT(t, vars.builder.Build())
 	_, err = tf.Init()
 	require.NoError(t, err)

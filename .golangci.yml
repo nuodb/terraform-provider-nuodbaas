@@ -13,15 +13,28 @@ linters:
     - forcetypeassert
     - godot
     - gofmt
+    - goimports
+    - gosec
     - gosimple
     - ineffassign
     - makezero
     - misspell
     - nilerr
+    - nolintlint
     - predeclared
     - staticcheck
     - tenv
+    - typecheck
     - unconvert
     - unparam
     - unused
     - vet
+
+linters-settings:
+  goimports:
+    # put imports beginning with prefix after 3rd-party packages;
+    # it's a comma-separated list of prefixes
+    local-prefixes: github.com/nuodb/terraform-provider-nuodbaas
+  nolintlint:
+    require-explanation: true
+    require-specific: true

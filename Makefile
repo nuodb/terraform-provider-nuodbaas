@@ -33,9 +33,11 @@ TFPLUGINDOCS_BIN := bin/tfplugindocs
 OAPI_CODEGEN_BIN := bin/oapi-codegen
 TERRAFORM_BIN := bin/terraform
 KUBECTL_BIN := bin/kubectl
+GOLANGCI_LINT_BIN := bin/golangci-lint
 
 PUBLISH_VERSION ?= 1.0.0
 PUBLISH_DIR ?= $(PROJECT_DIR)/dist
+
 
 IGNORE_NOT_FOUND ?= true
 
@@ -156,6 +158,10 @@ check-no-changes: ## Check that there are no uncommitted changes
 generate: $(TFPLUGINDOCS_BIN) $(OAPI_CODEGEN_BIN) $(TERRAFORM_BIN) ## Generate Golang client for the NuoDB REST API and Terraform provider documentation
 	curl -s https://raw.githubusercontent.com/nuodb/nuodb-cp-releases/v$(CP_VERSION)/openapi.yaml -o openapi.yaml
 	go generate
+
+.PHONY: lint
+lint: $(GOLANGCI_LINT_BIN) ## Run linters to check code quality and find for common errors
+	$(GOLANGCI_LINT_BIN) run
 
 .PHONY: extract-creds
 extract-creds: ## Extract and print environment variables for use with running Control Plane REST server

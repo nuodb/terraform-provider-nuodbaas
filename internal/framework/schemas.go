@@ -9,13 +9,14 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
+
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	datasource "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	resource "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 )
 
 const (

@@ -61,7 +61,7 @@ func (b *TfConfigBuilder) WithProviderConfig(name string, provider *NuoDbaasProv
 func (b *TfConfigBuilder) WithResource(key string, resource any, dependsOn ...string) *TfConfigBuilder {
 	b.resources[key] = resource
 	if len(dependsOn) != 0 {
-		b.resourcesDependsOn[key] = []string(dependsOn)
+		b.resourcesDependsOn[key] = dependsOn
 	}
 	return b
 }
@@ -69,7 +69,7 @@ func (b *TfConfigBuilder) WithResource(key string, resource any, dependsOn ...st
 func (b *TfConfigBuilder) WithDataSource(key string, dataSource any, dependsOn ...string) *TfConfigBuilder {
 	b.dataSources[key] = dataSource
 	if len(dependsOn) != 0 {
-		b.dataSourcesDependsOn[key] = []string(dependsOn)
+		b.dataSourcesDependsOn[key] = dependsOn
 	}
 	return b
 }
@@ -298,9 +298,9 @@ func (tf *TfHelper) ShowJson() ([]byte, error) {
 }
 
 func (tf *TfHelper) GetStateResources() ([]any, error) {
-	copy := *tf
-	copy.Silent = true
-	out, err := copy.ShowJson()
+	tfCopy := *tf
+	tfCopy.Silent = true
+	out, err := tfCopy.ShowJson()
 	if err != nil {
 		return nil, err
 	}
@@ -341,9 +341,9 @@ func (tf *TfHelper) CheckStateResource(t *testing.T, address string) *AttributeC
 }
 
 func (tf *TfHelper) DestroySilently() {
-	copy := *tf
-	copy.Silent = true
-	_, _ = copy.Destroy()
+	tfCopy := *tf
+	tfCopy.Silent = true
+	_, _ = tfCopy.Destroy()
 }
 
 func (tf *TfHelper) WriteConfig(tfConfig string) error {
@@ -367,7 +367,7 @@ func (tf *TfHelper) WriteConfig(tfConfig string) error {
 		// Otherwise, just display the new config
 		fmt.Printf("> cat <<EOF > %s\n%sEOF\n", filename, tfConfig)
 	}
-	return os.WriteFile(tfConfigFile, []byte(tfConfig), 0644)
+	return os.WriteFile(tfConfigFile, []byte(tfConfig), 0600)
 }
 
 func (tf *TfHelper) WriteConfigT(t *testing.T, tfConfig string) {
@@ -475,7 +475,7 @@ func CreateTerraformWorkspace(t *testing.T) *TfHelper {
 	tfrcFile := filepath.Join(workspaceDir, "terraform.rc")
 	config := fmt.Sprintf(TFRC_FORMAT, projectRoot)
 	t.Logf("Writing registry configuration to %s:\n%s", tfrcFile, config)
-	err = os.WriteFile(tfrcFile, []byte(config), 0644)
+	err = os.WriteFile(tfrcFile, []byte(config), 0600)
 	require.NoError(t, err)
 
 	return &TfHelper{
@@ -581,9 +581,10 @@ func TestTfConfigBuilder(t *testing.T) {
 
 	// Create Terraform workspace and initialize it with config
 	tf := CreateTerraformWorkspace(t)
-	tf.SetReattachConfig(reattachCfg)
+	err := tf.SetReattachConfig(reattachCfg)
+	require.NoError(t, err)
 	tf.WriteConfigT(t, tfConfig)
-	_, err := tf.Init()
+	_, err = tf.Init()
 	require.NoError(t, err)
 }
 
