@@ -54,9 +54,15 @@ resource "nuodbaas_database" "dbaas" {
     expires_in = "2d"
   }
 
-  # properties = {
-  #   archive_disk_size = "1Gi"
-  # }
+  properties = {
+    archive_disk_size = "1Gi"
+    tier_parameters = {
+      smReplicas   = 1
+      teReplicas   = 2
+      zones        = jsonencode(["us-east-2a", "us-east-2c"])
+      capacityType = jsonencode("spot")
+    }
+  }
 }
 
 # data "nuodbaas_projects" "projectsList" {
@@ -86,4 +92,31 @@ resource "nuodbaas_database" "dbaas" {
 #   value = data.nuodbaas_project.projectDetail
 # }
 
+# data "nuodbaas_databases" "databaseList" {
+#   filter {
+#     organization = var.dbaas_credentials.organization
+#     project      = "nuodb"
+#   }
+# }
+
+# output "databaseList" {
+#   value = data.nuodbaas_databases.databaseList
+# }
+# locals {
+#   database_names = {
+#     for database in data.nuodbaas_databases.databaseList.databases :
+#     database.name => database
+#   }
+# }
+
+# data "nuodbaas_database" "databaseDetail" {
+#   for_each = local.database_names
+#   organization = var.dbaas_credentials.organization
+#   project      = nuodbaas_project.nuodb.name
+#   name = "${each.key}"
+# }
+
+# output "nuodbaas_databaseDetails" {
+#   value = [for database in data.nuodbaas_database.databaseDetail: database]
+# }
 
