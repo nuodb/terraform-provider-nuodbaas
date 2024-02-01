@@ -107,6 +107,9 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 			"properties": schema.SingleNestedAttribute{
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
 				Attributes: map[string]schema.Attribute{
 					"archive_disk_size": schema.StringAttribute{
 						MarkdownDescription: "The size of the archive volumes for the database. Can be only updated to increase the volume size",
