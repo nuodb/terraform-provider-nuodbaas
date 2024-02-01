@@ -6,10 +6,12 @@ package provider
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/nuodb/terraform-provider-nuodbaas/helper"
@@ -42,6 +44,7 @@ type NuoDbaasProviderModel struct {
 	Username     types.String `tfsdk:"username"`
 	Password     types.String `tfsdk:"password"`
 	BaseUrl      types.String `tfsdk:"url_base"`
+	SkipVerify   types.Bool   `tfsdk:"skip_verify"`
 }
 
 func (p *NuoDbaasProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -69,6 +72,10 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 				Description: "The base URL for the server, including the protocol",
 				Optional:    true,
 			},
+			"skip_verify": schema.BoolAttribute{
+				Description: "Whether to skip server certificate verification",
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -82,6 +89,9 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 		return
 	}
 
+	// TODO: Why would any of these be unknown? Unknown is different from
+	// unspecified. All of these fields are marked as optional, so is the
+	// IsUnknown() check relevant for any of them?
 	if config.Organization.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("organization"),
@@ -118,6 +128,14 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 		)
 	}
 
+	if config.SkipVerify.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("skip_verify"),
+			"Unknown skip verify value",
+			"Unknown value for skip_verify",
+		)
+	}
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -126,6 +144,10 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 	username := os.Getenv("NUODB_CP_USER")
 	password := os.Getenv("NUODB_CP_PASSWORD")
 	urlBase := os.Getenv("NUODB_CP_URL_BASE")
+	skipVerify := false
+	if skipVerifyValue := os.Getenv("NUODB_CP_SKIP_VERIFY"); skipVerifyValue == "1" || strings.ToLower(skipVerifyValue) == "true" {
+		skipVerify = true
+	}
 
 	if !config.Organization.IsNull() {
 		organization = config.Organization.ValueString()
@@ -141,6 +163,10 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 
 	if !config.BaseUrl.IsNull() {
 		urlBase = config.BaseUrl.ValueString()
+	}
+
+	if !config.SkipVerify.IsNull() {
+		skipVerify = config.SkipVerify.ValueBool()
 	}
 
 	if organization == "" {
@@ -180,6 +206,16 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 	}
 
 	configuration := nuodbaas.NewConfiguration()
+	// Disable server certificate verification if skip_verify=true
+	if skipVerify {
+		configuration.HTTPClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
+			},
+		}
+	}
 	serverConfig := nuodbaas.ServerConfigurations{{URL: urlBase, Description: "The base URL for the server, including the protocol"}}
 	basicUsername := fmt.Sprintf("%s/%s", organization, username)
 	configuration.DefaultHeader["Authorization"] = fmt.Sprintf("Basic %s", basicAuth(basicUsername, password))

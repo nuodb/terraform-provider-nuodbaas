@@ -109,5 +109,6 @@ resource "nuodbaas_database" "dbaas" {
 
 - `organization` (String) The name of the organization for the user
 - `password` (String, Sensitive) The password for the user
+- `skip_verify` (Boolean) Whether to skip server certificate verification
 - `url_base` (String) The base URL for the server, including the protocol
 - `username` (String) The name of the user
