@@ -8,7 +8,47 @@ resources:
     read:
       path: /projects/{organization}/{project}
       method: GET
+    update:
+      path: /projects/{organization}/{project}
+      method: PUT
+    delete:
+      path: /projects/{organization}/{project}
+      method: DELETE
     schema:
       attributes:
         aliases:
           project: name
+  database:
+    create:
+      path: /databases/{organization}/{project}/{database}
+      method: PUT
+    read:
+      path: /databases/{organization}/{project}/{database}
+      method: GET
+    update:
+      path: /databases/{organization}/{project}/{database}
+      method: PUT
+    delete:
+      path: /databases/{organization}/{project}/{database}
+      method: DELETE
+    schema:
+      attributes:
+        aliases:
+          database: name
+  user:
+    create:
+      path: /users/{organization}/{user}
+      method: PUT
+    read:
+      path: /users/{organization}/{user}
+      method: GET
+    update:
+      path: /users/{organization}/{user}
+      method: PUT
+    delete:
+      path: /users/{organization}/{user}
+      method: DELETE
+    schema:
+      attributes:
+        aliases:
+          user: name

@@ -4,6 +4,334 @@
 	},
 	"resources": [
 		{
+			"name": "database",
+			"schema": {
+				"attributes": [
+					{
+						"name": "dba_password",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The password for the DBA user. Can only be specified when creating a database."
+						}
+					},
+					{
+						"name": "labels",
+						"map": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "User-defined labels attached to the resource that can be used for filtering"
+						}
+					},
+					{
+						"name": "maintenance",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"attributes": [
+								{
+									"name": "expires_at_time",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The time at which the project or database will be disabled"
+									}
+								},
+								{
+									"name": "expires_in",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The time until the project or database is disabled, e.g. `1d`",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "regexp"
+														},
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														}
+													],
+													"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"(\\\\d+)\\\\s*([A-Za-zµ]+)\"), \"\")"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "is_disabled",
+									"bool": {
+										"computed_optional_required": "computed_optional",
+										"description": "Whether the project or database should be shutdown"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "name",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "regexp"
+											},
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"[a-z][a-z0-9]*\"), \"\")"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "organization",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "regexp"
+											},
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"[a-z][a-z0-9]*\"), \"\")"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "project",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "regexp"
+											},
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"[a-z][a-z0-9]*\"), \"\")"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "properties",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"attributes": [
+								{
+									"name": "archive_disk_size",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The size of the archive volumes for the database. Can be only updated to increase the volume size.",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "regexp"
+														},
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														}
+													],
+													"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"(([0-9]+(\\\\.[0-9]*)?)|(\\\\.[0-9]+))(([KMGTPE]i)|[numkMGTPE])?\"), \"\")"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "inherit_tier_parameters",
+									"bool": {
+										"computed_optional_required": "computed_optional",
+										"description": "Whether to inherit tier parameters from the project if the database service tier matches the project."
+									}
+								},
+								{
+									"name": "journal_disk_size",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The size of the journal volumes for the database. Can be only updated to increase the volume size.",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "regexp"
+														},
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														}
+													],
+													"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"(([0-9]+(\\\\.[0-9]*)?)|(\\\\.[0-9]+))(([KMGTPE]i)|[numkMGTPE])?\"), \"\")"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "product_version",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb-ce/tags. If omitted, the database version will be inherited from the project.",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "regexp"
+														},
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														}
+													],
+													"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"([1-9][0-9]*|[1-9][0-9]*\\\\.[0-9]+|[1-9][0-9]*\\\\.[0-9]+\\\\.[0-9]+)([._-][a-z0-9._-]+)?\"), \"\")"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "tier_parameters",
+									"map": {
+										"computed_optional_required": "computed_optional",
+										"element_type": {
+											"string": {}
+										},
+										"description": "Opaque parameters supplied to database service tier."
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "resource_version",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates."
+						}
+					},
+					{
+						"name": "restore_from",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"attributes": [
+								{
+									"name": "backup",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The name of the backup to restore the database from. If a fully-qualified name is not supplied, then the organization, project, or name of the database being created is assumed.",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "regexp"
+														},
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														}
+													],
+													"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"([a-z][a-z0-9]*/){0,3}([0-9]+|[a-z][a-z0-9]*)\"), \"\")"
+												}
+											}
+										]
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "status",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"attributes": [
+								{
+									"name": "ca_pem",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The PEM-encoded certificate for SQL clients to verify database servers"
+									}
+								},
+								{
+									"name": "message",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "Message summarizing the state of the database"
+									}
+								},
+								{
+									"name": "ready",
+									"bool": {
+										"computed_optional_required": "computed_optional",
+										"description": "Whether the database is ready"
+									}
+								},
+								{
+									"name": "shutdown",
+									"bool": {
+										"computed_optional_required": "computed_optional",
+										"description": "Whether the database has shutdown"
+									}
+								},
+								{
+									"name": "sql_endpoint",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The endpoint for SQL clients to connect to"
+									}
+								},
+								{
+									"name": "state",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The state of the database:\n  * `Available` - The database is ready to accept SQL connections\n  * `Creating` - The database is being created and not yet available\n  * `Modifying` - The database is being modified\n  * `Stopping` - Shutdown is in progress for this database\n  * `Stopped` - The database has been stopped\n  * `Expired` - The database has expired\n  * `Failed` - The database has failed to achieve a usable state\n  * `Deleting` - The database has been marked for deletion, which is in progress",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														}
+													],
+													"schema_definition": "stringvalidator.OneOf(\n\"Available\",\n\"Creating\",\n\"Modifying\",\n\"Stopping\",\n\"Stopped\",\n\"Expired\",\n\"Failed\",\n\"Deleting\",\n)"
+												}
+											}
+										]
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "tier",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The service tier for the database. If omitted, the project service tier is inherited."
+						}
+					}
+				]
+			}
+		},
+		{
 			"name": "project",
 			"schema": {
 				"attributes": [
@@ -217,6 +545,108 @@
 						"string": {
 							"computed_optional_required": "required",
 							"description": "The service tier for the project"
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "user",
+			"schema": {
+				"attributes": [
+					{
+						"name": "access_rule",
+						"single_nested": {
+							"computed_optional_required": "required",
+							"attributes": [
+								{
+									"name": "allow",
+									"list": {
+										"computed_optional_required": "computed_optional",
+										"element_type": {
+											"string": {}
+										},
+										"description": "List of access rule entries in the form `\u003cverb\u003e:\u003cresource specifier\u003e[:\u003cSLA\u003e]` that specify requests to allow"
+									}
+								},
+								{
+									"name": "deny",
+									"list": {
+										"computed_optional_required": "computed_optional",
+										"element_type": {
+											"string": {}
+										},
+										"description": "List of access rule entries in the form `\u003cverb\u003e:\u003cresource specifier\u003e` that specify requests to deny"
+									}
+								}
+							],
+							"description": "The rule specifying access for the user"
+						}
+					},
+					{
+						"name": "labels",
+						"map": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "User-defined labels attached to the resource that can be used for filtering"
+						}
+					},
+					{
+						"name": "name",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "regexp"
+											},
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"[a-z][a-z0-9]*\"), \"\")"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "organization",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "regexp"
+											},
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"[a-z][a-z0-9]*\"), \"\")"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "password",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The password for the user"
+						}
+					},
+					{
+						"name": "resource_version",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates."
 						}
 					}
 				]
