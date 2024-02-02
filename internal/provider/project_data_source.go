@@ -33,6 +33,7 @@ type projectDataSource struct {
 // Schema implements datasource.DataSource.
 func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "The state of a given project.",
 		Attributes: map[string]schema.Attribute{
 			"organization": schema.StringAttribute{
 				MarkdownDescription: "Name of the organization for which project is created",
@@ -43,30 +44,41 @@ func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaReque
 				Required:            true,
 			},
 			"sla": schema.StringAttribute{
+				Description:         "The SLA for the project. Cannot be updated once the project is created.",
 				MarkdownDescription: "The SLA for the project. Cannot be updated once the project is created.",
 				Computed:            true,
 			},
 			"tier": schema.StringAttribute{
-				MarkdownDescription: "The Tier for the project. Cannot be updated once the project is created.",
+				Description:         "The service tier for the project",
+				MarkdownDescription: "The service tier for the project",
 				Computed:            true,
 			},
 			"maintenance": schema.SingleNestedAttribute{
+				MarkdownDescription: "Maintenance shutdown status of the project. " +
+					"Shutting down a project also shuts down all databases belonging to it.",
 				Computed: true,
 				Attributes: map[string]schema.Attribute{
 					"is_disabled": schema.BoolAttribute{
-						Computed: true,
+						Description:         "Whether the project or database should be shutdown",
+						MarkdownDescription: "Whether the project or database should be shutdown",
+						Computed:            true,
 					},
 				},
 			},
 			"resource_version": schema.StringAttribute{
-				Computed: true,
+				Description:         "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
+				MarkdownDescription: "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
+				Computed:            true,
 			},
 			"properties": schema.SingleNestedAttribute{
-				Computed: true,
+				MarkdownDescription: "Project configuration properties.",
+				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"tier_parameters": schema.MapAttribute{
-						Optional:    true,
-						ElementType: types.StringType,
+						Description:         "Opaque parameters supplied to project service tier.",
+						MarkdownDescription: "Opaque parameters supplied to project service tier.",
+						Optional:            true,
+						ElementType:         types.StringType,
 					},
 				},
 			},
@@ -81,7 +93,7 @@ func (d *projectDataSource) Metadata(_ context.Context, req datasource.MetadataR
 
 // Read implements datasource.DataSource.
 func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var state model.ProjectResourceModel
+	var state model.ProjectDataSourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
 
 	if resp.Diagnostics.HasError() {
@@ -100,7 +112,7 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	projectStateModel := model.ProjectResourceModel{
+	projectStateModel := model.ProjectDataSourceModel{
 		Organization:    types.StringValue(*project.Organization),
 		Name:            types.StringValue(*project.Name),
 		Sla:             types.StringValue(project.Sla),

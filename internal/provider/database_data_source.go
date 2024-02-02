@@ -34,35 +34,40 @@ type databaseModel = model.DatabaseDataSourceModel
 // Schema implements datasource.DataSource.
 func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "The state of a given database.",
 		Attributes: map[string]schema.Attribute{
 			"organization": schema.StringAttribute{
-				MarkdownDescription: "The organization that the database belongs to",
+				MarkdownDescription: "The organization that the database belongs to.",
 				Required:            true,
 			},
 			"project": schema.StringAttribute{
-				MarkdownDescription: "The name of the project for which database is created",
+				MarkdownDescription: "The name of the project to which the database belongs.",
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Name of the database",
+				MarkdownDescription: "Name of the database.",
 				Required:            true,
 			},
 			"tier": schema.StringAttribute{
-				MarkdownDescription: "The Tier for the database. Cannot be updated once the database is created.",
+				MarkdownDescription: "The Tier for the database.",
 				Computed:            true,
 			},
 			"maintenance": schema.SingleNestedAttribute{
-				Computed: true,
+				MarkdownDescription: "Information about when the database is scheduled to be automatically shut down.",
+				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"is_disabled": schema.BoolAttribute{
+						Description:         "Whether the project or database should be shutdown",
 						MarkdownDescription: "Whether the project or database should be shutdown",
 						Computed:            true,
 					},
 					"expires_in": schema.StringAttribute{
-						MarkdownDescription: "The time until the project or database is disabled, e.g. 1d",
+						Description:         "The time until the project or database is disabled, e.g. `1d`",
+						MarkdownDescription: "The time until the project or database is disabled, e.g. `1d`",
 						Computed:            true,
 					},
 					"expires_at": schema.StringAttribute{
+						Description:         "The time at which the project or database will be disabled",
 						MarkdownDescription: "The time at which the project or database will be disabled",
 						Computed:            true,
 					},
@@ -70,33 +75,41 @@ func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 			},
 			"resource_version": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The version of the resource. When specified in a PUT request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
+				Description:         "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
+				MarkdownDescription: "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
 			},
 			"properties": schema.SingleNestedAttribute{
-				Computed: true,
+				MarkdownDescription: "Database configuration properties.",
+				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"archive_disk_size": schema.StringAttribute{
-						MarkdownDescription: "The size of the archive volumes for the database. Can be only updated to increase the volume size",
+						Description:         "The size of the archive volumes for the database. Can be only updated to increase the volume size.",
+						MarkdownDescription: "The size of the archive volumes for the database. Can be only updated to increase the volume size.",
 						Computed:            true,
 					},
 					"journal_disk_size": schema.StringAttribute{
+						Description:         "The size of the journal volumes for the database. Can be only updated to increase the volume size.",
 						MarkdownDescription: "The size of the journal volumes for the database. Can be only updated to increase the volume size.",
 						Computed:            true,
 					},
 					"tier_parameters": schema.MapAttribute{
-						Computed:    true,
-						ElementType: types.StringType,
+						Description:         "Opaque parameters supplied to database service tier.",
+						MarkdownDescription: "Opaque parameters supplied to database service tier.",
+						Computed:            true,
+						ElementType:         types.StringType,
 					},
 				},
 			},
 			"status": schema.SingleNestedAttribute{
-				Computed: true,
+				MarkdownDescription: "The current status of the database.",
+				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"sql_end_point": schema.StringAttribute{
-						MarkdownDescription: "The endpoint for SQL clients to connect to",
+						MarkdownDescription: "The endpoint for SQL clients to connect to.",
 						Computed:            true,
 					},
 					"ca_pem": schema.StringAttribute{
+						Description:         "The PEM-encoded certificate for SQL clients to verify database servers",
 						MarkdownDescription: "The PEM-encoded certificate for SQL clients to verify database servers",
 						Computed:            true,
 					},

@@ -45,8 +45,9 @@ func (r *ProjectResource) Metadata(ctx context.Context, req resource.MetadataReq
 
 func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "",
+		MarkdownDescription: "A resource to create new DBaaS projects. " +
+			"Projects allow you to group databases. " +
+			"Every databases must belong to a project.",
 
 		Attributes: map[string]schema.Attribute{
 			"organization": schema.StringAttribute{
@@ -64,6 +65,7 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 				},
 			},
 			"sla": schema.StringAttribute{
+				Description:         "The SLA for the project. Cannot be updated once the project is created.",
 				MarkdownDescription: "The SLA for the project. Cannot be updated once the project is created.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
@@ -71,29 +73,39 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 				},
 			},
 			"tier": schema.StringAttribute{
-				MarkdownDescription: "The Tier for the project. Cannot be updated once the project is created.",
+				Description:         "The service tier for the project",
+				MarkdownDescription: "The service tier for the project",
 				Required:            true,
 			},
 			"maintenance": schema.SingleNestedAttribute{
+				MarkdownDescription: "Maintenance shutdown status of the project. " +
+					"Shutting down a project also shuts down all databases belonging to it.",
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"is_disabled": schema.BoolAttribute{
-						Optional: true,
+						Description:         "Whether the project or database should be shutdown",
+						MarkdownDescription: "Whether the project or database should be shutdown",
+						Optional:            true,
 					},
 				},
 			},
 			"resource_version": schema.StringAttribute{
-				Computed: true,
+				Description:         "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
+				MarkdownDescription: "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"properties": schema.SingleNestedAttribute{
-				Optional: true,
+				MarkdownDescription: "Project configuration properties.",
+				Optional:            true,
 				Attributes: map[string]schema.Attribute{
 					"tier_parameters": schema.MapAttribute{
-						Optional:    true,
-						ElementType: types.StringType,
+						Description:         "Opaque parameters supplied to project service tier.",
+						MarkdownDescription: "Opaque parameters supplied to project service tier.",
+						Optional:            true,
+						ElementType:         types.StringType,
 					},
 				},
 			},

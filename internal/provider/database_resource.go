@@ -50,32 +50,34 @@ func (r *DatabaseResource) Metadata(ctx context.Context, req resource.MetadataRe
 func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Database Resource",
+		MarkdownDescription: "A resource to create a new database." +
+			"\n\n ~> **Note** When creating a project and database in the same chart, make sure that the database resource has an explicit dependency on the project resource (for example, by using values from the project in the database, like in the examples).",
 
 		Attributes: map[string]schema.Attribute{
 			"organization": schema.StringAttribute{
-				MarkdownDescription: "Name of the organization for which project is created",
+				MarkdownDescription: "Name of the organization which this database belongs to (should match the organization of the project).",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Name of the database",
+				MarkdownDescription: "Name of the database.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"project": schema.StringAttribute{
-				MarkdownDescription: "The name of the project for which database is created",
+				MarkdownDescription: "The name of the project for which database belongs to.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"dba_password": schema.StringAttribute{
-				MarkdownDescription: "Database password. Cannot be updated once database is created",
+				Description:         "The password for the DBA user. Can only be specified when creating a database.",
+				MarkdownDescription: "The password for the DBA user. Can only be specified when creating a database.",
 				Required:            true,
 				Sensitive:           true,
 				PlanModifiers: []planmodifier.String{
@@ -83,14 +85,17 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 			"tier": schema.StringAttribute{
+				Description:         "The service tier for the database. If omitted, the project service tier is inherited.",
 				MarkdownDescription: "The service tier for the database. If omitted, the project service tier is inherited.",
 				Optional:            true,
 				Computed:            true,
 			},
 			"maintenance": schema.SingleNestedAttribute{
-				Optional: true,
+				MarkdownDescription: "Maintenance shutdown status of the database.",
+				Optional:            true,
 				Attributes: map[string]schema.Attribute{
 					"is_disabled": schema.BoolAttribute{
+						Description:         "Whether the project or database should be shutdown",
 						MarkdownDescription: "Whether the project or database should be shutdown",
 						Optional:            true,
 					},
@@ -98,21 +103,24 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 			},
 			"resource_version": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The version of the resource. When specified in a PUT request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
+				Description:         "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
+				MarkdownDescription: "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
 				// This plan modifier is necessary since it is used in updating the database. Without it the value of resource_version would be unknown
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"properties": schema.SingleNestedAttribute{
-				Optional: true,
-				Computed: true,
+				MarkdownDescription: "Database configuration properties.",
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.Object{
 					objectplanmodifier.UseStateForUnknown(),
 				},
 				Attributes: map[string]schema.Attribute{
 					"archive_disk_size": schema.StringAttribute{
-						MarkdownDescription: "The size of the archive volumes for the database. Can be only updated to increase the volume size",
+						Description:         "The size of the archive volumes for the database. Can be only updated to increase the volume size.",
+						MarkdownDescription: "The size of the archive volumes for the database. Can be only updated to increase the volume size.",
 						Optional:            true,
 						Computed:            true,
 						PlanModifiers: []planmodifier.String{
@@ -120,10 +128,12 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 						},
 					},
 					"journal_disk_size": schema.StringAttribute{
+						Description:         "The size of the journal volumes for the database. Can be only updated to increase the volume size.",
 						MarkdownDescription: "The size of the journal volumes for the database. Can be only updated to increase the volume size.",
 						Optional:            true,
 					},
 					"tier_parameters": schema.MapAttribute{
+						Description:         "Opaque parameters supplied to database service tier.",
 						MarkdownDescription: "Opaque parameters supplied to database service tier.",
 						ElementType:         types.StringType,
 						Optional:            true,
@@ -131,7 +141,8 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 			"status": schema.SingleNestedAttribute{
-				Computed: true,
+				MarkdownDescription: "Current database status.",
+				Computed:            true,
 				PlanModifiers: []planmodifier.Object{
 					objectplanmodifier.UseStateForUnknown(),
 				},
@@ -141,6 +152,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 						Computed:            true,
 					},
 					"ca_pem": schema.StringAttribute{
+						Description:         "The PEM-encoded certificate for SQL clients to verify database servers",
 						MarkdownDescription: "The PEM-encoded certificate for SQL clients to verify database servers",
 						Computed:            true,
 					},

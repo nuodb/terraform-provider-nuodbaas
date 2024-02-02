@@ -27,6 +27,16 @@ type MaintenanceModel struct {
 	IsDisabled types.Bool `tfsdk:"is_disabled"`
 }
 
+type ProjectDataSourceModel struct {
+	Organization    types.String       `tfsdk:"organization"`
+	Name            types.String       `tfsdk:"name"`
+	Sla             types.String       `tfsdk:"sla"`
+	Tier            types.String       `tfsdk:"tier"`
+	Maintenance     *MaintenanceModel  `tfsdk:"maintenance"`
+	ResourceVersion types.String       `tfsdk:"resource_version"`
+	Properties      *ProjectProperties `tfsdk:"properties"`
+}
+
 type ProjectDataSourceResponseModel struct {
 	Organization types.String `tfsdk:"organization"`
 	Name         types.String `tfsdk:"name"`
