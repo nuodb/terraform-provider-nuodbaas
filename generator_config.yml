@@ -1,5 +1,5 @@
 provider:
-  name: project
+  name: nuodbaas
 resources:
   project:
     create:
