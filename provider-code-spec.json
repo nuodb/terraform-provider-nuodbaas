@@ -1,0 +1,227 @@
+{
+	"provider": {
+		"name": "project"
+	},
+	"resources": [
+		{
+			"name": "project",
+			"schema": {
+				"attributes": [
+					{
+						"name": "labels",
+						"map": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "User-defined labels attached to the resource that can be used for filtering"
+						}
+					},
+					{
+						"name": "maintenance",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"attributes": [
+								{
+									"name": "expires_at_time",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The time at which the project or database will be disabled"
+									}
+								},
+								{
+									"name": "expires_in",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The time until the project or database is disabled, e.g. `1d`",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "regexp"
+														},
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														}
+													],
+													"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"(\\\\d+)\\\\s*([A-Za-zµ]+)\"), \"\")"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "is_disabled",
+									"bool": {
+										"computed_optional_required": "computed_optional",
+										"description": "Whether the project or database should be shutdown"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "name",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "regexp"
+											},
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"[a-z][a-z0-9]*\"), \"\")"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "organization",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "regexp"
+											},
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"[a-z][a-z0-9]*\"), \"\")"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "properties",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"attributes": [
+								{
+									"name": "product_version",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb-ce/tags. If omitted, the project version will be resolved based on the SLA and cluster configuration.",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "regexp"
+														},
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														}
+													],
+													"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"([1-9][0-9]*|[1-9][0-9]*\\\\.[0-9]+|[1-9][0-9]*\\\\.[0-9]+\\\\.[0-9]+)([._-][a-z0-9._-]+)?\"), \"\")"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "tier_parameters",
+									"map": {
+										"computed_optional_required": "computed_optional",
+										"element_type": {
+											"string": {}
+										},
+										"description": "Opaque parameters supplied to project service tier."
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "resource_version",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates."
+						}
+					},
+					{
+						"name": "sla",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The SLA for the project. Cannot be updated once the project is created."
+						}
+					},
+					{
+						"name": "status",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"attributes": [
+								{
+									"name": "ca_pem",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The PEM-encoded certificate for SQL clients to verify database servers within the project"
+									}
+								},
+								{
+									"name": "message",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "Message summarizing the state of the project"
+									}
+								},
+								{
+									"name": "ready",
+									"bool": {
+										"computed_optional_required": "computed_optional",
+										"description": "Whether the project is ready"
+									}
+								},
+								{
+									"name": "shutdown",
+									"bool": {
+										"computed_optional_required": "computed_optional",
+										"description": "Whether the project and all of its databases have shutdown"
+									}
+								},
+								{
+									"name": "state",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The state of the project:\n  * `Available` - The project is available\n  * `Creating` - The project is being created and not yet available\n  * `Modifying` - The project is being modified\n  * `Stopping` - Shutdown is in progress for this project\n  * `Stopped` - The project and its databases have been stopped\n  * `Expired` - The project and its databases have expired\n  * `Failed` - The project has failed to achieve a usable state\n  * `Deleting` - The project has been marked for deletion, which is in progress",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														}
+													],
+													"schema_definition": "stringvalidator.OneOf(\n\"Available\",\n\"Creating\",\n\"Modifying\",\n\"Stopping\",\n\"Stopped\",\n\"Expired\",\n\"Failed\",\n\"Deleting\",\n)"
+												}
+											}
+										]
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "tier",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The service tier for the project"
+						}
+					}
+				]
+			}
+		}
+	],
+	"version": "0.1"
+}

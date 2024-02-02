@@ -1,0 +1,14 @@
+provider:
+  name: project
+resources:
+  project:
+    create:
+      path: /projects/{organization}/{project}
+      method: PUT
+    read:
+      path: /projects/{organization}/{project}
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          project: name
