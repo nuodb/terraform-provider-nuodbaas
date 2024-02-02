@@ -42,16 +42,24 @@ type projectFilterModel struct {
 // Schema implements datasource.DataSource.
 func (d *projectsDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description:         "A listing of projects that exist in NuoDB DBaaS.",
+		MarkdownDescription: "A listing of projects that exist in NuoDB DBaaS.",
 		Attributes: map[string]schema.Attribute{
 			"projects": schema.ListNestedAttribute{
-				Computed: true,
+				Description:         "The databases that exist.",
+				MarkdownDescription: "The databases that exist.",
+				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
-							Computed: true,
+							Description:         "Name of the project",
+							MarkdownDescription: "Name of the project",
+							Computed:            true,
 						},
 						"organization": schema.StringAttribute{
-							Computed: true,
+							Description:         "Name of the organization for which project is created",
+							MarkdownDescription: "Name of the organization for which project is created",
+							Computed:            true,
 						},
 					},
 				},
@@ -59,9 +67,13 @@ func (d *projectsDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 		},
 		Blocks: map[string]schema.Block{
 			"filter": schema.SingleNestedBlock{
+				Description:         "Filters to narrow the list of fetched projects.",
+				MarkdownDescription: "Filters to narrow the list of fetched projects.",
 				Attributes: map[string]schema.Attribute{
 					"organization": schema.StringAttribute{
-						Optional: true,
+						Description:         "Only return databases in a given organization.",
+						MarkdownDescription: "Only return databases in a given organization.",
+						Optional:            true,
 					},
 				},
 			},
