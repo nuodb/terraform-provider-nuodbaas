@@ -115,6 +115,9 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 						MarkdownDescription: "The size of the archive volumes for the database. Can be only updated to increase the volume size",
 						Optional:            true,
 						Computed:            true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"journal_disk_size": schema.StringAttribute{
 						MarkdownDescription: "The size of the journal volumes for the database. Can be only updated to increase the volume size.",
@@ -372,7 +375,7 @@ func (r *DatabaseResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 }
 
-func (r *DatabaseResource) retryUpdate(ctx context.Context, state model.DatabaseResourceModel, maintenanceModel *maintenanceModel, propertiesModel *model.DatabasePropertiesResourceModel, databaseClient *nuodbaas_client.NuodbaasDatabaseClient) error {
+func (r *DatabaseResource) retryUpdate(ctx context.Context, state model.DatabaseResourceModel, maintenanceModel *model.MaintenanceModel, propertiesModel *model.DatabasePropertiesResourceModel, databaseClient *nuodbaas_client.NuodbaasDatabaseClient) error {
 	databaseModel, err := databaseClient.GetDatabase()
 	if err != nil {
 		return err

@@ -39,9 +39,6 @@ type ProjectResource struct {
 	client *nuodbaas.APIClient
 }
 
-type projectResourceModel = model.ProjectResourceModel
-type maintenanceModel = model.MaintenanceModel
-
 func (r *ProjectResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_project"
 }
@@ -130,7 +127,7 @@ func (r *ProjectResource) Configure(ctx context.Context, req resource.ConfigureR
 }
 
 func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var state projectResourceModel
+	var state model.ProjectResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &state)...)
@@ -192,7 +189,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 }
 
 func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state projectResourceModel
+	var state model.ProjectResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -260,7 +257,7 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 }
 
 func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data projectResourceModel
+	var data model.ProjectResourceModel
 
 	// TODO: Refresh project version
 
@@ -323,7 +320,7 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 }
 
 func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state projectResourceModel
+	var state model.ProjectResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
