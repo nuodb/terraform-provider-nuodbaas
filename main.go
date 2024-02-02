@@ -4,7 +4,7 @@ import (
     "context"
     "log"
 
-    "terraform-provider-nuodbaas/internal/provider"
+    "github.com/nuodb/terraform-provider-nuodbaas/internal/provider"
 
     "github.com/hashicorp/terraform-plugin-framework/providerserver"
 )

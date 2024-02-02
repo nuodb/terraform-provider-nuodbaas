@@ -1,4 +1,4 @@
-module terraform-provider-nuodbaas
+module github.com/nuodb/terraform-provider-nuodbaas
 
 go 1.21.6
 
