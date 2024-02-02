@@ -35,5 +35,7 @@ func (p *nuodbaasProvider) DataSources(ctx context.Context) []func() datasource.
 }
 
 func (p *nuodbaasProvider) Resources(ctx context.Context) []func() resource.Resource {
-	return []func() resource.Resource{}
+	return []func() resource.Resource{
+		NewProjectResource,
+	}
 }
