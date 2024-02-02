@@ -61,8 +61,8 @@ Ensure that you have a CSI driver configured.
 2. Clone this repository.
 
     ```sh
-    git clone https://github.com/nuodb/nuodbaas-tf-plugin
-    cd nuodbaas-tf-plugin
+    git clone git@github.com:nuodb/terraform-provider-nuodbaas.git
+    cd terraform-provider-nuodbaas
     ```
 
 3. Install an instance of the control plane to test against.
