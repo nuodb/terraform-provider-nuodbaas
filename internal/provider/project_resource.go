@@ -45,12 +45,16 @@ func (r *ProjectResource) Metadata(ctx context.Context, req resource.MetadataReq
 
 func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "A resource to create new DBaaS projects. " +
+			"Projects allow you to group databases. " +
+			"Every databases must belong to a project.",
 		MarkdownDescription: "A resource to create new DBaaS projects. " +
 			"Projects allow you to group databases. " +
 			"Every databases must belong to a project.",
 
 		Attributes: map[string]schema.Attribute{
 			"organization": schema.StringAttribute{
+				Description:         "Name of the organization for which project is created",
 				MarkdownDescription: "Name of the organization for which project is created",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
@@ -58,6 +62,7 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 				},
 			},
 			"name": schema.StringAttribute{
+				Description:         "Name of the project",
 				MarkdownDescription: "Name of the project",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
@@ -78,6 +83,8 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Required:            true,
 			},
 			"maintenance": schema.SingleNestedAttribute{
+				Description: "Maintenance shutdown status of the project. " +
+					"Shutting down a project also shuts down all databases belonging to it.",
 				MarkdownDescription: "Maintenance shutdown status of the project. " +
 					"Shutting down a project also shuts down all databases belonging to it.",
 				Optional: true,
@@ -98,6 +105,7 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 				},
 			},
 			"properties": schema.SingleNestedAttribute{
+				Description:         "Project configuration properties.",
 				MarkdownDescription: "Project configuration properties.",
 				Optional:            true,
 				Attributes: map[string]schema.Attribute{

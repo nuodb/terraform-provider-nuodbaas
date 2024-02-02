@@ -34,25 +34,31 @@ type databaseModel = model.DatabaseDataSourceModel
 // Schema implements datasource.DataSource.
 func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description:         "The state of a given database.",
 		MarkdownDescription: "The state of a given database.",
 		Attributes: map[string]schema.Attribute{
 			"organization": schema.StringAttribute{
+				Description:         "The organization that the database belongs to.",
 				MarkdownDescription: "The organization that the database belongs to.",
 				Required:            true,
 			},
 			"project": schema.StringAttribute{
+				Description:         "The name of the project to which the database belongs.",
 				MarkdownDescription: "The name of the project to which the database belongs.",
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
+				Description:         "Name of the database.",
 				MarkdownDescription: "Name of the database.",
 				Required:            true,
 			},
 			"tier": schema.StringAttribute{
-				MarkdownDescription: "The Tier for the database.",
+				Description:         "The service tier for the database. If omitted, the project service tier is inherited.",
+				MarkdownDescription: "The service tier for the database. If omitted, the project service tier is inherited.",
 				Computed:            true,
 			},
 			"maintenance": schema.SingleNestedAttribute{
+				Description:         "Information about when the database is scheduled to be automatically shut down.",
 				MarkdownDescription: "Information about when the database is scheduled to be automatically shut down.",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
@@ -79,6 +85,7 @@ func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 				MarkdownDescription: "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
 			},
 			"properties": schema.SingleNestedAttribute{
+				Description:         "Database configuration properties.",
 				MarkdownDescription: "Database configuration properties.",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
@@ -101,10 +108,12 @@ func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 				},
 			},
 			"status": schema.SingleNestedAttribute{
+				Description:         "The current status of the database.",
 				MarkdownDescription: "The current status of the database.",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"sql_end_point": schema.StringAttribute{
+						Description:         "The endpoint for SQL clients to connect to.",
 						MarkdownDescription: "The endpoint for SQL clients to connect to.",
 						Computed:            true,
 					},

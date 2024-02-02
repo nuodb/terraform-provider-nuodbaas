@@ -49,12 +49,14 @@ func (r *DatabaseResource) Metadata(ctx context.Context, req resource.MetadataRe
 
 func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		// This description is used by the documentation generator and the language server.
+		Description: "A resource to create a new database." +
+			" When creating a project and database in the same chart, make sure that the database resource has an explicit dependency on the project resource (for example, by using values from the project in the database, like in the examples).",
 		MarkdownDescription: "A resource to create a new database." +
 			"\n\n ~> **Note** When creating a project and database in the same chart, make sure that the database resource has an explicit dependency on the project resource (for example, by using values from the project in the database, like in the examples).",
 
 		Attributes: map[string]schema.Attribute{
 			"organization": schema.StringAttribute{
+				Description:         "Name of the organization which this database belongs to (should match the organization of the project).",
 				MarkdownDescription: "Name of the organization which this database belongs to (should match the organization of the project).",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
@@ -62,6 +64,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 			"name": schema.StringAttribute{
+				Description:         "Name of the database.",
 				MarkdownDescription: "Name of the database.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
@@ -69,6 +72,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 			"project": schema.StringAttribute{
+				Description:         "The name of the project for which database belongs to.",
 				MarkdownDescription: "The name of the project for which database belongs to.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
@@ -91,6 +95,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				Computed:            true,
 			},
 			"maintenance": schema.SingleNestedAttribute{
+				Description:         "Maintenance shutdown status of the database.",
 				MarkdownDescription: "Maintenance shutdown status of the database.",
 				Optional:            true,
 				Attributes: map[string]schema.Attribute{
@@ -111,6 +116,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 			"properties": schema.SingleNestedAttribute{
+				Description:         "Database configuration properties.",
 				MarkdownDescription: "Database configuration properties.",
 				Optional:            true,
 				Computed:            true,
@@ -141,6 +147,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 			"status": schema.SingleNestedAttribute{
+				Description:         "Current database status.",
 				MarkdownDescription: "Current database status.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.Object{
@@ -148,6 +155,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 				Attributes: map[string]schema.Attribute{
 					"sql_end_point": schema.StringAttribute{
+						Description:         "The endpoint for SQL clients to connect to",
 						MarkdownDescription: "The endpoint for SQL clients to connect to",
 						Computed:            true,
 					},

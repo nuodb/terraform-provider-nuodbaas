@@ -33,13 +33,16 @@ type projectDataSource struct {
 // Schema implements datasource.DataSource.
 func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description:         "The state of a given project.",
 		MarkdownDescription: "The state of a given project.",
 		Attributes: map[string]schema.Attribute{
 			"organization": schema.StringAttribute{
+				Description:         "Name of the organization for which project is created",
 				MarkdownDescription: "Name of the organization for which project is created",
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
+				Description:         "Name of the project",
 				MarkdownDescription: "Name of the project",
 				Required:            true,
 			},
@@ -54,6 +57,8 @@ func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaReque
 				Computed:            true,
 			},
 			"maintenance": schema.SingleNestedAttribute{
+				Description: "Maintenance shutdown status of the project. " +
+					"Shutting down a project also shuts down all databases belonging to it.",
 				MarkdownDescription: "Maintenance shutdown status of the project. " +
 					"Shutting down a project also shuts down all databases belonging to it.",
 				Computed: true,
@@ -71,6 +76,7 @@ func (d *projectDataSource) Schema(_ context.Context, req datasource.SchemaReque
 				Computed:            true,
 			},
 			"properties": schema.SingleNestedAttribute{
+				Description:         "Project configuration properties.",
 				MarkdownDescription: "Project configuration properties.",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{

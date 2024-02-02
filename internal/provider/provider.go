@@ -58,23 +58,23 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 		Attributes: map[string]schema.Attribute{
 			"organization": schema.StringAttribute{
 				Description: "The Control Plane organization that the user belongs to. " +
-					"It is overridden by the NUODB_CP_ORGANIZATION environment variable.",
+					"If not specified, defaults to the NUODB_CP_ORGANIZATION environment variable.",
 				Optional: true,
 			},
 			"username": schema.StringAttribute{
 				Description: "The name of the user. " +
-					"It is overridden by the NUODB_CP_USER environment variable.",
+					"If not specified, defaults to the NUODB_CP_USER environment variable.",
 				Optional: true,
 			},
 			"password": schema.StringAttribute{
 				Description: "The password for the user. " +
-					"It is overridden by the NUODB_CP_PASSWORD environment variable.",
+					"If not specified, defaults to the NUODB_CP_PASSWORD environment variable.",
 				Optional:  true,
 				Sensitive: true,
 			},
 			"url_base": schema.StringAttribute{
 				Description: "The base URL for the server, including the protocol. " +
-					"It is overridden by the NUODB_CP_PASSWORD environment variable.",
+					"If not specified, defaults to the NUODB_CP_PASSWORD environment variable.",
 				Optional: true,
 			},
 			"skip_verify": schema.BoolAttribute{

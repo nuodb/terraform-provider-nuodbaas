@@ -43,22 +43,27 @@ type databasesModel struct {
 // Schema implements datasource.DataSource.
 func (d *databasesDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description:         "A listing of databases deployed in NuoDB DBaaS.",
 		MarkdownDescription: "A listing of databases deployed in NuoDB DBaaS.",
 		Attributes: map[string]schema.Attribute{
 			"databases": schema.ListNestedAttribute{
+				Description:         "The databases that exist.",
 				MarkdownDescription: "The databases that exist.",
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
+							Description:         "Name of the database.",
 							MarkdownDescription: "Name of the database.",
 							Computed:            true,
 						},
 						"organization": schema.StringAttribute{
+							Description:         "The organization that the database belongs to.",
 							MarkdownDescription: "The organization that the database belongs to.",
 							Computed:            true,
 						},
 						"project": schema.StringAttribute{
+							Description:         "The name of the project to which the database belongs.",
 							MarkdownDescription: "The name of the project to which the database belongs.",
 							Computed:            true,
 						},
@@ -68,13 +73,16 @@ func (d *databasesDataSource) Schema(_ context.Context, req datasource.SchemaReq
 		},
 		Blocks: map[string]schema.Block{
 			"filter": schema.SingleNestedBlock{
+				Description:         "Filters to narrow the list of fetched databases.",
 				MarkdownDescription: "Filters to narrow the list of fetched databases.",
 				Attributes: map[string]schema.Attribute{
 					"organization": schema.StringAttribute{
+						Description:         "Only return databases in a given organization.",
 						MarkdownDescription: "Only return databases in a given organization.",
 						Optional:            true,
 					},
 					"project": schema.StringAttribute{
+						Description:         "Only return databases in a given project. If supplied, the `organization` must also be provided.",
 						MarkdownDescription: "Only return databases in a given project. If supplied, the `organization` must also be provided.",
 						Optional:            true,
 					},

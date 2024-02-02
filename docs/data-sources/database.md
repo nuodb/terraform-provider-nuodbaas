@@ -36,7 +36,7 @@ data "nuodbaas_database" "databaseDetails" {
 - `properties` (Attributes) Database configuration properties. (see [below for nested schema](#nestedatt--properties))
 - `resource_version` (String) The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.
 - `status` (Attributes) The current status of the database. (see [below for nested schema](#nestedatt--status))
-- `tier` (String) The Tier for the database.
+- `tier` (String) The service tier for the database. If omitted, the project service tier is inherited.
 
 <a id="nestedatt--maintenance"></a>
 ### Nested Schema for `maintenance`
