@@ -447,7 +447,7 @@ func (r *DatabaseResource) updateStateWithComputedValues(ctx context.Context, st
 	state.Tier = types.StringValue(*databaseModel.Tier)
 
 	propertiesValue := map[string]attr.Value{
-		"archive_disk_size": types.StringValue(*databaseModel.Properties.ArchiveDiskSize),
+		"archive_disk_size": types.StringPointerValue(databaseModel.Properties.ArchiveDiskSize),
 		"journal_disk_size": types.StringPointerValue(databaseModel.Properties.JournalDiskSize),
 		"tier_parameters":   types.MapNull(types.StringType),
 	}

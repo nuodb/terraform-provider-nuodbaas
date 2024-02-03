@@ -17,7 +17,6 @@ import (
 	"github.com/nuodb/terraform-provider-nuodbaas/helper"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -94,57 +93,6 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 		return
 	}
 
-	// TODO: Why would any of these be unknown? Unknown is different from
-	// unspecified. All of these fields are marked as optional, so is the
-	// IsUnknown() check relevant for any of them?
-	if config.Organization.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("organization"),
-			"Unknown organization",
-			"The provider cannot create the NuoDB DBaaS client as there is an unknown configuration value for the organization of the user. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the NUODB_CP_ORGANIZATION environment variable.",
-		)
-	}
-
-	if config.Username.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("username"),
-			"Unknown username",
-			"The provider cannot create the NuoDB DBaaS client as there is an unknown configuration value for the user. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the NUODB_CP_USER environment variable.",
-		)
-	}
-
-	if config.Password.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("password"),
-			"Unknown password",
-			"The provider cannot create the NuoDB DBaaS client as there is an unknown configuration value for the password. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the NUODB_CP_PASSWORD environment variable.",
-		)
-	}
-
-	if config.BaseUrl.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("url_base"),
-			"Unknown server URL",
-			"The provider cannot create the NuoDB DBaaS client as there is an unknown configuration value for the server URL. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the NUODB_CP_URL_BASE environment variable.",
-		)
-	}
-
-	if config.SkipVerify.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("skip_verify"),
-			"Unknown skip verify value",
-			"Unknown value for skip_verify",
-		)
-	}
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	organization := os.Getenv("NUODB_CP_ORGANIZATION")
 	username := os.Getenv("NUODB_CP_USER")
 	password := os.Getenv("NUODB_CP_PASSWORD")
@@ -174,40 +122,8 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 		skipVerify = config.SkipVerify.ValueBool()
 	}
 
-	if organization == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("organization"),
-			"Missing organization for user",
-			helper.GetProviderValidatorErrorMessage("organization", "NUODB_CP_ORGANIZATION"),
-		)
-	}
-
-	if username == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("username"),
-			"Missing username",
-			helper.GetProviderValidatorErrorMessage("username", "NUODB_CP_USER"),
-		)
-	}
-
-	if password == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("password"),
-			"Missing password",
-			helper.GetProviderValidatorErrorMessage("password", "NUODB_CP_PASSWORD"),
-		)
-	}
-
 	if urlBase == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("url_base"),
-			"Missing server URL",
-			helper.GetProviderValidatorErrorMessage("url_base", "NUODB_CP_URL_BASE"),
-		)
-	}
-
-	if resp.Diagnostics.HasError() {
-		return
+		urlBase = "http://localhost:8080"
 	}
 
 	configuration := nuodbaas.NewConfiguration()
@@ -221,10 +137,13 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 			},
 		}
 	}
-	serverConfig := nuodbaas.ServerConfigurations{{URL: urlBase, Description: "The base URL for the server, including the protocol"}}
-	basicUsername := fmt.Sprintf("%s/%s", organization, username)
-	configuration.DefaultHeader["Authorization"] = fmt.Sprintf("Basic %s", basicAuth(basicUsername, password))
-	configuration.Servers = serverConfig
+	configuration.Servers = nuodbaas.ServerConfigurations{
+		{URL: urlBase, Description: "The base URL for the server, including the protocol"},
+	}
+	if organization != "" && username != "" && password != "" {
+		basicUsername := fmt.Sprintf("%s/%s", organization, username)
+		configuration.DefaultHeader["Authorization"] = fmt.Sprintf("Basic %s", basicAuth(basicUsername, password))
+	}
 	apiClient := nuodbaas.NewAPIClient(configuration)
 	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
