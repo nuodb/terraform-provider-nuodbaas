@@ -7,7 +7,6 @@ package provider
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/config"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -15,7 +14,7 @@ import (
 func TestAccDatabaseResource(t *testing.T) {
 	projConfig := providerConfig + `
 	resource "nuodbaas_project" "proj" {
-		organization = var.org_name
+		organization = "org"
 		name         = "proj"
 		sla          = "dev"
 		tier         = "n0.nano"
@@ -30,16 +29,15 @@ func TestAccDatabaseResource(t *testing.T) {
 				// Create a project
 				Config: projConfig + `
 				resource "nuodbaas_database" "db" {
-					organization = var.org_name
+					organization = nuodbaas_project.proj.organization
 					project      = nuodbaas_project.proj.name
 					name         = "db"
 					dba_password = "changeMe"
 				}
 				`,
-				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// TODO: Test that the resources match what is in the REST service
-					resource.TestCheckResourceAttr("nuodbaas_database.db", "organization", testOrgName),
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "organization", "org"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "name", "db"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "project", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "dba_password", "changeMe"),
@@ -52,7 +50,7 @@ func TestAccDatabaseResource(t *testing.T) {
 				RefreshState: true,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// TODO: Test that the resources match what is in the REST service
-					resource.TestCheckResourceAttr("nuodbaas_database.db", "organization", testOrgName),
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "organization", "org"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "name", "db"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "project", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "dba_password", "changeMe"),
@@ -62,7 +60,6 @@ func TestAccDatabaseResource(t *testing.T) {
 			},
 			{
 				// Import it
-				ConfigVariables:         config.Variables{"org_name": config.StringVariable(testOrgName)},
 				ResourceName:            "nuodbaas_database.db",
 				ImportState:             true,
 				ImportStateVerify:       true,
@@ -73,7 +70,7 @@ func TestAccDatabaseResource(t *testing.T) {
 				// Update the database by setting it to be disabled
 				Config: projConfig + `
 				resource "nuodbaas_database" "db" {
-					organization = var.org_name
+					organization = nuodbaas_project.proj.organization
 					project      = nuodbaas_project.proj.name
 					name         = "db"
 					dba_password = "changeMe"
@@ -82,7 +79,6 @@ func TestAccDatabaseResource(t *testing.T) {
 					}
 				}
 				`,
-				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// TODO: Test that the resources match what is in the REST service
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "maintenance.is_disabled", "true"),

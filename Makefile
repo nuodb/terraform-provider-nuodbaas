@@ -118,14 +118,13 @@ extract-creds: ## Extract and print environment variables for use with running C
 						$(shell kubectl get service $(HELM_NGINX_RELEASE)-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')))
 	$(eval PORT := $(shell kubectl get service $(HELM_NGINX_RELEASE)-controller -o jsonpath='{.spec.ports[?(@.appProtocol=="http")].port}'))
 
+	@echo "export NUODB_CP_USER=system/admin"
 	@echo "export NUODB_CP_PASSWORD=\"$(shell kubectl get secret dbaas-user-system-admin -o jsonpath='{.data.password}' | base64 -d)\""
 	@echo "export NUODB_CP_URL_BASE=\"http://$(HOST):$(PORT)/nuodb-cp\""
-	@echo "export NUODB_CP_USER=admin"
-	@echo "export NUODB_CP_ORGANIZATION=system"
 
 .PHONY: testacc
 testacc: $(GOTESTSUM_BIN) ## Run acceptance tests
-	TF_ACC=1 $(GOTESTSUM_BIN) --junitfile $(TEST_RESULTS)/gotestsum-report.xml --format testname -- -v -timeout 30m $(TESTARGS) ./...
+	TF_ACC=1 $(GOTESTSUM_BIN) --junitfile $(TEST_RESULTS)/gotestsum-report.xml --format testname -- -v -count=1 -timeout 30m $(TESTARGS) ./...
 
 ##@ Build
 

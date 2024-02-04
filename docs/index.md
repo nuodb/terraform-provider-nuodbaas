@@ -50,8 +50,7 @@ resource "nuodbaas_database" "nuodb" {
 
 ### Optional
 
-- `organization` (String) The Control Plane organization that the user belongs to. If not specified, defaults to the NUODB_CP_ORGANIZATION environment variable.
 - `password` (String, Sensitive) The password for the user. If not specified, defaults to the NUODB_CP_PASSWORD environment variable.
 - `skip_verify` (Boolean) Whether to skip server certificate verification
-- `url_base` (String) The base URL for the server, including the protocol. If not specified, defaults to the NUODB_CP_PASSWORD environment variable.
-- `username` (String) The name of the user. If not specified, defaults to the NUODB_CP_USER environment variable.
+- `url_base` (String) The base URL for the server, including the protocol. If not specified, defaults to the NUODB_CP_URL_BASE environment variable.
+- `user` (String) The name of the user in the format `<organization>/<user>`. If not specified, defaults to the NUODB_CP_USER environment variable.
