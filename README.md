@@ -74,10 +74,11 @@ Ensure that you have a CSI driver configured.
 4. Run acceptance tests.
 
     ```sh
-    make discover-test
+    eval "$(make extract-creds)"
+    make testacc
     ```
 
-    If you want to manually configure the Control Plane instance, set  `NUODB_CP_URL_BASE`, `NUODB_CP_ORGANIZATION`, `NUODB_CP_USER`, and `NUODB_CP_PASSWORD` environment variables and run:
+    The `extract-creds` target extracts the credentials for the `system/admin` user from the Kubernetes cluster and prints them to standard output. If you want to manually configure the Control Plane instance, set  `NUODB_CP_URL_BASE`, `NUODB_CP_ORGANIZATION`, `NUODB_CP_USER`, and `NUODB_CP_PASSWORD` environment variables and run:
 
     ```sh
     make testacc
@@ -86,5 +87,5 @@ Ensure that you have a CSI driver configured.
 To run a single test:
 
 ```sh
-TESTARGS="-run='TestAccProjectResource'" make discover-test
+TESTARGS="-run='TestAccProjectResource'" make testacc
 ```

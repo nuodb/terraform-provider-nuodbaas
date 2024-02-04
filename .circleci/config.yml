@@ -2,32 +2,53 @@ version: 2.1
 orbs:
   go: circleci/go@1.7.3
 
+commands:
+  run_tests:
+    description: |
+      Setup environment and run tests
+    steps:
+      - checkout
+      - run:
+          name: "Setup environment"
+          command: .circleci/setup.sh
+      - run:
+          name: "Run tests"
+          command: "make testacc"
+      - store_artifacts:
+          name: "Upload log output from services"
+          path: /tmp/service-logs
+          destination: service-logs
+      - store_test_results:
+          name: "Upload test results"
+          path: /tmp/test-results
+
 jobs:
-  test:
+  e2e_tests:
+    machine:
+      image: ubuntu-2204:2023.10.1
+    resource_class: medium
+    environment:
+      E2E_TEST: "true"
+      MINIKUBE_VERSION: "1.32.0"
+      HELM_VERSION: "v3.14.0"
+      KUBERNETES_VERSION: "1.28.3"
+      TEST_RESULTS: /tmp/test-results
+      OUTPUT_DIR: /tmp/service-logs
+    steps:
+      - run_tests
+  integration_tests:
     machine:
       image: ubuntu-2204:2023.10.1
     resource_class: medium
     environment:
       KUBERNETES_VERSION: "1.28.3"
-      MINIKUBE_VERSION: "1.32.0"
-      HELM_VERSION: "v3.14.0"
       TEST_RESULTS: /tmp/test-results
+      OUTPUT_DIR: /tmp/service-logs
     steps:
-      - checkout
-      - run: mkdir -p "${TEST_RESULTS}"
-      - run:
-          name: "Setup kubernetes"
-          command: ".circleci/setup_kube.sh"
-      - run:
-          name: "Setup test Control Plane"
-          command: "make deploy-cp"
-      - run:
-          name: "Run tests"
-          command: "make discover-test"
-      - store_test_results: # upload test results for display in Test Summary
-          path: /tmp/test-results
+      - run_tests
 
 workflows:
   test:
     jobs:
-      - test
+      - e2e_tests
+      - integration_tests

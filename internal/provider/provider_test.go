@@ -30,7 +30,19 @@ var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServe
 	"nuodbaas": providerserver.NewProtocol6WithError(New("test")()),
 }
 
-var testOrgName = os.Getenv("NUODB_CP_ORGANIZATION")
+var testOrgName = getOrganization()
+
+// TODO: The tests seem to rely on the organization name being resolved from the
+// environment. Not sure why this is a requirement, but for now, just use the
+// environment variable if it is set and otherwise return an arbitrary
+// organization name.
+func getOrganization() string {
+	org := os.Getenv("NUODB_CP_ORGANIZATION")
+	if org != "" {
+		return org
+	}
+	return "org"
+}
 
 func testAccPreCheck(t *testing.T) {
 	// TODO: Verify that DBaaS is up

@@ -112,18 +112,16 @@ generate: ## Generate Golang client for the NuoDB REST API and Terraform provide
 	./scripts/generate-client.sh
 	go generate
 
-.PHONY: discover-test
-discover-test: ## Discover a local control plane and run tests against it
+.PHONY: extract-creds
+extract-creds: ## Extract and print environment variables for use with running Control Plane REST server
 	$(eval HOST := $(or $(shell kubectl get service $(HELM_NGINX_RELEASE)-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}'), \
 						$(shell kubectl get service $(HELM_NGINX_RELEASE)-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')))
 	$(eval PORT := $(shell kubectl get service $(HELM_NGINX_RELEASE)-controller -o jsonpath='{.spec.ports[?(@.appProtocol=="http")].port}'))
 
-	@NUODB_CP_PASSWORD=$(shell kubectl get secret dbaas-user-system-admin -o jsonpath='{.data.password}' | base64 -d) \
-		NUODB_CP_URL_BASE="http://$(HOST):$(PORT)/nuodb-cp" \
-		NUODB_CP_USER="admin" \
-		NUODB_CP_ORGANIZATION="system" \
-		$(MAKE) testacc
-
+	@echo "export NUODB_CP_PASSWORD=\"$(shell kubectl get secret dbaas-user-system-admin -o jsonpath='{.data.password}' | base64 -d)\""
+	@echo "export NUODB_CP_URL_BASE=\"http://$(HOST):$(PORT)/nuodb-cp\""
+	@echo "export NUODB_CP_USER=admin"
+	@echo "export NUODB_CP_ORGANIZATION=system"
 
 .PHONY: testacc
 testacc: $(GOTESTSUM_BIN) ## Run acceptance tests
