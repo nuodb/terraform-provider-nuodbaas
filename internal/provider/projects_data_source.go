@@ -8,16 +8,12 @@ import (
 	"context"
 	"fmt"
 
+	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 	"github.com/nuodb/terraform-provider-nuodbaas/helper"
-
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/model"
-
-	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/types"
-	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 )
 
 var _ datasource.DataSourceWithConfigure = &projectsDataSource{}
@@ -31,12 +27,12 @@ type projectsDataSource struct {
 }
 
 type projectsModel struct {
-	Filter   *projectFilterModel                    `tfsdk:"filter"`
-	Projects []model.ProjectDataSourceResponseModel `tfsdk:"projects"`
+	Filter   *projectFilterModel                `tfsdk:"filter"`
+	Projects []model.ProjectDataSourceNameModel `tfsdk:"projects"`
 }
 
 type projectFilterModel struct {
-	Organization types.String `tfsdk:"organization"`
+	Organization *string `tfsdk:"organization"`
 }
 
 // Schema implements datasource.DataSource.
@@ -89,26 +85,17 @@ func (d *projectsDataSource) Metadata(_ context.Context, req datasource.Metadata
 // Read implements datasource.DataSource.
 func (d *projectsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var state projectsModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
-
-	if resp.Diagnostics.HasError() {
+	if !helper.ReadResource(ctx, resp.Diagnostics, req.Config.Get, &state) {
 		return
 	}
 
-	filter := state.Filter
-
-	var organization = ""
-
-	if filter != nil && !filter.Organization.IsNull() {
-		organization = filter.Organization.ValueString()
+	var organization string
+	if state.Filter != nil {
+		if state.Filter.Organization != nil {
+			organization = *state.Filter.Organization
+		}
 	}
-
-	projectClient := nuodbaas_client.NewProjectClient(d.client, ctx, organization, "")
-
-	// TODO: This treats organization as optional, but the client does not
-	// seem to support that
-	projects, err := projectClient.GetProjects()
-
+	projects, err := helper.GetProjects(ctx, d.client, organization, true)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error getting projects",
@@ -117,12 +104,14 @@ func (d *projectsDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	projectDataSourceResponseList := helper.GetProjectDataSourceResponse(projects)
-
-	state.Projects = projectDataSourceResponseList
-
+	state.Projects, err = helper.GetProjectDataSourceResponse(projects)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Conversion Failure",
+			"Could not get convert project names: "+err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-
 }
 
 // Configure implements datasource.DataSourceWithConfigure.

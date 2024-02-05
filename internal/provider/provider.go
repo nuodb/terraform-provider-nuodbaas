@@ -50,18 +50,18 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 		Attributes: map[string]schema.Attribute{
 			"user": schema.StringAttribute{
 				Description: "The name of the user in the format `<organization>/<user>`. " +
-					"If not specified, defaults to the NUODB_CP_USER environment variable.",
+					"If not specified, defaults to the `NUODB_CP_USER` environment variable.",
 				Optional: true,
 			},
 			"password": schema.StringAttribute{
 				Description: "The password for the user. " +
-					"If not specified, defaults to the NUODB_CP_PASSWORD environment variable.",
+					"If not specified, defaults to the `NUODB_CP_PASSWORD` environment variable.",
 				Optional:  true,
 				Sensitive: true,
 			},
 			"url_base": schema.StringAttribute{
 				Description: "The base URL for the server, including the protocol. " +
-					"If not specified, defaults to the NUODB_CP_URL_BASE environment variable.",
+					"If not specified, defaults to the `NUODB_CP_URL_BASE` environment variable.",
 				Optional: true,
 			},
 			"skip_verify": schema.BoolAttribute{

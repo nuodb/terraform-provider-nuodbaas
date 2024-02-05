@@ -8,15 +8,13 @@ import (
 	"context"
 	"fmt"
 
+	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 	"github.com/nuodb/terraform-provider-nuodbaas/helper"
-
-	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/model"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 )
 
 var _ datasource.DataSourceWithConfigure = &databaseDataSource{}
@@ -28,8 +26,6 @@ func NewDatabaseDataSource() datasource.DataSource {
 type databaseDataSource struct {
 	client *nuodbaas.APIClient
 }
-
-type databaseModel = model.DatabaseDataSourceModel
 
 // Schema implements datasource.DataSource.
 func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -67,16 +63,6 @@ func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 						MarkdownDescription: "Whether the project or database should be shutdown",
 						Computed:            true,
 					},
-					"expires_in": schema.StringAttribute{
-						Description:         "The time until the project or database is disabled, e.g. `1d`",
-						MarkdownDescription: "The time until the project or database is disabled, e.g. `1d`",
-						Computed:            true,
-					},
-					"expires_at": schema.StringAttribute{
-						Description:         "The time at which the project or database will be disabled",
-						MarkdownDescription: "The time at which the project or database will be disabled",
-						Computed:            true,
-					},
 				},
 			},
 			"resource_version": schema.StringAttribute{
@@ -112,7 +98,7 @@ func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 				MarkdownDescription: "The current status of the database.",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
-					"sql_end_point": schema.StringAttribute{
+					"sql_endpoint": schema.StringAttribute{
 						Description:         "The endpoint for SQL clients to connect to.",
 						MarkdownDescription: "The endpoint for SQL clients to connect to.",
 						Computed:            true,
@@ -120,6 +106,11 @@ func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 					"ca_pem": schema.StringAttribute{
 						Description:         "The PEM-encoded certificate for SQL clients to verify database servers",
 						MarkdownDescription: "The PEM-encoded certificate for SQL clients to verify database servers",
+						Computed:            true,
+					},
+					"state": schema.StringAttribute{
+						Description:         "The state of the database",
+						MarkdownDescription: "The state of the database",
 						Computed:            true,
 					},
 				},
@@ -135,15 +126,12 @@ func (d *databaseDataSource) Metadata(_ context.Context, req datasource.Metadata
 
 // Read implements datasource.DataSource.
 func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var state databaseModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
-
-	if resp.Diagnostics.HasError() {
+	var state model.DatabaseDataSourceModel
+	if !helper.ReadResource(ctx, resp.Diagnostics, req.Config.Get, &state) {
 		return
 	}
 
-	databaseResponseModel, err := nuodbaas_client.NewDatabaseClient(d.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).GetDatabase()
-
+	database, err := helper.GetDatabase(ctx, d.client, state.Organization, state.Project, state.Name)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading database",
@@ -152,60 +140,11 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	var databaseResp = model.DatabaseDataSourceModel{
-		Organization:    types.StringValue(*databaseResponseModel.Organization),
-		Name:            types.StringValue(*databaseResponseModel.Name),
-		Tier:            types.StringValue(*databaseResponseModel.Tier),
-		ResourceVersion: types.StringValue(*databaseResponseModel.ResourceVersion),
-		Project:         types.StringValue(*databaseResponseModel.Project),
-	}
-
-	if databaseResponseModel.Properties != nil {
-		propertiesModel := &model.DatabasePropertiesResourceModel{
-			TierParameters:  types.MapNull(types.StringType),
-			ArchiveDiskSize: types.StringPointerValue(databaseResponseModel.Properties.ArchiveDiskSize),
-			JournalDiskSize: types.StringPointerValue(databaseResponseModel.Properties.JournalDiskSize),
-		}
-
-		if databaseResponseModel.Properties.TierParameters != nil {
-			mapValue, diags := helper.ConvertMapToTfMap(databaseResponseModel.Properties.TierParameters)
-			resp.Diagnostics.Append(diags...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			propertiesModel.TierParameters = mapValue
-		}
-		databaseResp.Properties = propertiesModel
-	}
-
-	if databaseResponseModel.Maintenance != nil {
-		maintenanceModel := &model.MaintenanceDataSourceModel{
-			IsDisabled: types.BoolPointerValue(databaseResponseModel.Maintenance.IsDisabled),
-			ExpiresIn:  types.StringPointerValue(databaseResponseModel.Maintenance.ExpiresIn),
-		}
-
-		if databaseResponseModel.Maintenance.ExpiresAtTime != nil {
-			maintenanceModel.ExpiresAt = types.StringValue(databaseResponseModel.Maintenance.ExpiresAtTime.String())
-		}
-		databaseResp.Maintenance = maintenanceModel
-	}
-
-	if databaseResponseModel.Status != nil {
-		statusModel := &model.StatusModel{
-			SqlEndPoint: types.StringPointerValue(databaseResponseModel.Status.SqlEndpoint),
-			CaPem:       types.StringPointerValue(databaseResponseModel.Status.CaPem),
-		}
-		databaseResp.Status = statusModel
-	}
-
-	state = databaseResp
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-
-	if resp.Diagnostics.HasError() {
+	if !helper.ConvertResource(resp.Diagnostics, &database, &state) {
 		return
 	}
 
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
 // Configure implements datasource.DataSourceWithConfigure.
@@ -215,7 +154,6 @@ func (d *databaseDataSource) Configure(_ context.Context, req datasource.Configu
 	}
 
 	client, ok := req.ProviderData.(*nuodbaas.APIClient)
-
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",

@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -29,7 +28,6 @@ func TestAccDatabaseDataSource(t *testing.T) {
 	archiveDisk := "1Gi"
 	journalDisk := "2Gi"
 	disabled := true
-	expAt := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	tierParamKey := "foo"
 	tierParamValue := "bar"
 
@@ -41,8 +39,7 @@ func TestAccDatabaseDataSource(t *testing.T) {
 			TierParameters:  &map[string]string{tierParamKey: tierParamValue},
 		},
 		Maintenance: &nuodbaas.MaintenanceModel{
-			IsDisabled:    &disabled,
-			ExpiresAtTime: &expAt,
+			IsDisabled: &disabled,
 		},
 	}
 
@@ -70,13 +67,12 @@ func TestAccDatabaseDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr(resourcePath, "name", dbName),
 					resource.TestCheckResourceAttr(resourcePath, "tier", tier),
 					resource.TestCheckResourceAttr(resourcePath, "maintenance.is_disabled", strconv.FormatBool(disabled)),
-					resource.TestCheckResourceAttr(resourcePath, "maintenance.expires_at", expAt.String()),
 					resource.TestCheckResourceAttrSet(resourcePath, "resource_version"),
 					resource.TestCheckResourceAttr(resourcePath, "properties.archive_disk_size", archiveDisk),
 					resource.TestCheckResourceAttr(resourcePath, "properties.journal_disk_size", journalDisk),
 					resource.TestCheckResourceAttr(resourcePath, "properties.tier_parameters.%", "1"),
 					resource.TestCheckResourceAttr(resourcePath, "properties.tier_parameters."+tierParamKey, tierParamValue),
-					resource.TestCheckResourceAttrSet(resourcePath, "status.sql_end_point"),
+					resource.TestCheckResourceAttrSet(resourcePath, "status.sql_endpoint"),
 					// Flaky under envtest
 					// resource.TestCheckResourceAttrSet(resourcePath, "status.ca_pem"),
 				),

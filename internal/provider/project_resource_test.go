@@ -31,7 +31,6 @@ func TestAccProjectResource(t *testing.T) {
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "name", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "sla", "dev"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "tier", "n0.nano"),
-					resource.TestCheckResourceAttrSet("nuodbaas_project.proj", "resource_version"),
 				),
 			},
 			{
@@ -42,7 +41,6 @@ func TestAccProjectResource(t *testing.T) {
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "name", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "sla", "dev"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "tier", "n0.nano"),
-					resource.TestCheckResourceAttrSet("nuodbaas_project.proj", "resource_version"),
 				),
 			},
 			{

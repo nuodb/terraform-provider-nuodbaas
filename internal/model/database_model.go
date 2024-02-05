@@ -6,61 +6,48 @@ package model
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// Properties is of types Object because it is a computed field.
-// Computed has nil, known and unknown values. The struct cannot handle unknown values. Therefore a types.Object is used.
 type DatabaseResourceModel struct {
-	Organization    types.String      `tfsdk:"organization"`
-	Name            types.String      `tfsdk:"name"`
-	Project         types.String      `tfsdk:"project"`
-	Password        types.String      `tfsdk:"dba_password"`
-	Tier            types.String      `tfsdk:"tier"`
-	Properties      types.Object      `tfsdk:"properties"`
-	ResourceVersion types.String      `tfsdk:"resource_version"`
-	Maintenance     *MaintenanceModel `tfsdk:"maintenance"`
-	Timeouts        timeouts.Value    `tfsdk:"timeouts"`
-	Status          types.Object      `tfsdk:"status"`
+	Organization string                    `tfsdk:"organization" json:"organization"`
+	Project      string                    `tfsdk:"project" json:"project"`
+	Name         string                    `tfsdk:"name" json:"name"`
+	DbaPassword  string                    `tfsdk:"dba_password" json:"dbaPassword"`
+	Tier         *string                   `tfsdk:"tier" json:"tier"`
+	Maintenance  *MaintenanceDatabaseModel `tfsdk:"maintenance" json:"maintenance"`
+	Properties   *DatabasePropertiesModel  `tfsdk:"properties" json:"properties"`
+	Timeouts     timeouts.Value            `tfsdk:"timeouts"`
 }
 
-type DatabasePropertiesResourceModel struct {
-	ArchiveDiskSize types.String `tfsdk:"archive_disk_size"`
-	JournalDiskSize types.String `tfsdk:"journal_disk_size"`
-	TierParameters  types.Map    `tfsdk:"tier_parameters"`
+type MaintenanceDatabaseModel struct {
+	IsDisabled *bool `tfsdk:"is_disabled" json:"isDisabled"`
 }
 
-type MaintenanceDataSourceModel struct {
-	IsDisabled types.Bool   `tfsdk:"is_disabled"`
-	ExpiresIn  types.String `tfsdk:"expires_in"`
-	ExpiresAt  types.String `tfsdk:"expires_at"`
+type DatabasePropertiesModel struct {
+	ArchiveDiskSize *string            `tfsdk:"archive_disk_size" json:"archiveDiskSize"`
+	JournalDiskSize *string            `tfsdk:"journal_disk_size" json:"journalDiskSize"`
+	TierParameters  *map[string]string `tfsdk:"tier_parameters" json:"tierParameters"`
 }
 
-type DatabaseCreateUpdateModel struct {
-	Password        string
-	Tier            string
-	ArchiveDiskSize string
-	JournalDiskSize string
+type DatabaseDataSourceNameModel struct {
+	Organization string `tfsdk:"organization" json:"organization"`
+	Project      string `tfsdk:"project" json:"project"`
+	Name         string `tfsdk:"name" json:"name"`
 }
 
 type DatabaseDataSourceModel struct {
-	Organization    types.String                     `tfsdk:"organization"`
-	Name            types.String                     `tfsdk:"name"`
-	Project         types.String                     `tfsdk:"project"`
-	Tier            types.String                     `tfsdk:"tier"`
-	Properties      *DatabasePropertiesResourceModel `tfsdk:"properties"`
-	ResourceVersion types.String                     `tfsdk:"resource_version"`
-	Maintenance     *MaintenanceDataSourceModel      `tfsdk:"maintenance"`
-	Status          *StatusModel                     `tfsdk:"status"`
-}
-
-type DatabasesDataSourceResponseModel struct {
-	Organization types.String `tfsdk:"organization"`
-	Project      types.String `tfsdk:"project"`
-	Name         types.String `tfsdk:"name"`
+	Organization    string                    `tfsdk:"organization" json:"organization"`
+	Project         string                    `tfsdk:"project" json:"project"`
+	Name            string                    `tfsdk:"name" json:"name"`
+	Tier            string                    `tfsdk:"tier" json:"tier"`
+	Maintenance     *MaintenanceDatabaseModel `tfsdk:"maintenance" json:"maintenance"`
+	Properties      *DatabasePropertiesModel  `tfsdk:"properties" json:"properties"`
+	ResourceVersion string                    `tfsdk:"resource_version" json:"resourceVersion"`
+	Status          *StatusModel              `tfsdk:"status" json:"status"`
 }
 
 type StatusModel struct {
-	SqlEndPoint types.String `tfsdk:"sql_end_point"`
-	CaPem       types.String `tfsdk:"ca_pem"`
+	SqlEndpoint *string `tfsdk:"sql_endpoint" json:"sqlEndpoint"`
+	CaPem       *string `tfsdk:"ca_pem" json:"caPem"`
+	State       *string `tfsdk:"state" json:"state"`
 }
