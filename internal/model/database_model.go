@@ -32,7 +32,6 @@ type DatabasePropertiesResourceModel struct {
 
 type MaintenanceDataSourceModel struct {
 	IsDisabled types.Bool   `tfsdk:"is_disabled"`
-	ExpiresIn  types.String `tfsdk:"expires_in"`
 	ExpiresAt  types.String `tfsdk:"expires_at"`
 }
 

@@ -6,19 +6,16 @@ package provider
 
 import (
 	"context"
-	"crypto/tls"
-	"encoding/base64"
-	"fmt"
-	"net/http"
 	"os"
 	"strings"
+
+	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 )
 
 // Ensure NuoDbaasProvider satisfies various provider interfaces.
@@ -112,25 +109,8 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 		urlBase = "http://localhost:8080"
 	}
 
-	configuration := nuodbaas.NewConfiguration()
 	// Disable server certificate verification if skip_verify=true
-	if skipVerify {
-		configuration.HTTPClient = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
-			},
-		}
-	}
-	configuration.Servers = nuodbaas.ServerConfigurations{
-		{URL: urlBase, Description: "The base URL to use for the Terraform provider"},
-	}
-	if user != "" {
-		configuration.DefaultHeader["Authorization"] = fmt.Sprintf("Basic %s", basicAuth(user, password))
-	}
-
-	apiClient := nuodbaas.NewAPIClient(configuration)
+	apiClient := nuodbaas_client.NewApiClient(skipVerify, urlBase, user, password)
 	resp.DataSourceData = apiClient
 	resp.ResourceData = apiClient
 }
@@ -157,9 +137,4 @@ func New(version string) func() provider.Provider {
 			version: version,
 		}
 	}
-}
-
-func basicAuth(username, password string) string {
-	auth := username + ":" + password
-	return base64.StdEncoding.EncodeToString([]byte(auth))
 }

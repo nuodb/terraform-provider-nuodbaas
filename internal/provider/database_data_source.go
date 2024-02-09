@@ -67,11 +67,6 @@ func (d *databaseDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 						MarkdownDescription: "Whether the project or database should be shutdown",
 						Computed:            true,
 					},
-					"expires_in": schema.StringAttribute{
-						Description:         "The time until the project or database is disabled, e.g. `1d`",
-						MarkdownDescription: "The time until the project or database is disabled, e.g. `1d`",
-						Computed:            true,
-					},
 					"expires_at": schema.StringAttribute{
 						Description:         "The time at which the project or database will be disabled",
 						MarkdownDescription: "The time at which the project or database will be disabled",
@@ -146,8 +141,8 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error updating database",
-			helper.GetApiErrorMessage(err, "Could not update database, unexpected error:"),
+			"Error reading database",
+			helper.GetApiErrorMessage(err, "Could not read database, unexpected error:"),
 		)
 		return
 	}
@@ -181,7 +176,6 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 	if databaseResponseModel.Maintenance != nil {
 		maintenanceModel := &model.MaintenanceDataSourceModel{
 			IsDisabled: types.BoolPointerValue(databaseResponseModel.Maintenance.IsDisabled),
-			ExpiresIn:  types.StringPointerValue(databaseResponseModel.Maintenance.ExpiresIn),
 		}
 
 		if databaseResponseModel.Maintenance.ExpiresAtTime != nil {

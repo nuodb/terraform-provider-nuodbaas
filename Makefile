@@ -124,7 +124,7 @@ extract-creds: ## Extract and print environment variables for use with running C
 
 .PHONY: testacc
 testacc: $(GOTESTSUM_BIN) ## Run acceptance tests
-	TF_ACC=1 $(GOTESTSUM_BIN) --junitfile $(TEST_RESULTS)/gotestsum-report.xml --format testname -- -v -count=1 -timeout 30m $(TESTARGS) ./...
+	TF_ACC=1 $(GOTESTSUM_BIN) --junitfile $(TEST_RESULTS)/gotestsum-report.xml --format testname -- -v -count=1 -p 1 -timeout 30m $(TESTARGS) ./... 
 
 ##@ Build
 
