@@ -1,6 +1,19 @@
 version: 2.1
+
 orbs:
   go: circleci/go@1.7.3
+
+executors:
+  java:
+    # Check https://circleci.com/developer/images/image/cimg/openjdk for more details
+    docker:
+      - image: cimg/openjdk:11.0
+    resource_class: small
+
+  ubuntu_vm:
+    machine:
+      image: ubuntu-2204:2023.10.1
+    resource_class: medium
 
 commands:
   run_tests:
@@ -24,9 +37,7 @@ commands:
 
 jobs:
   e2e_tests:
-    machine:
-      image: ubuntu-2204:2023.10.1
-    resource_class: medium
+    executor: ubuntu_vm
     environment:
       E2E_TEST: "true"
       MINIKUBE_VERSION: "1.32.0"
@@ -36,15 +47,17 @@ jobs:
       OUTPUT_DIR: /tmp/service-logs
     steps:
       - run_tests
+
   integration_tests:
-    machine:
-      image: ubuntu-2204:2023.10.1
+    executor: java
     resource_class: medium
     environment:
       KUBERNETES_VERSION: "1.28.3"
       TEST_RESULTS: /tmp/test-results
       OUTPUT_DIR: /tmp/service-logs
     steps:
+      - go/install:
+          version: "1.20"
       - run_tests
 
 workflows:

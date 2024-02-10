@@ -7,7 +7,6 @@ package provider
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/config"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -21,16 +20,15 @@ func TestAccProjectResource(t *testing.T) {
 				// Create a project
 				Config: providerConfig + `
 					resource "nuodbaas_project" "proj" {
-						organization = var.org_name
+						organization = "org"
 						name         = "proj"
 						sla          = "dev"
 						tier         = "n0.nano"
 					}
 				`,
-				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// TODO: Test that the resources match what is in the REST service
-					resource.TestCheckResourceAttr("nuodbaas_project.proj", "organization", testOrgName),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "organization", "org"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "name", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "sla", "dev"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "tier", "n0.nano"),
@@ -41,7 +39,7 @@ func TestAccProjectResource(t *testing.T) {
 				// Test that we can read it back
 				RefreshState: true,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("nuodbaas_project.proj", "organization", testOrgName),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "organization", "org"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "name", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "sla", "dev"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "tier", "n0.nano"),
@@ -50,7 +48,6 @@ func TestAccProjectResource(t *testing.T) {
 			},
 			{
 				// Import it
-				ConfigVariables:         config.Variables{"org_name": config.StringVariable(testOrgName)},
 				ResourceName:            "nuodbaas_project.proj",
 				ImportState:             true,
 				ImportStateVerify:       true,
@@ -61,7 +58,7 @@ func TestAccProjectResource(t *testing.T) {
 				// Update the project by setting it to be disabled
 				Config: providerConfig + `
 				resource "nuodbaas_project" "proj" {
-					organization = var.org_name
+					organization = "org"
 					name         = "proj"
 					sla          = "dev"
 					tier         = "n0.nano"
@@ -70,7 +67,6 @@ func TestAccProjectResource(t *testing.T) {
 					}
 				}
 				`,
-				ConfigVariables: config.Variables{"org_name": config.StringVariable(testOrgName)},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// TODO: Test that the resources match what is in the REST service
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "maintenance.is_disabled", "true"),

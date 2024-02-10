@@ -12,9 +12,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
-
-	"github.com/nuodb/terraform-provider-nuodbaas/helper"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -39,11 +36,10 @@ type NuoDbaasProvider struct {
 
 // NuoDbaasProviderModel describes the provider data model.
 type NuoDbaasProviderModel struct {
-	Organization types.String `tfsdk:"organization"`
-	Username     types.String `tfsdk:"username"`
-	Password     types.String `tfsdk:"password"`
-	BaseUrl      types.String `tfsdk:"url_base"`
-	SkipVerify   types.Bool   `tfsdk:"skip_verify"`
+	User       types.String `tfsdk:"user"`
+	Password   types.String `tfsdk:"password"`
+	BaseUrl    types.String `tfsdk:"url_base"`
+	SkipVerify types.Bool   `tfsdk:"skip_verify"`
 }
 
 func (p *NuoDbaasProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -55,13 +51,8 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 	resp.Schema = schema.Schema{
 		Description: "The NuoDB DBaaS provider provides the ability to manage the projects and databases running under the NuoDB Control Plane.",
 		Attributes: map[string]schema.Attribute{
-			"organization": schema.StringAttribute{
-				Description: "The Control Plane organization that the user belongs to. " +
-					"If not specified, defaults to the NUODB_CP_ORGANIZATION environment variable.",
-				Optional: true,
-			},
-			"username": schema.StringAttribute{
-				Description: "The name of the user. " +
+			"user": schema.StringAttribute{
+				Description: "The name of the user in the format `<organization>/<user>`. " +
 					"If not specified, defaults to the NUODB_CP_USER environment variable.",
 				Optional: true,
 			},
@@ -73,7 +64,7 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 			},
 			"url_base": schema.StringAttribute{
 				Description: "The base URL for the server, including the protocol. " +
-					"If not specified, defaults to the NUODB_CP_PASSWORD environment variable.",
+					"If not specified, defaults to the NUODB_CP_URL_BASE environment variable.",
 				Optional: true,
 			},
 			"skip_verify": schema.BoolAttribute{
@@ -93,8 +84,7 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 		return
 	}
 
-	organization := os.Getenv("NUODB_CP_ORGANIZATION")
-	username := os.Getenv("NUODB_CP_USER")
+	user := os.Getenv("NUODB_CP_USER")
 	password := os.Getenv("NUODB_CP_PASSWORD")
 	urlBase := os.Getenv("NUODB_CP_URL_BASE")
 	skipVerify := false
@@ -102,12 +92,8 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 		skipVerify = true
 	}
 
-	if !config.Organization.IsNull() {
-		organization = config.Organization.ValueString()
-	}
-
-	if !config.Username.IsNull() {
-		username = config.Username.ValueString()
+	if !config.User.IsNull() {
+		user = config.User.ValueString()
 	}
 
 	if !config.Password.IsNull() {
@@ -138,34 +124,13 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 		}
 	}
 	configuration.Servers = nuodbaas.ServerConfigurations{
-		{URL: urlBase, Description: "The base URL for the server, including the protocol"},
+		{URL: urlBase, Description: "The base URL to use for the Terraform provider"},
 	}
-	if organization != "" && username != "" && password != "" {
-		basicUsername := fmt.Sprintf("%s/%s", organization, username)
-		configuration.DefaultHeader["Authorization"] = fmt.Sprintf("Basic %s", basicAuth(basicUsername, password))
+	if user != "" {
+		configuration.DefaultHeader["Authorization"] = fmt.Sprintf("Basic %s", basicAuth(user, password))
 	}
+
 	apiClient := nuodbaas.NewAPIClient(configuration)
-	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
-	defer cancel()
-	// TODO: This is issuing a health check and then checking if the request
-	// was successful or 403 Forbidden, which means that the user was
-	// authenticated but does not have access to 'GET /healthz'. Do we
-	// actually need to check this eagerly?
-	httpsRes, err := apiClient.HealthzAPI.GetHealth(ctx).Execute()
-
-	// Check for error on client side
-	serverErr := helper.GetErrorContentObj(err)
-	if err != nil && serverErr == nil {
-		resp.Diagnostics.AddError("Unable to connect to server", err.Error())
-		return
-	}
-	// Check for error other than 403 Forbidden
-	if serverErr != nil && httpsRes.StatusCode != http.StatusForbidden {
-		msg := fmt.Sprintf("code=%s, status=%s, detail=%s", serverErr.GetCode(), serverErr.GetStatus(), serverErr.GetDetail())
-		resp.Diagnostics.AddError("Error response from server", msg)
-		return
-	}
-
 	resp.DataSourceData = apiClient
 	resp.ResourceData = apiClient
 }
