@@ -23,9 +23,4 @@ resource "nuodbaas_database" "dbaas" {
       capacityType = "spot"
     }
   }
-
-  timeouts {
-    create = "10m"
-    update = "10m"
-  }
 }
