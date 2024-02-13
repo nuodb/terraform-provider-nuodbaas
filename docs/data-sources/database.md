@@ -14,7 +14,7 @@ The state of a given database.
 
 ```terraform
 # Get details about a single database
-data "nuodbaas_database" "databaseDetails" {
+data "nuodbaas_database" "database_details" {
   name         = "dbaas"
   organization = "system"
   project      = "nuodb"
@@ -44,7 +44,6 @@ data "nuodbaas_database" "databaseDetails" {
 Read-Only:
 
 - `expires_at` (String) The time at which the project or database will be disabled
-- `expires_in` (String) The time until the project or database is disabled, e.g. `1d`
 - `is_disabled` (Boolean) Whether the project or database should be shutdown
 
 

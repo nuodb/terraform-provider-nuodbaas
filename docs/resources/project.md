@@ -15,7 +15,7 @@ A resource to create new DBaaS projects. Projects allow you to group databases. 
 ```terraform
 # A basic project
 resource "nuodbaas_project" "nuodb" {
-  organization = var.dbaas_credentials.organization
+  organization = "org"
   name         = "nuodb"
   sla          = "prod"
   tier         = "n0.nano"
@@ -23,7 +23,7 @@ resource "nuodbaas_project" "nuodb" {
 
 # A project with more fields set
 resource "nuodbaas_project" "dev" {
-  organization = var.dbaas_credentials.organization
+  organization = "org"
   name         = "dev"
   sla          = "dev"
   tier         = "n0.nano"

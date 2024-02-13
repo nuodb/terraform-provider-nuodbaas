@@ -146,8 +146,8 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error updating database",
-			helper.GetApiErrorMessage(err, "Could not update database, unexpected error:"),
+			"Error reading database",
+			helper.GetApiErrorMessage(err, "Could not read database, unexpected error:"),
 		)
 		return
 	}

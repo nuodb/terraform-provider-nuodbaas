@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccProjectResource(t *testing.T) {
@@ -73,9 +72,6 @@ func TestAccProjectResource(t *testing.T) {
 				),
 			},
 		},
-		CheckDestroy: func(s *terraform.State) error {
-			//TODO: Verify that project was cleaned up
-			return nil
-		},
+		CheckDestroy: checkClean,
 	})
 }
