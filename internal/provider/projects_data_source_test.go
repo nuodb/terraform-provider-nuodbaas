@@ -83,11 +83,9 @@ func TestAccProjectsDataSourceNotEmpty(t *testing.T) {
 	}
 
 	// Create a couple of test projects
-	ctx := context.TODO()
-
-	client := nuodbaas_client_test.DefaultApiClient()
-	require.NoError(t, nuodbaas_client_test.CreateProject(t, ctx, client, proj1Org, proj1Name, "dev", "n0.nano"))
-	require.NoError(t, nuodbaas_client_test.CreateProject(t, ctx, client, proj2Org, proj2Name, "dev", "n0.nano"))
+	client := nuodbaas_client_test.NewTestClient(context.TODO())
+	require.NoError(t, client.CreateProject(t, proj1Org, proj1Name, "dev", "n0.nano"))
+	require.NoError(t, client.CreateProject(t, proj2Org, proj2Name, "dev", "n0.nano"))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },

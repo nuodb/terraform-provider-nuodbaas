@@ -37,10 +37,7 @@ func TestAccProjectDataSource(t *testing.T) {
 		},
 	}
 
-	ctx := context.TODO()
-
-	client := nuodbaas_client_test.DefaultApiClient()
-	require.NoError(t, nuodbaas_client_test.CreateProjectWithModel(t, ctx, client, organizationName, projectName, model))
+	require.NoError(t, nuodbaas_client_test.NewTestClient(context.TODO()).CreateProjectWithModel(t, organizationName, projectName, model))
 
 	resourceName := "project_details"
 	resourcePath := fmt.Sprintf("data.%s.%s", getProjectDatasourceTypeName(), resourceName)

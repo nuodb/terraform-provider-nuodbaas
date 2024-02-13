@@ -24,6 +24,18 @@ const (
 	DEFAULT_URL = "http://localhost:8080"
 )
 
+type TestClient struct {
+	Client *nuodbaas.APIClient
+	ctx    context.Context
+}
+
+func NewTestClient(ctx context.Context) TestClient {
+	return TestClient{
+		Client: DefaultApiClient(),
+		ctx:    ctx,
+	}
+}
+
 func DefaultApiClient() *nuodbaas.APIClient {
 	user := os.Getenv("NUODB_CP_USER")
 	password := os.Getenv("NUODB_CP_PASSWORD")
@@ -36,22 +48,22 @@ func DefaultApiClient() *nuodbaas.APIClient {
 	return nuodbaas_client.NewApiClient(true, urlBase, user, password)
 }
 
-func CreateProject(t *testing.T, ctx context.Context, client *nuodbaas.APIClient, organization string, name string, sla string, teir string) error {
+func (client TestClient) CreateProject(t *testing.T, organization string, name string, sla string, teir string) error {
 	model := nuodbaas.ProjectModel{
 		Sla:  sla,
 		Tier: teir,
 	}
 
-	return CreateProjectWithModel(t, ctx, client, organization, name, model)
+	return client.CreateProjectWithModel(t, organization, name, model)
 }
 
-func CreateProjectWithModel(t *testing.T, ctx context.Context, client *nuodbaas.APIClient, organization string, name string, model nuodbaas.ProjectModel) error {
-	request := client.ProjectsAPI.CreateProject(ctx, organization, name)
+func (client TestClient) CreateProjectWithModel(t *testing.T, organization string, name string, model nuodbaas.ProjectModel) error {
+	request := client.Client.ProjectsAPI.CreateProject(client.ctx, organization, name)
 	request = request.ProjectModel(model)
 	_, err := request.Execute()
 
 	t.Cleanup(func() {
-		err := DeleteProject(context.TODO(), client, organization, name, true)
+		err := client.DeleteProject(organization, name, true)
 		if err != nil {
 			t.Error(err)
 		}
@@ -63,7 +75,7 @@ func CreateProjectWithModel(t *testing.T, ctx context.Context, client *nuodbaas.
 
 	// Wait for project to exist.
 	return backoff.Retry(func() error {
-		_, status, err := GetProject(ctx, client, organization, name)
+		_, status, err := client.GetProject(organization, name)
 		if status.StatusCode == http.StatusNotFound {
 			return fmt.Errorf("Timed out waiting for project %s/%s to be created.", organization, name)
 		}
@@ -75,8 +87,8 @@ func CreateProjectWithModel(t *testing.T, ctx context.Context, client *nuodbaas.
 	}, backoff.NewExponentialBackOff())
 }
 
-func GetProject(ctx context.Context, client *nuodbaas.APIClient, organization string, name string) (*nuodbaas.ProjectModel, *http.Response, error) {
-	project, response, err := client.ProjectsAPI.GetProject(ctx, organization, name).Execute()
+func (client TestClient) GetProject(organization string, name string) (*nuodbaas.ProjectModel, *http.Response, error) {
+	project, response, err := client.Client.ProjectsAPI.GetProject(client.ctx, organization, name).Execute()
 	if err != nil {
 		err = errors.New(helper.GetApiErrorMessage(err, "Could not get project"))
 	}
@@ -84,8 +96,8 @@ func GetProject(ctx context.Context, client *nuodbaas.APIClient, organization st
 	return project, response, err
 }
 
-func DeleteProject(ctx context.Context, client *nuodbaas.APIClient, organization string, name string, ignoreMissing bool) error {
-	request := client.ProjectsAPI.DeleteProject(ctx, organization, name)
+func (client TestClient) DeleteProject(organization string, name string, ignoreMissing bool) error {
+	request := client.Client.ProjectsAPI.DeleteProject(client.ctx, organization, name)
 
 	response, err := request.Execute()
 	if err != nil && (!ignoreMissing || response.StatusCode != http.StatusNotFound) {
@@ -93,7 +105,7 @@ func DeleteProject(ctx context.Context, client *nuodbaas.APIClient, organization
 	}
 
 	return backoff.Retry(func() error {
-		_, status, err := GetProject(ctx, client, organization, name)
+		_, status, err := client.GetProject(organization, name)
 		if status.StatusCode == http.StatusNotFound {
 			return nil
 		}
@@ -105,20 +117,20 @@ func DeleteProject(ctx context.Context, client *nuodbaas.APIClient, organization
 	}, backoff.NewExponentialBackOff())
 }
 
-func CreateDatabase(t *testing.T, ctx context.Context, client *nuodbaas.APIClient, organization string, project string, name string, password string) error {
+func (client TestClient) CreateDatabase(t *testing.T, organization string, project string, name string, password string) error {
 	model := nuodbaas.DatabaseCreateUpdateModel{
 		DbaPassword: &password,
 	}
-	return CreateDatabaseWithModel(t, ctx, client, organization, project, name, model)
+	return client.CreateDatabaseWithModel(t, organization, project, name, model)
 }
 
-func CreateDatabaseWithModel(t *testing.T, ctx context.Context, client *nuodbaas.APIClient, organization string, project string, name string, model nuodbaas.DatabaseCreateUpdateModel) error {
-	request := client.DatabasesAPI.CreateDatabase(ctx, organization, project, name)
+func (client TestClient) CreateDatabaseWithModel(t *testing.T, organization string, project string, name string, model nuodbaas.DatabaseCreateUpdateModel) error {
+	request := client.Client.DatabasesAPI.CreateDatabase(client.ctx, organization, project, name)
 	request = request.DatabaseCreateUpdateModel(model)
 	_, err := request.Execute()
 
 	t.Cleanup(func() {
-		err := DeleteDatabase(context.TODO(), client, organization, project, name, true)
+		err := client.DeleteDatabase(organization, project, name, true)
 		if err != nil {
 			t.Error(err)
 		}
@@ -130,7 +142,7 @@ func CreateDatabaseWithModel(t *testing.T, ctx context.Context, client *nuodbaas
 
 	// Wait for the database to exist.
 	return backoff.Retry(func() error {
-		_, status, err := GetDatabase(ctx, client, organization, project, name)
+		_, status, err := client.GetDatabase(organization, project, name)
 		if status.StatusCode == http.StatusNotFound {
 			return fmt.Errorf("Timed out waiting for database %s/%s/%s to be created.", organization, project, name)
 		}
@@ -142,8 +154,8 @@ func CreateDatabaseWithModel(t *testing.T, ctx context.Context, client *nuodbaas
 	}, backoff.NewExponentialBackOff())
 }
 
-func GetDatabase(ctx context.Context, client *nuodbaas.APIClient, org string, project string, name string) (*nuodbaas.DatabaseModel, *http.Response, error) {
-	database, response, err := client.DatabasesAPI.GetDatabase(ctx, org, project, name).Execute()
+func (client TestClient) GetDatabase(org string, project string, name string) (*nuodbaas.DatabaseModel, *http.Response, error) {
+	database, response, err := client.Client.DatabasesAPI.GetDatabase(client.ctx, org, project, name).Execute()
 	if err != nil {
 		err = errors.New(helper.GetApiErrorMessage(err, "Could not get database"))
 	}
@@ -151,8 +163,8 @@ func GetDatabase(ctx context.Context, client *nuodbaas.APIClient, org string, pr
 	return database, response, err
 }
 
-func DeleteDatabase(ctx context.Context, client *nuodbaas.APIClient, org string, project string, name string, ignoreMissing bool) error {
-	request := client.DatabasesAPI.DeleteDatabase(ctx, org, project, name)
+func (client TestClient) DeleteDatabase(org string, project string, name string, ignoreMissing bool) error {
+	request := client.Client.DatabasesAPI.DeleteDatabase(client.ctx, org, project, name)
 
 	response, err := request.Execute()
 	if err != nil && (!ignoreMissing || response.StatusCode != http.StatusNotFound) {
@@ -160,7 +172,7 @@ func DeleteDatabase(ctx context.Context, client *nuodbaas.APIClient, org string,
 	}
 
 	return backoff.Retry(func() error {
-		_, status, err := GetDatabase(ctx, client, org, project, name)
+		_, status, err := client.GetDatabase(org, project, name)
 		if status.StatusCode == http.StatusNotFound {
 			return nil
 		}
@@ -172,19 +184,17 @@ func DeleteDatabase(ctx context.Context, client *nuodbaas.APIClient, org string,
 	}, backoff.NewExponentialBackOff())
 }
 
-func CheckClean() error {
+func (client TestClient) CheckClean() error {
 	var errList error = nil
 
-	ctx := context.Background()
-	client := DefaultApiClient()
-	projects, err := GetProjects(ctx, client)
+	projects, err := client.GetProjects()
 	errList = errors.Join(errList, err)
 
 	if len(projects) > 0 {
 		errList = errors.Join(errList, fmt.Errorf("Projects left behind: %s", projects))
 	}
 
-	databases, err := GetDatabases(ctx, client)
+	databases, err := client.GetDatabases()
 	errList = errors.Join(errList, err)
 
 	if len(databases) > 0 {
@@ -194,8 +204,8 @@ func CheckClean() error {
 	return errList
 }
 
-func GetProjects(ctx context.Context, client *nuodbaas.APIClient) ([]string, error) {
-	request := client.ProjectsAPI.GetAllProjects(ctx)
+func (client TestClient) GetProjects() ([]string, error) {
+	request := client.Client.ProjectsAPI.GetAllProjects(client.ctx)
 	request = request.ListAccessible(true)
 	projects, _, err := request.Execute()
 	if err != nil {
@@ -205,8 +215,8 @@ func GetProjects(ctx context.Context, client *nuodbaas.APIClient) ([]string, err
 	return projects.Items, nil
 }
 
-func GetDatabases(ctx context.Context, client *nuodbaas.APIClient) ([]string, error) {
-	request := client.DatabasesAPI.GetAllDatabases(ctx)
+func (client TestClient) GetDatabases() ([]string, error) {
+	request := client.Client.DatabasesAPI.GetAllDatabases(client.ctx)
 	request = request.ListAccessible(true)
 	projects, _, err := request.Execute()
 	if err != nil {

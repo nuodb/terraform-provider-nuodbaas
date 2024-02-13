@@ -46,11 +46,9 @@ func TestAccDatabaseDataSource(t *testing.T) {
 		},
 	}
 
-	ctx := context.TODO()
-
-	client := nuodbaas_client_test.DefaultApiClient()
-	require.NoError(t, nuodbaas_client_test.CreateProject(t, ctx, client, organizationName, projectName, sla, tier))
-	require.NoError(t, nuodbaas_client_test.CreateDatabaseWithModel(t, ctx, client, organizationName, projectName, dbName, model))
+	client := nuodbaas_client_test.NewTestClient(context.TODO())
+	require.NoError(t, client.CreateProject(t, organizationName, projectName, sla, tier))
+	require.NoError(t, client.CreateDatabaseWithModel(t, organizationName, projectName, dbName, model))
 
 	resourceName := "database_details"
 	resourcePath := fmt.Sprintf("data.%s.%s", getDatabaseDatasourceTypeName(), resourceName)
