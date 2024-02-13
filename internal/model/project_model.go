@@ -6,38 +6,36 @@ package model
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 type ProjectResourceModel struct {
-	Organization    types.String       `tfsdk:"organization"`
-	Name            types.String       `tfsdk:"name"`
-	Sla             types.String       `tfsdk:"sla"`
-	Tier            types.String       `tfsdk:"tier"`
-	Maintenance     *MaintenanceModel  `tfsdk:"maintenance"`
-	ResourceVersion types.String       `tfsdk:"resource_version"`
-	Properties      *ProjectProperties `tfsdk:"properties"`
-	Timeouts        timeouts.Value     `tfsdk:"timeouts"`
+	Organization string                   `tfsdk:"organization" json:"organization"`
+	Name         string                   `tfsdk:"name" json:"name"`
+	Sla          string                   `tfsdk:"sla" json:"sla"`
+	Tier         string                   `tfsdk:"tier" json:"tier"`
+	Maintenance  *MaintenanceProjectModel `tfsdk:"maintenance" json:"maintenance"`
+	Properties   *ProjectProperties       `tfsdk:"properties" json:"properties"`
+	Timeouts     timeouts.Value           `tfsdk:"timeouts"`
 }
 
 type ProjectProperties struct {
-	TierParameters types.Map `tfsdk:"tier_parameters"`
+	TierParameters *map[string]string `tfsdk:"tier_parameters" json:"tierParameters"`
 }
-type MaintenanceModel struct {
-	IsDisabled types.Bool `tfsdk:"is_disabled"`
+type MaintenanceProjectModel struct {
+	IsDisabled *bool `tfsdk:"is_disabled" json:"isDisabled"`
 }
 
 type ProjectDataSourceModel struct {
-	Organization    types.String       `tfsdk:"organization"`
-	Name            types.String       `tfsdk:"name"`
-	Sla             types.String       `tfsdk:"sla"`
-	Tier            types.String       `tfsdk:"tier"`
-	Maintenance     *MaintenanceModel  `tfsdk:"maintenance"`
-	ResourceVersion types.String       `tfsdk:"resource_version"`
-	Properties      *ProjectProperties `tfsdk:"properties"`
+	Organization    string                   `tfsdk:"organization" json:"organization"`
+	Name            string                   `tfsdk:"name" json:"name"`
+	Sla             string                   `tfsdk:"sla" json:"sla"`
+	Tier            string                   `tfsdk:"tier" json:"tier"`
+	Maintenance     *MaintenanceProjectModel `tfsdk:"maintenance" json:"maintenance"`
+	Properties      *ProjectProperties       `tfsdk:"properties" json:"properties"`
+	ResourceVersion string                   `tfsdk:"resource_version" json:"resourceVersion"`
 }
 
-type ProjectDataSourceResponseModel struct {
-	Organization types.String `tfsdk:"organization"`
-	Name         types.String `tfsdk:"name"`
+type ProjectDataSourceNameModel struct {
+	Organization string `tfsdk:"organization" json:"organization"`
+	Name         string `tfsdk:"name" json:"name"`
 }

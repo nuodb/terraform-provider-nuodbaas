@@ -11,16 +11,14 @@ import (
 
 	"github.com/nuodb/terraform-provider-nuodbaas/helper"
 
+	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/model"
-
-	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
 
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 )
@@ -58,7 +56,7 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 				MarkdownDescription: "Name of the organization for which project is created",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					framework.RequiresReplace(),
 				},
 			},
 			"name": schema.StringAttribute{
@@ -66,7 +64,7 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 				MarkdownDescription: "Name of the project",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					framework.RequiresReplace(),
 				},
 			},
 			"sla": schema.StringAttribute{
@@ -74,7 +72,7 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 				MarkdownDescription: "The SLA for the project. Cannot be updated once the project is created.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					framework.RequiresReplace(),
 				},
 			},
 			"tier": schema.StringAttribute{
@@ -88,6 +86,10 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 				MarkdownDescription: "Maintenance shutdown status of the project. " +
 					"Shutting down a project also shuts down all databases belonging to it.",
 				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Object{
+					framework.UseStateForUnknown(),
+				},
 				Attributes: map[string]schema.Attribute{
 					"is_disabled": schema.BoolAttribute{
 						Description:         "Whether the project or database should be shutdown",
@@ -96,24 +98,24 @@ func (r *ProjectResource) Schema(ctx context.Context, req resource.SchemaRequest
 					},
 				},
 			},
-			"resource_version": schema.StringAttribute{
-				Description:         "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
-				MarkdownDescription: "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
 			"properties": schema.SingleNestedAttribute{
 				Description:         "Project configuration properties.",
 				MarkdownDescription: "Project configuration properties.",
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.Object{
+					framework.UseStateForUnknown(),
+				},
 				Attributes: map[string]schema.Attribute{
 					"tier_parameters": schema.MapAttribute{
 						Description:         "Opaque parameters supplied to project service tier.",
 						MarkdownDescription: "Opaque parameters supplied to project service tier.",
 						Optional:            true,
+						Computed:            true,
 						ElementType:         types.StringType,
+						PlanModifiers: []planmodifier.Map{
+							framework.UseStateForUnknown(),
+						},
 					},
 				},
 			},
@@ -148,29 +150,19 @@ func (r *ProjectResource) Configure(ctx context.Context, req resource.ConfigureR
 
 func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var state model.ProjectResourceModel
-
-	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &state)...)
-
-	if resp.Diagnostics.HasError() {
+	if !helper.ReadResource(ctx, resp.Diagnostics, req.Plan.Get, &state) {
 		return
 	}
 
-	// Set timeout
-	timeout, diags := state.Timeouts.Create(ctx, 20*time.Minute)
-
+	timeout, diags := state.Timeouts.Create(ctx, 10*time.Minute)
 	resp.Diagnostics.Append(diags...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	projectClient := nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString())
-	err := projectClient.CreateProject(state)
-
+	err := helper.CreateProject(ctx, r.client, state)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating project",
@@ -179,30 +171,17 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	getProjectModel, err := waitForProject(projectClient)
-
+	latest, err := r.waitForProject(ctx, state.Organization, state.Name)
 	if err != nil && helper.IsTimeoutError(err) {
-		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Unable to get project %+v in ready. You can go ahead and retry creating it", state.Name.ValueString()))
-		projectClient = nuodbaas_client.NewProjectClient(r.client, context.Background(), state.Organization.ValueString(), state.Name.ValueString())
-		err = projectClient.DeleteProject()
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error deleting failed project",
-				helper.GetApiErrorMessage(err, "Could not clean up timed out project deploy:"),
-			)
-		}
-		return
-	}
-
-	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error Reading Project",
-			helper.GetApiErrorMessage(err, fmt.Sprintf("Could not get NuoDbaas project %+v", state.Name.ValueString())),
-		)
+			"Timeout error",
+			fmt.Sprintf("Timed out waiting for project %s/%s", state.Organization, state.Name))
 		return
 	}
 
-	state.ResourceVersion = types.StringValue(*getProjectModel.ResourceVersion)
+	if !helper.ConvertResource(resp.Diagnostics, &latest, &state) {
+		return
+	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -210,17 +189,11 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 
 func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state model.ProjectResourceModel
-
-	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-
-	if resp.Diagnostics.HasError() {
+	if !helper.ReadResource(ctx, resp.Diagnostics, req.State.Get, &state) {
 		return
 	}
 
-	projectClient := nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString())
-	projectModel, err := projectClient.GetProject()
-
+	latest, err := helper.GetProject(ctx, r.client, state.Organization, state.Name)
 	if err != nil {
 		if errObj := helper.GetErrorContentObj(err); errObj != nil {
 			if errObj.GetStatus() == "HTTP 404 Not Found" {
@@ -228,83 +201,36 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 				return
 			}
 		}
-	}
-
-	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error Reading Project",
-			helper.GetApiErrorMessage(err, fmt.Sprintf("Could not get NuoDbaas project %+v", state.Name.ValueString())),
+			"Error reading project",
+			helper.GetApiErrorMessage(err, "Could not get project "+state.Name),
 		)
 		return
 	}
 
-	if projectModel.Maintenance != nil {
-		var maintenance = state.Maintenance
-
-		if projectModel.Maintenance.IsDisabled != nil {
-			if (state.Maintenance != nil && state.Maintenance.IsDisabled.IsNull() && *projectModel.Maintenance.IsDisabled) || (state.Maintenance != nil && !state.Maintenance.IsDisabled.IsNull()) {
-				maintenance.IsDisabled = types.BoolValue(*projectModel.Maintenance.IsDisabled)
-			}
-		}
-		state.Maintenance = maintenance
+	if !helper.ConvertResource(resp.Diagnostics, &latest, &state) {
+		return
 	}
-
-	if projectModel.Properties != nil {
-		propertiesModel := model.ProjectProperties{
-			TierParameters: types.MapNull(types.StringType),
-		}
-
-		if len(*projectModel.Properties.TierParameters) != 0 {
-			mapValue, diags := helper.ConvertMapToTfMap(projectModel.Properties.TierParameters)
-			resp.Diagnostics.Append(diags...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			propertiesModel.TierParameters = mapValue
-		}
-		if len(*projectModel.Properties.TierParameters) != 0 {
-			state.Properties = &propertiesModel
-		}
-
-	}
-
-	state.Tier = types.StringValue(projectModel.Tier)
-	state.ResourceVersion = types.StringValue(*projectModel.ResourceVersion)
 
 	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data model.ProjectResourceModel
-
-	// TODO: Refresh project version
-
-	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
+	var state model.ProjectResourceModel
+	if !helper.ReadResource(ctx, resp.Diagnostics, req.Plan.Get, &state) {
 		return
 	}
 
-	// Set timeout
-	timeout, diags := data.Timeouts.Create(ctx, 20*time.Minute)
-
+	timeout, diags := state.Timeouts.Update(ctx, 10*time.Minute)
 	resp.Diagnostics.Append(diags...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	projectClient := nuodbaas_client.NewProjectClient(r.client, ctx, data.Organization.ValueString(), data.Name.ValueString())
-	err := projectClient.UpdateProject(data)
-
-	//TODO: Retry on CONCURRENT_UPDATE
-
+	err := helper.UpdateProject(ctx, r.client, state)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating project",
@@ -313,49 +239,33 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	_, err = waitForProject(projectClient)
-
+	latest, err := r.waitForProject(ctx, state.Organization, state.Name)
 	if err != nil && helper.IsTimeoutError(err) {
-		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Project %+v failed to become ready.", data.Name.ValueString()))
-		return
-	}
-
-	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error Reading Project",
-			helper.GetApiErrorMessage(err, fmt.Sprintf("Could not get project status %+v", data.Name.ValueString())),
-		)
+			"Timeout error",
+			fmt.Sprintf("Timed out waiting for project %s/%s", state.Organization, state.Name))
 		return
 	}
 
-	// TODO: Save other values?
-
-	// TODO: Uncomment once we remove UseStateForUnknown from ResourceVersion in schema.
-	// This requires fetching resource version at the start of the Update
-	// data.ResourceVersion = types.StringValue(*projectModel.ResourceVersion)
+	if !helper.ConvertResource(resp.Diagnostics, &latest, &state) {
+		return
+	}
 
 	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 
 }
 
 func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state model.ProjectResourceModel
-
-	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-
-	if resp.Diagnostics.HasError() {
+	if !helper.ReadResource(ctx, resp.Diagnostics, req.State.Get, &state) {
 		return
 	}
 
-	err := nuodbaas_client.NewProjectClient(r.client, ctx, state.Organization.ValueString(), state.Name.ValueString()).DeleteProject()
-
+	err := helper.DeleteProject(ctx, r.client, state.Organization, state.Name)
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error deleting project",
-			helper.GetApiErrorMessage(err, fmt.Sprintf("Unable to delete project %s, unexpected error:", state.Name.ValueString())),
-		)
+		resp.Diagnostics.AddError("Unable to delete project",
+			helper.GetApiErrorMessage(err, fmt.Sprintf("Unable to delete project %s, unexpected error:", state.Name)))
 		return
 	}
 }
@@ -365,26 +275,21 @@ func (r *ProjectResource) ImportState(ctx context.Context, req resource.ImportSt
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func waitForProject(projectClient *nuodbaas_client.NuodbaasProjectClient) (*nuodbaas.ProjectModel, error) {
-	var projectModel *nuodbaas.ProjectModel
-	var err error
-	var waitTime = 1
+func (r *ProjectResource) waitForProject(ctx context.Context, organization, project string) (*nuodbaas.ProjectModel, error) {
+	var waitTime = 1 * time.Second
 	for {
-		projectModel, err = projectClient.GetProject()
+		projectModel, err := helper.GetProject(ctx, r.client, organization, project)
 		if err != nil {
 			return nil, err
 		}
-
-		if projectModel.Status != nil {
-			isDisabled := projectModel.Maintenance != nil && projectModel.Maintenance.IsDisabled != nil && *projectModel.Maintenance.IsDisabled
-
-			if (!isDisabled && projectModel.Status.GetState() == "Available") || (isDisabled && projectModel.Status.GetState() == "Stopped") {
-				break
-			}
+		expectedState := "Available"
+		if projectModel.Maintenance != nil && projectModel.Maintenance.GetIsDisabled() {
+			expectedState = "Stopped"
 		}
-
-		time.Sleep(time.Duration(waitTime) * time.Second)
-		waitTime = helper.ComputeWaitTime(waitTime, 10)
+		if projectModel.Status != nil && projectModel.Status.GetState() == expectedState {
+			return projectModel, nil
+		}
+		// TODO: Error out if the project is in a failed state?
+		time.Sleep(waitTime)
 	}
-	return projectModel, nil
 }

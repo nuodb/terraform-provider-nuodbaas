@@ -8,16 +8,13 @@ import (
 	"context"
 	"fmt"
 
+	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 	"github.com/nuodb/terraform-provider-nuodbaas/helper"
-
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/model"
-
-	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 )
 
 var _ datasource.DataSourceWithConfigure = &projectDataSource{}
@@ -100,61 +97,24 @@ func (d *projectDataSource) Metadata(_ context.Context, req datasource.MetadataR
 // Read implements datasource.DataSource.
 func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var state model.ProjectDataSourceModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
-
-	if resp.Diagnostics.HasError() {
+	if !helper.ReadResource(ctx, resp.Diagnostics, req.Config.Get, &state) {
 		return
 	}
 
-	projectClient := nuodbaas_client.NewProjectClient(d.client, ctx, state.Organization.ValueString(), state.Name.ValueString())
-
-	project, err := projectClient.GetProject()
-
+	project, err := helper.GetProject(ctx, d.client, state.Organization, state.Name)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error getting projects",
-			helper.GetApiErrorMessage(err, "Could not get projects, unexpected error:"),
+			"Error getting project",
+			helper.GetApiErrorMessage(err, "Could not update project:"),
 		)
 		return
 	}
 
-	projectStateModel := model.ProjectDataSourceModel{
-		Organization:    types.StringValue(*project.Organization),
-		Name:            types.StringValue(*project.Name),
-		Sla:             types.StringValue(project.Sla),
-		Tier:            types.StringValue(project.Tier),
-		ResourceVersion: types.StringValue(*project.ResourceVersion),
+	if !helper.ConvertResource(resp.Diagnostics, &project, &state) {
+		return
 	}
-
-	if project.Maintenance != nil {
-		maintenanceModel := model.MaintenanceModel{}
-
-		if project.Maintenance.IsDisabled != nil {
-			maintenanceModel.IsDisabled = types.BoolValue(*project.Maintenance.IsDisabled)
-		}
-
-		projectStateModel.Maintenance = &maintenanceModel
-	}
-
-	if project.Properties != nil {
-		properties := model.ProjectProperties{
-			TierParameters: types.MapNull(types.StringType),
-		}
-		if project.Properties.TierParameters != nil {
-			mapValue, diag := helper.ConvertMapToTfMap(project.Properties.TierParameters)
-			resp.Diagnostics.Append(diag...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			properties.TierParameters = mapValue
-		}
-		projectStateModel.Properties = &properties
-	}
-
-	state = projectStateModel
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-
 }
 
 // Configure implements datasource.DataSourceWithConfigure.

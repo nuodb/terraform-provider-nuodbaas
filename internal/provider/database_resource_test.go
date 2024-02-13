@@ -41,7 +41,6 @@ func TestAccDatabaseResource(t *testing.T) {
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "project", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "dba_password", "changeMe"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "tier", "n0.nano"),
-					resource.TestCheckResourceAttrSet("nuodbaas_database.db", "resource_version"),
 				),
 			},
 			{
@@ -54,7 +53,6 @@ func TestAccDatabaseResource(t *testing.T) {
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "project", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "dba_password", "changeMe"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "tier", "n0.nano"),
-					resource.TestCheckResourceAttrSet("nuodbaas_database.db", "resource_version"),
 				),
 			},
 			{

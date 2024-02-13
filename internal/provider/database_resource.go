@@ -9,24 +9,17 @@ import (
 	"fmt"
 	"time"
 
+	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 	"github.com/nuodb/terraform-provider-nuodbaas/helper"
-
+	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/model"
 
-	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
-
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -60,7 +53,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				MarkdownDescription: "Name of the organization which this database belongs to (should match the organization of the project).",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					framework.RequiresReplace(),
 				},
 			},
 			"name": schema.StringAttribute{
@@ -68,7 +61,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				MarkdownDescription: "Name of the database.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					framework.RequiresReplace(),
 				},
 			},
 			"project": schema.StringAttribute{
@@ -76,7 +69,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				MarkdownDescription: "The name of the project for which database belongs to.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					framework.RequiresReplace(),
 				},
 			},
 			"dba_password": schema.StringAttribute{
@@ -85,7 +78,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				Required:            true,
 				Sensitive:           true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					framework.RequiresReplace(),
 				},
 			},
 			"tier": schema.StringAttribute{
@@ -93,26 +86,28 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				MarkdownDescription: "The service tier for the database. If omitted, the project service tier is inherited.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					framework.UseStateForUnknown(),
+				},
 			},
 			"maintenance": schema.SingleNestedAttribute{
 				Description:         "Maintenance shutdown status of the database.",
 				MarkdownDescription: "Maintenance shutdown status of the database.",
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.Object{
+					framework.UseStateForUnknown(),
+				},
 				Attributes: map[string]schema.Attribute{
 					"is_disabled": schema.BoolAttribute{
 						Description:         "Whether the project or database should be shutdown",
 						MarkdownDescription: "Whether the project or database should be shutdown",
 						Optional:            true,
+						Computed:            true,
+						PlanModifiers: []planmodifier.Bool{
+							framework.UseStateForUnknown(),
+						},
 					},
-				},
-			},
-			"resource_version": schema.StringAttribute{
-				Computed:            true,
-				Description:         "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
-				MarkdownDescription: "The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.",
-				// This plan modifier is necessary since it is used in updating the database. Without it the value of resource_version would be unknown
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"properties": schema.SingleNestedAttribute{
@@ -121,7 +116,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
+					framework.UseStateForUnknown(),
 				},
 				Attributes: map[string]schema.Attribute{
 					"archive_disk_size": schema.StringAttribute{
@@ -130,7 +125,7 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 						Optional:            true,
 						Computed:            true,
 						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.UseStateForUnknown(),
+							framework.UseStateForUnknown(),
 						},
 					},
 					"journal_disk_size": schema.StringAttribute{
@@ -143,26 +138,6 @@ func (r *DatabaseResource) Schema(ctx context.Context, req resource.SchemaReques
 						MarkdownDescription: "Opaque parameters supplied to database service tier.",
 						ElementType:         types.StringType,
 						Optional:            true,
-					},
-				},
-			},
-			"status": schema.SingleNestedAttribute{
-				Description:         "Current database status.",
-				MarkdownDescription: "Current database status.",
-				Computed:            true,
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
-				},
-				Attributes: map[string]schema.Attribute{
-					"sql_end_point": schema.StringAttribute{
-						Description:         "The endpoint for SQL clients to connect to",
-						MarkdownDescription: "The endpoint for SQL clients to connect to",
-						Computed:            true,
-					},
-					"ca_pem": schema.StringAttribute{
-						Description:         "The PEM-encoded certificate for SQL clients to verify database servers",
-						MarkdownDescription: "The PEM-encoded certificate for SQL clients to verify database servers",
-						Computed:            true,
 					},
 				},
 			},
@@ -197,33 +172,19 @@ func (r *DatabaseResource) Configure(ctx context.Context, req resource.Configure
 
 func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var state model.DatabaseResourceModel
-
-	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &state)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	var propertiesModel model.DatabasePropertiesResourceModel
-
-	resp.Diagnostics.Append(state.Properties.As(ctx, &propertiesModel, basetypes.ObjectAsOptions{UnhandledUnknownAsEmpty: true, UnhandledNullAsEmpty: true})...)
-	if resp.Diagnostics.HasError() {
+	if !helper.ReadResource(ctx, resp.Diagnostics, req.Plan.Get, &state) {
 		return
 	}
 
-	ctx, diags, cancel := r.updateContextWithTimeout(ctx, state, "create")
-
+	timeout, diags := state.Timeouts.Create(ctx, 10*time.Minute)
 	resp.Diagnostics.Append(diags...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	err := databaseClient.CreateDatabase(state, &propertiesModel)
-
+	err := helper.CreateDatabase(ctx, r.client, state)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating database",
@@ -232,53 +193,29 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	getDatabaseModel, err := r.waitForDatabase(ctx, databaseClient)
-
+	latest, err := r.waitForDatabase(ctx, state.Organization, state.Project, state.Name)
 	if err != nil && helper.IsTimeoutError(err) {
-		resp.Diagnostics.AddError("Timeout error", fmt.Sprintf("Unable to get database %+v in ready. You can go ahead and retry creating it", state.Name.ValueString()))
-		databaseClient = nuodbaas_client.NewDatabaseClient(r.client, context.Background(), state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-		err = databaseClient.DeleteDatabase()
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error deleting failed database",
-				helper.GetApiErrorMessage(err, "Could not clean up timed out database deploy:"),
-			)
-		}
-		return
-	}
-
-	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading Database",
-			helper.GetApiErrorMessage(err, "Could not get NuoDbaas database "+state.Name.ValueString()),
-		)
+			"Timeout error",
+			fmt.Sprintf("Timed out waiting for database %s/%s/%s", state.Organization, state.Project, state.Name))
 		return
 	}
 
-	updateState, diags := r.updateStateWithComputedValues(ctx, &state, getDatabaseModel, "create")
-
-	resp.Diagnostics.Append(diags...)
-
-	if resp.Diagnostics.HasError() {
+	if !helper.ConvertResource(resp.Diagnostics, &latest, &state) {
 		return
 	}
 
 	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, updateState)...)
-
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
 func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state model.DatabaseResourceModel
-	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-
-	if resp.Diagnostics.HasError() {
+	if !helper.ReadResource(ctx, resp.Diagnostics, req.State.Get, &state) {
 		return
 	}
-	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	getDatabaseModel, err := databaseClient.GetDatabase()
 
+	latest, err := helper.GetDatabase(ctx, r.client, state.Organization, state.Project, state.Name)
 	if err != nil {
 		if errObj := helper.GetErrorContentObj(err); errObj != nil {
 			if errObj.GetStatus() == "HTTP 404 Not Found" {
@@ -287,64 +224,36 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 			}
 		}
 		resp.Diagnostics.AddError(
-			"Error reading Database",
-			helper.GetApiErrorMessage(err, "Could not get NuoDbaas database "+state.Name.ValueString()),
+			"Error reading database",
+			helper.GetApiErrorMessage(err, "Could not get database "+state.Name),
 		)
 		return
 	}
 
-	readState, diags := r.updateStateWithComputedValues(ctx, &state, getDatabaseModel, "read")
-
-	resp.Diagnostics.Append(diags...)
-
-	if resp.Diagnostics.HasError() {
+	if !helper.ConvertResource(resp.Diagnostics, &latest, &state) {
 		return
 	}
 
 	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, readState)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 
 }
 
 func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var state model.DatabaseResourceModel
-	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &state)...)
-
-	if resp.Diagnostics.HasError() {
+	if !helper.ReadResource(ctx, resp.Diagnostics, req.Plan.Get, &state) {
 		return
 	}
 
-	var propertiesModel model.DatabasePropertiesResourceModel
-	resp.Diagnostics.Append(state.Properties.As(ctx, &propertiesModel, basetypes.ObjectAsOptions{UnhandledUnknownAsEmpty: true, UnhandledNullAsEmpty: true})...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	ctx, diags, cancel := r.updateContextWithTimeout(ctx, state, "update")
-
+	timeout, diags := state.Timeouts.Update(ctx, 10*time.Minute)
 	resp.Diagnostics.Append(diags...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	databaseClient := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString())
-	err := databaseClient.UpdateDatabase(state, &propertiesModel)
-
-	if err != nil {
-		if errObj := helper.GetErrorContentObj(err); errObj != nil {
-			// TODO: This is only retrying once. We should retry as
-			// long as an error with code CONCURRENT_UPDATE is
-			// returned.
-			if errObj.GetCode() == "CONCURRENT_UPDATE" {
-				err = r.retryUpdate(ctx, state, state.Maintenance, &propertiesModel, databaseClient)
-			}
-		}
-	}
-
+	err := helper.UpdateDatabase(ctx, r.client, state)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating database",
@@ -353,162 +262,56 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	getDatabaseModel, err := r.waitForDatabase(ctx, databaseClient)
-
-	if err != nil {
+	latest, err := r.waitForDatabase(ctx, state.Organization, state.Project, state.Name)
+	if err != nil && helper.IsTimeoutError(err) {
 		resp.Diagnostics.AddError(
-			"Error reading Database",
-			helper.GetApiErrorMessage(err, "Could not get NuoDbaas database "+state.Name.ValueString()),
-		)
+			"Timeout error",
+			fmt.Sprintf("Timed out waiting for database %s/%s/%s", state.Organization, state.Project, state.Name))
 		return
 	}
 
-	updatedState, diags := r.updateStateWithComputedValues(ctx, &state, getDatabaseModel, "update")
-
-	resp.Diagnostics.Append(diags...)
-
-	if resp.Diagnostics.HasError() {
+	if !helper.ConvertResource(resp.Diagnostics, &latest, &state) {
 		return
 	}
 
 	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, updatedState)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 func (r *DatabaseResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state model.DatabaseResourceModel
-
-	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-
-	if resp.Diagnostics.HasError() {
+	if !helper.ReadResource(ctx, resp.Diagnostics, req.State.Get, &state) {
 		return
 	}
 
-	err := nuodbaas_client.NewDatabaseClient(r.client, ctx, state.Organization.ValueString(), state.Project.ValueString(), state.Name.ValueString()).DeleteDatabase()
-
+	err := helper.DeleteDatabase(ctx, r.client, state.Organization, state.Project, state.Name)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to delete database",
-			helper.GetApiErrorMessage(err, fmt.Sprintf("Unable to database project %s, unexpected error:", state.Name.ValueString())),
-		)
+			helper.GetApiErrorMessage(err, fmt.Sprintf("Unable to delete database %s, unexpected error:", state.Name)))
 		return
 	}
-}
-
-func (r *DatabaseResource) retryUpdate(ctx context.Context, state model.DatabaseResourceModel, maintenanceModel *model.MaintenanceModel, propertiesModel *model.DatabasePropertiesResourceModel, databaseClient *nuodbaas_client.NuodbaasDatabaseClient) error {
-	databaseModel, err := databaseClient.GetDatabase()
-	if err != nil {
-		return err
-	}
-	state.ResourceVersion = types.StringValue(*databaseModel.ResourceVersion)
-	err = databaseClient.UpdateDatabase(state, propertiesModel)
-	if err != nil {
-		return err
-	} else {
-		return nil
-	}
-}
-
-func (r *DatabaseResource) waitForDatabase(ctx context.Context, databaseClient *nuodbaas_client.NuodbaasDatabaseClient) (*nuodbaas.DatabaseModel, error) {
-
-	var getDatabaseModel *nuodbaas.DatabaseModel
-	var waitTime = 1
-	for {
-		databaseModel, err := databaseClient.GetDatabase()
-		getDatabaseModel = databaseModel
-		if err != nil {
-			return nil, err
-		}
-		if databaseModel.Maintenance != nil {
-			// TODO: Guard IsDisabled dereference with nil check
-			if !*databaseModel.Maintenance.IsDisabled && databaseModel.Status != nil && databaseModel.Status.GetState() == "Available" {
-				break
-			} else if *databaseModel.Maintenance.IsDisabled && databaseModel.Status != nil && databaseModel.Status.GetState() == "Stopped" {
-				break
-			}
-		} else if databaseModel.Status != nil && databaseModel.Status.GetState() == "Available" {
-			break
-		}
-
-		//TODO: Error out if the database is in a failed state?
-		time.Sleep(time.Duration(waitTime) * time.Second)
-		waitTime = helper.ComputeWaitTime(waitTime, 10)
-	}
-	return getDatabaseModel, nil
-}
-
-func (r *DatabaseResource) updateStateWithComputedValues(ctx context.Context, state *model.DatabaseResourceModel, databaseModel *nuodbaas.DatabaseModel, stateType string) (*model.DatabaseResourceModel, diag.Diagnostics) {
-
-	var diagnostics diag.Diagnostics
-
-	if stateType != "update" {
-		state.ResourceVersion = types.StringValue(*databaseModel.ResourceVersion)
-	}
-	state.Tier = types.StringValue(*databaseModel.Tier)
-
-	propertiesValue := map[string]attr.Value{
-		"archive_disk_size": types.StringPointerValue(databaseModel.Properties.ArchiveDiskSize),
-		"journal_disk_size": types.StringPointerValue(databaseModel.Properties.JournalDiskSize),
-		"tier_parameters":   types.MapNull(types.StringType),
-	}
-
-	if len(databaseModel.Properties.GetTierParameters()) != 0 {
-		mapValue, diags := helper.ConvertMapToTfMap(databaseModel.Properties.TierParameters)
-		diagnostics = append(diagnostics, diags...)
-		if diagnostics.HasError() {
-			return nil, diagnostics
-		}
-		propertiesValue["tier_parameters"] = mapValue
-	}
-
-	if databaseModel.Status != nil {
-		elementTypes := map[string]attr.Type{
-			"sql_end_point": types.StringType,
-			"ca_pem":        types.StringType,
-		}
-		elements := map[string]attr.Value{
-			"sql_end_point": types.StringPointerValue(databaseModel.Status.SqlEndpoint),
-			"ca_pem":        types.StringPointerValue(databaseModel.Status.CaPem),
-		}
-		status, diags := types.ObjectValue(elementTypes, elements)
-		diagnostics = append(diagnostics, diags...)
-		if diagnostics.HasError() {
-			return nil, diagnostics
-		}
-		state.Status = status
-	}
-
-	convertPropertiesType := map[string]attr.Type{
-		"archive_disk_size": types.StringType,
-		"journal_disk_size": types.StringType,
-		"tier_parameters":   types.MapType{ElemType: types.StringType},
-	}
-
-	state.Properties = basetypes.NewObjectValueMust(convertPropertiesType, propertiesValue)
-
-	return state, diagnostics
-}
-
-func (r *DatabaseResource) updateContextWithTimeout(ctx context.Context, state model.DatabaseResourceModel, timeoutType string) (context.Context, diag.Diagnostics, context.CancelFunc) {
-	var timeout time.Duration
-	var diags diag.Diagnostics
-
-	if timeoutType == "create" {
-		timeout, diags = state.Timeouts.Create(ctx, 30*time.Minute)
-	} else if timeoutType == "update" {
-		timeout, diags = state.Timeouts.Update(ctx, 30*time.Minute)
-	}
-
-	if diags.HasError() {
-		return ctx, diags, nil
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-
-	return ctx, diags, cancel
 }
 
 func (r *DatabaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	//TODO: Does not work
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r *DatabaseResource) waitForDatabase(ctx context.Context, organization, project, database string) (*nuodbaas.DatabaseModel, error) {
+	var waitTime = 1 * time.Second
+	for {
+		databaseModel, err := helper.GetDatabase(ctx, r.client, organization, project, database)
+		if err != nil {
+			return nil, err
+		}
+		expectedState := "Available"
+		if databaseModel.Maintenance != nil && databaseModel.Maintenance.GetIsDisabled() {
+			expectedState = "Stopped"
+		}
+		if databaseModel.Status != nil && databaseModel.Status.GetState() == expectedState {
+			return databaseModel, nil
+		}
+		// TODO: Error out if the database is in a failed state?
+		time.Sleep(waitTime)
+	}
 }

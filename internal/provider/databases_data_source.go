@@ -8,16 +8,12 @@ import (
 	"context"
 	"fmt"
 
+	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 	"github.com/nuodb/terraform-provider-nuodbaas/helper"
-
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/model"
-
-	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/types"
-	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 )
 
 var _ datasource.DataSourceWithConfigure = &databasesDataSource{}
@@ -31,13 +27,13 @@ type databasesDataSource struct {
 }
 
 type databaseFilterModel struct {
-	Organization types.String `tfsdk:"organization"`
-	Project      types.String `tfsdk:"project"`
+	Organization *string `tfsdk:"organization"`
+	Project      *string `tfsdk:"project"`
 }
 
 type databasesModel struct {
-	Filter    *databaseFilterModel                     `tfsdk:"filter"`
-	Databases []model.DatabasesDataSourceResponseModel `tfsdk:"databases"`
+	Filter    *databaseFilterModel                `tfsdk:"filter"`
+	Databases []model.DatabaseDataSourceNameModel `tfsdk:"databases"`
 }
 
 // Schema implements datasource.DataSource.
@@ -100,36 +96,20 @@ func (d *databasesDataSource) Metadata(_ context.Context, req datasource.Metadat
 // Read implements datasource.DataSource.
 func (d *databasesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var state databasesModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
-
-	if resp.Diagnostics.HasError() {
+	if !helper.ReadResource(ctx, resp.Diagnostics, req.Config.Get, &state) {
 		return
 	}
 
-	var (
-		organization = ""
-		project      = ""
-	)
-
+	var organization, project string
 	if state.Filter != nil {
-		if state.Filter.Organization.IsNull() && !state.Filter.Project.IsNull() {
-			resp.Diagnostics.AddError(
-				"Organization Missing",
-				"Organization is required if project is supplied",
-			)
-			return
+		if state.Filter.Organization != nil {
+			organization = *state.Filter.Organization
 		}
-		if !state.Filter.Organization.IsNull() {
-			organization = state.Filter.Organization.ValueString()
-		}
-		if !state.Filter.Project.IsNull() {
-			project = state.Filter.Project.ValueString()
+		if state.Filter.Project != nil {
+			project = *state.Filter.Project
 		}
 	}
-
-	databaseClient := nuodbaas_client.NewDatabaseClient(d.client, ctx, organization, project, "")
-
-	databases, err := databaseClient.GetDatabases()
+	databases, err := helper.GetDatabases(ctx, d.client, organization, project, true)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error getting databases",
@@ -138,10 +118,14 @@ func (d *databasesDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	state.Databases = helper.GetDatabaseDataSourceResponse(databases)
-
+	state.Databases, err = helper.GetDatabaseDataSourceResponse(databases)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Conversion Failure",
+			"Could not get convert database names: "+err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-
 }
 
 // Configure implements datasource.DataSourceWithConfigure.
@@ -151,7 +135,6 @@ func (d *databasesDataSource) Configure(_ context.Context, req datasource.Config
 	}
 
 	client, ok := req.ProviderData.(*nuodbaas.APIClient)
-
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",

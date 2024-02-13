@@ -5,37 +5,39 @@ All Rights Reserved.
 package helper
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/model"
-
-	"github.com/hashicorp/terraform-plugin-framework/types"
-	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 )
 
-func GetProjectDataSourceResponse(list *nuodbaas.ItemListString) []model.ProjectDataSourceResponseModel {
-	var projectDataSourceList []model.ProjectDataSourceResponseModel
-
-	for _, item := range list.GetItems() {
-		splitArr := strings.Split(item, "/")
-		projectDataSourceList = append(projectDataSourceList, model.ProjectDataSourceResponseModel{
-			Organization: types.StringValue(splitArr[0]),
-			Name:         types.StringValue(splitArr[1]),
+func GetProjectDataSourceResponse(projects []string) ([]model.ProjectDataSourceNameModel, error) {
+	var ret []model.ProjectDataSourceNameModel
+	for _, project := range projects {
+		parts := strings.Split(project, "/")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("Unexpected format for project name: %s", project)
+		}
+		ret = append(ret, model.ProjectDataSourceNameModel{
+			Organization: parts[0],
+			Name:         parts[1],
 		})
 	}
-	return projectDataSourceList
+	return ret, nil
 }
 
-func GetDatabaseDataSourceResponse(list *nuodbaas.ItemListString) []model.DatabasesDataSourceResponseModel {
-	var databaseDataSourceList []model.DatabasesDataSourceResponseModel
-
-	for _, item := range list.GetItems() {
-		splitArr := strings.Split(item, "/")
-		databaseDataSourceList = append(databaseDataSourceList, model.DatabasesDataSourceResponseModel{
-			Organization: types.StringValue(splitArr[0]),
-			Project:      types.StringValue(splitArr[1]),
-			Name:         types.StringValue(splitArr[2]),
+func GetDatabaseDataSourceResponse(databases []string) ([]model.DatabaseDataSourceNameModel, error) {
+	var ret []model.DatabaseDataSourceNameModel
+	for _, db := range databases {
+		parts := strings.Split(db, "/")
+		if len(parts) != 3 {
+			return nil, fmt.Errorf("Unexpected format for database name: %s", db)
+		}
+		ret = append(ret, model.DatabaseDataSourceNameModel{
+			Organization: parts[0],
+			Project:      parts[1],
+			Name:         parts[2],
 		})
 	}
-	return databaseDataSourceList
+	return ret, nil
 }
