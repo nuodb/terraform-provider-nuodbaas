@@ -53,7 +53,7 @@ func CreateProjectWithModel(t *testing.T, ctx context.Context, client *nuodbaas.
 	t.Cleanup(func() {
 		err := DeleteProject(context.TODO(), client, organization, name, true)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 	})
 
@@ -61,7 +61,18 @@ func CreateProjectWithModel(t *testing.T, ctx context.Context, client *nuodbaas.
 		return errors.New(helper.GetApiErrorMessage(err, "Could not create project"))
 	}
 
-	return nil
+	// Wait for project to exist.
+	return backoff.Retry(func() error {
+		_, status, err := GetProject(ctx, client, organization, name)
+		if status.StatusCode == http.StatusNotFound {
+			return fmt.Errorf("Timed out waiting for project %s/%s to be created.", organization, name)
+		}
+		if err != nil {
+			return backoff.Permanent(err)
+		}
+
+		return nil
+	}, backoff.NewExponentialBackOff())
 }
 
 func GetProject(ctx context.Context, client *nuodbaas.APIClient, organization string, name string) (*nuodbaas.ProjectModel, *http.Response, error) {
@@ -109,7 +120,7 @@ func CreateDatabaseWithModel(t *testing.T, ctx context.Context, client *nuodbaas
 	t.Cleanup(func() {
 		err := DeleteDatabase(context.TODO(), client, organization, project, name, true)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 	})
 
@@ -117,7 +128,18 @@ func CreateDatabaseWithModel(t *testing.T, ctx context.Context, client *nuodbaas
 		return errors.New(helper.GetApiErrorMessage(err, "Could not create database"))
 	}
 
-	return nil
+	// Wait for the database to exist.
+	return backoff.Retry(func() error {
+		_, status, err := GetDatabase(ctx, client, organization, project, name)
+		if status.StatusCode == http.StatusNotFound {
+			return fmt.Errorf("Timed out waiting for database %s/%s/%s to be created.", organization, project, name)
+		}
+		if err != nil {
+			return backoff.Permanent(err)
+		}
+
+		return nil
+	}, backoff.NewExponentialBackOff())
 }
 
 func GetDatabase(ctx context.Context, client *nuodbaas.APIClient, org string, project string, name string) (*nuodbaas.DatabaseModel, *http.Response, error) {

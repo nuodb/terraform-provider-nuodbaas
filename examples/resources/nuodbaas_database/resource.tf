@@ -25,7 +25,7 @@ resource "nuodbaas_database" "dbaas" {
   }
 
   timeouts {
-    create = "5m"
-    update = "5m"
+    create = "10m"
+    update = "10m"
   }
 }
