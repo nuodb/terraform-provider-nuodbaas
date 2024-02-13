@@ -8,35 +8,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"testing"
 
 	backoff "github.com/cenkalti/backoff/v4"
 
-	"github.com/nuodb/terraform-provider-nuodbaas/helper"
-
-	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
+	"github.com/nuodb/terraform-provider-nuodbaas/internal/helper"
+	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 )
 
 const (
 	DEFAULT_URL = "http://localhost:8080"
 )
 
-type TestClient struct {
-	Client *nuodbaas.APIClient
-	ctx    context.Context
-}
-
-func NewTestClient(ctx context.Context) TestClient {
-	return TestClient{
-		Client: DefaultApiClient(),
-		ctx:    ctx,
-	}
-}
-
-func DefaultApiClient() *nuodbaas.APIClient {
+func DefaultApiClient() (*openapi.Client, error) {
 	user := os.Getenv("NUODB_CP_USER")
 	password := os.Getenv("NUODB_CP_PASSWORD")
 	urlBase := os.Getenv("NUODB_CP_URL_BASE")
@@ -45,68 +31,60 @@ func DefaultApiClient() *nuodbaas.APIClient {
 		urlBase = DEFAULT_URL
 	}
 
-	return nuodbaas_client.NewApiClient(true, urlBase, user, password)
+	return nuodbaas_client.NewApiClient(urlBase, user, password, true)
 }
 
-func (client TestClient) CreateProject(t *testing.T, organization string, name string, sla string, teir string) error {
-	model := nuodbaas.ProjectModel{
+func CreateProject(t *testing.T, ctx context.Context, client *openapi.Client, organization string, name string, sla string, tier string) error {
+	model := openapi.ProjectModel{
 		Sla:  sla,
-		Tier: teir,
+		Tier: tier,
 	}
-
-	return client.CreateProjectWithModel(t, organization, name, model)
+	return CreateProjectWithModel(t, ctx, client, organization, name, model)
 }
 
-func (client TestClient) CreateProjectWithModel(t *testing.T, organization string, name string, model nuodbaas.ProjectModel) error {
-	request := client.Client.ProjectsAPI.CreateProject(client.ctx, organization, name)
-	request = request.ProjectModel(model)
-	_, err := request.Execute()
-
+func CreateProjectWithModel(t *testing.T, ctx context.Context, client *openapi.Client, organization string, name string, model openapi.ProjectModel) error {
+	// Set name fields explicitly, since JSON serialization does not omit them
+	if model.Organization == "" {
+		model.Organization = organization
+	}
+	if model.Name == "" {
+		model.Name = name
+	}
+	resp, err := client.CreateProject(ctx, organization, name, model)
 	t.Cleanup(func() {
-		err := client.DeleteProject(organization, name, true)
+		err := DeleteProject(context.TODO(), client, organization, name, true)
 		if err != nil {
 			t.Error(err)
 		}
 	})
 
 	if err != nil {
-		return errors.New(helper.GetApiErrorMessage(err, "Could not create project"))
+		return err
 	}
-
-	// Wait for project to exist.
-	return backoff.Retry(func() error {
-		_, status, err := client.GetProject(organization, name)
-		if status.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("Timed out waiting for project %s/%s to be created.", organization, name)
-		}
-		if err != nil {
-			return backoff.Permanent(err)
-		}
-
-		return nil
-	}, backoff.NewExponentialBackOff())
-}
-
-func (client TestClient) GetProject(organization string, name string) (*nuodbaas.ProjectModel, *http.Response, error) {
-	project, response, err := client.Client.ProjectsAPI.GetProject(client.ctx, organization, name).Execute()
+	err = helper.ParseResponse(resp, nil)
 	if err != nil {
-		err = errors.New(helper.GetApiErrorMessage(err, "Could not get project"))
+		return err
 	}
 
-	return project, response, err
+	return nil
 }
 
-func (client TestClient) DeleteProject(organization string, name string, ignoreMissing bool) error {
-	request := client.Client.ProjectsAPI.DeleteProject(client.ctx, organization, name)
+func GetProject(ctx context.Context, client *openapi.Client, organization string, name string) (*openapi.ProjectModel, error) {
+	var dest openapi.ProjectModel
+	return &dest, helper.GetProjectByName(ctx, client, organization, name, &dest)
+}
 
-	response, err := request.Execute()
-	if err != nil && (!ignoreMissing || response.StatusCode != http.StatusNotFound) {
-		return errors.New(helper.GetApiErrorMessage(err, "Could not delete project"))
+func DeleteProject(ctx context.Context, client *openapi.Client, organization string, name string, ignoreMissing bool) error {
+	if err := helper.DeleteProjectByName(ctx, client, organization, name); err != nil {
+		if ignoreMissing && helper.IsNotFound(err) {
+			return nil
+		}
+		return err
 	}
 
 	return backoff.Retry(func() error {
-		_, status, err := client.GetProject(organization, name)
-		if status.StatusCode == http.StatusNotFound {
+		err := helper.GetProjectByName(ctx, client, organization, name, nil)
+		if helper.IsNotFound(err) {
 			return nil
 		}
 		if err != nil {
@@ -117,84 +95,85 @@ func (client TestClient) DeleteProject(organization string, name string, ignoreM
 	}, backoff.NewExponentialBackOff())
 }
 
-func (client TestClient) CreateDatabase(t *testing.T, organization string, project string, name string, password string) error {
-	model := nuodbaas.DatabaseCreateUpdateModel{
+func CreateDatabase(t *testing.T, ctx context.Context, client *openapi.Client, organization string, project string, name string, password string) error {
+	model := openapi.DatabaseCreateUpdateModel{
 		DbaPassword: &password,
 	}
-	return client.CreateDatabaseWithModel(t, organization, project, name, model)
+	return CreateDatabaseWithModel(t, ctx, client, organization, project, name, model)
 }
 
-func (client TestClient) CreateDatabaseWithModel(t *testing.T, organization string, project string, name string, model nuodbaas.DatabaseCreateUpdateModel) error {
-	request := client.Client.DatabasesAPI.CreateDatabase(client.ctx, organization, project, name)
-	request = request.DatabaseCreateUpdateModel(model)
-	_, err := request.Execute()
-
+func CreateDatabaseWithModel(t *testing.T, ctx context.Context, client *openapi.Client, organization string, project string, name string, model openapi.DatabaseCreateUpdateModel) error {
+	// Set name fields explicitly, since JSON serialization does not omit them
+	if model.Organization == "" {
+		model.Organization = organization
+	}
+	if model.Project == "" {
+		model.Project = project
+	}
+	if model.Name == "" {
+		model.Name = name
+	}
+	resp, err := client.CreateDatabase(ctx, organization, project, name, model)
 	t.Cleanup(func() {
-		err := client.DeleteDatabase(organization, project, name, true)
+		err := DeleteDatabase(context.TODO(), client, organization, project, name, true)
 		if err != nil {
 			t.Error(err)
 		}
 	})
 
 	if err != nil {
-		return errors.New(helper.GetApiErrorMessage(err, "Could not create database"))
+		return err
 	}
-
-	// Wait for the database to exist.
-	return backoff.Retry(func() error {
-		_, status, err := client.GetDatabase(organization, project, name)
-		if status.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("Timed out waiting for database %s/%s/%s to be created.", organization, project, name)
-		}
-		if err != nil {
-			return backoff.Permanent(err)
-		}
-
-		return nil
-	}, backoff.NewExponentialBackOff())
-}
-
-func (client TestClient) GetDatabase(org string, project string, name string) (*nuodbaas.DatabaseModel, *http.Response, error) {
-	database, response, err := client.Client.DatabasesAPI.GetDatabase(client.ctx, org, project, name).Execute()
+	err = helper.ParseResponse(resp, nil)
 	if err != nil {
-		err = errors.New(helper.GetApiErrorMessage(err, "Could not get database"))
+		return err
 	}
 
-	return database, response, err
+	return nil
 }
 
-func (client TestClient) DeleteDatabase(org string, project string, name string, ignoreMissing bool) error {
-	request := client.Client.DatabasesAPI.DeleteDatabase(client.ctx, org, project, name)
+func GetDatabase(ctx context.Context, client *openapi.Client, organization, project, name string) (*openapi.DatabaseModel, error) {
+	var dest openapi.DatabaseModel
+	return &dest, helper.GetDatabaseByName(ctx, client, organization, project, name, &dest)
+}
 
-	response, err := request.Execute()
-	if err != nil && (!ignoreMissing || response.StatusCode != http.StatusNotFound) {
-		return errors.New(helper.GetApiErrorMessage(err, "Could not delete database"))
+func DeleteDatabase(ctx context.Context, client *openapi.Client, organization, project, name string, ignoreMissing bool) error {
+	if err := helper.DeleteDatabaseByName(ctx, client, organization, project, name); err != nil {
+		if ignoreMissing && helper.IsNotFound(err) {
+			return nil
+		}
+		return err
 	}
 
 	return backoff.Retry(func() error {
-		_, status, err := client.GetDatabase(org, project, name)
-		if status.StatusCode == http.StatusNotFound {
+		_, err := GetDatabase(ctx, client, organization, project, name)
+		if helper.IsNotFound(err) {
 			return nil
 		}
 		if err != nil {
 			return backoff.Permanent(err)
 		}
 
-		return fmt.Errorf("Timed out waiting for database %s/%s/%s to be deleted.", org, project, name)
+		return fmt.Errorf("Timed out waiting for database %s/%s/%s to be deleted.", organization, project, name)
 	}, backoff.NewExponentialBackOff())
 }
 
-func (client TestClient) CheckClean() error {
+func CheckClean() error {
 	var errList error = nil
 
-	projects, err := client.GetProjects()
+	ctx := context.Background()
+	client, err := DefaultApiClient()
+	if err != nil {
+		return err
+	}
+	projects, err := GetProjects(ctx, client)
 	errList = errors.Join(errList, err)
 
 	if len(projects) > 0 {
 		errList = errors.Join(errList, fmt.Errorf("Projects left behind: %s", projects))
 	}
 
-	databases, err := client.GetDatabases()
+	databases, err := GetDatabases(ctx, client)
 	errList = errors.Join(errList, err)
 
 	if len(databases) > 0 {
@@ -204,24 +183,10 @@ func (client TestClient) CheckClean() error {
 	return errList
 }
 
-func (client TestClient) GetProjects() ([]string, error) {
-	request := client.Client.ProjectsAPI.GetAllProjects(client.ctx)
-	request = request.ListAccessible(true)
-	projects, _, err := request.Execute()
-	if err != nil {
-		return nil, errors.New(helper.GetApiErrorMessage(err, "Could not get projects"))
-	}
-
-	return projects.Items, nil
+func GetProjects(ctx context.Context, client *openapi.Client) ([]string, error) {
+	return helper.GetProjects(ctx, client, "", true)
 }
 
-func (client TestClient) GetDatabases() ([]string, error) {
-	request := client.Client.DatabasesAPI.GetAllDatabases(client.ctx)
-	request = request.ListAccessible(true)
-	projects, _, err := request.Execute()
-	if err != nil {
-		return nil, errors.New(helper.GetApiErrorMessage(err, "Could not get databases"))
-	}
-
-	return projects.Items, nil
+func GetDatabases(ctx context.Context, client *openapi.Client) ([]string, error) {
+	return helper.GetDatabases(ctx, client, "", "", true)
 }

@@ -22,9 +22,4 @@ resource "nuodbaas_project" "dev" {
       group = "dev"
     }
   }
-
-  timeouts {
-    create = "5m"
-    update = "5m"
-  }
 }

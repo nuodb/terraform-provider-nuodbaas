@@ -7,60 +7,62 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 
-	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
-	"github.com/nuodb/terraform-provider-nuodbaas/helper"
-	"github.com/nuodb/terraform-provider-nuodbaas/internal/model"
+	"github.com/nuodb/terraform-provider-nuodbaas/internal/helper"
+	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 )
 
-var _ datasource.DataSourceWithConfigure = &databasesDataSource{}
+var (
+	_ DataSourceState = &DatabasesDataSourceModel{}
+)
 
-func NewDatabasesDataSource() datasource.DataSource {
-	return &databasesDataSource{}
-}
-
-type databasesDataSource struct {
-	client *nuodbaas.APIClient
-}
-
-type databaseFilterModel struct {
+type DatabaseFilterModel struct {
 	Organization *string `tfsdk:"organization"`
 	Project      *string `tfsdk:"project"`
 }
 
-type databasesModel struct {
-	Filter    *databaseFilterModel                `tfsdk:"filter"`
-	Databases []model.DatabaseDataSourceNameModel `tfsdk:"databases"`
+type DatabaseNameModel struct {
+	Organization string `tfsdk:"organization"`
+	Project      string `tfsdk:"project"`
+	Name         string `tfsdk:"name"`
 }
 
-// Schema implements datasource.DataSource.
-func (d *databasesDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	resp.Schema = schema.Schema{
-		Description:         "A listing of databases deployed in NuoDB DBaaS.",
-		MarkdownDescription: "A listing of databases deployed in NuoDB DBaaS.",
+type DatabasesDataSourceModel struct {
+	Filter    *DatabaseFilterModel `tfsdk:"filter"`
+	Databases []DatabaseNameModel  `tfsdk:"databases"`
+}
+
+// GetDatabasesDataSourceSchema returns the schema for the databases (plural)
+// data source. This has to be provided explicitly because there is no schema in
+// the OpenAPI spec for the REST API that corresponds to it.
+func GetDatabasesDataSourceSchema() *schema.Schema {
+	return &schema.Schema{
+		Description:         "Data source for listing NuoDB databases provisioned using the DBaaS Control Plane",
+		MarkdownDescription: "Data source for listing NuoDB databases provisioned using the DBaaS Control Plane",
 		Attributes: map[string]schema.Attribute{
 			"databases": schema.ListNestedAttribute{
-				Description:         "The databases that exist.",
-				MarkdownDescription: "The databases that exist.",
+				Description:         "The list of databases that satisfy the filter requirements",
+				MarkdownDescription: "The list of databases that satisfy the filter requirements",
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
-							Description:         "Name of the database.",
-							MarkdownDescription: "Name of the database.",
+							Description:         "The name of the database",
+							MarkdownDescription: "The name of the database",
 							Computed:            true,
 						},
 						"organization": schema.StringAttribute{
-							Description:         "The organization that the database belongs to.",
-							MarkdownDescription: "The organization that the database belongs to.",
+							Description:         "The organization that the database belongs to",
+							MarkdownDescription: "The organization that the database belongs to",
 							Computed:            true,
 						},
 						"project": schema.StringAttribute{
-							Description:         "The name of the project to which the database belongs.",
-							MarkdownDescription: "The name of the project to which the database belongs.",
+							Description:         "The project that the database belongs to",
+							MarkdownDescription: "The project that the database belongs to",
 							Computed:            true,
 						},
 					},
@@ -69,17 +71,17 @@ func (d *databasesDataSource) Schema(_ context.Context, req datasource.SchemaReq
 		},
 		Blocks: map[string]schema.Block{
 			"filter": schema.SingleNestedBlock{
-				Description:         "Filters to narrow the list of fetched databases.",
-				MarkdownDescription: "Filters to narrow the list of fetched databases.",
+				Description:         "Filters to apply to database list",
+				MarkdownDescription: "Filters to apply to database list",
 				Attributes: map[string]schema.Attribute{
 					"organization": schema.StringAttribute{
-						Description:         "Only return databases in a given organization.",
-						MarkdownDescription: "Only return databases in a given organization.",
+						Description:         "The organization to return databases for",
+						MarkdownDescription: "The organization to return databases for",
 						Optional:            true,
 					},
 					"project": schema.StringAttribute{
-						Description:         "Only return databases in a given project. If supplied, the `organization` must also be provided.",
-						MarkdownDescription: "Only return databases in a given project. If supplied, the `organization` must also be provided.",
+						Description:         "The project to return databases for. If specified, the organization must also be specified.",
+						MarkdownDescription: "The project to return databases for. If specified, the organization must also be specified.",
 						Optional:            true,
 					},
 				},
@@ -88,18 +90,7 @@ func (d *databasesDataSource) Schema(_ context.Context, req datasource.SchemaReq
 	}
 }
 
-// Metadata implements datasource.DataSource.
-func (d *databasesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_databases"
-}
-
-// Read implements datasource.DataSource.
-func (d *databasesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var state databasesModel
-	if !helper.ReadResource(ctx, resp.Diagnostics, req.Config.Get, &state) {
-		return
-	}
-
+func (state *DatabasesDataSourceModel) Read(ctx context.Context, client *openapi.Client) error {
 	var organization, project string
 	if state.Filter != nil {
 		if state.Filter.Organization != nil {
@@ -109,39 +100,38 @@ func (d *databasesDataSource) Read(ctx context.Context, req datasource.ReadReque
 			project = *state.Filter.Project
 		}
 	}
-	databases, err := helper.GetDatabases(ctx, d.client, organization, project, true)
+	databases, err := helper.GetDatabases(ctx, client, organization, project, true)
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error getting databases",
-			helper.GetApiErrorMessage(err, "Could not get databases, unexpected error:"),
-		)
-		return
+		return err
 	}
-
-	state.Databases, err = helper.GetDatabaseDataSourceResponse(databases)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Conversion Failure",
-			"Could not get convert database names: "+err.Error())
-		return
-	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	state.Databases, err = GetDatabaseDataSourceResponse(databases)
+	return err
 }
 
-// Configure implements datasource.DataSourceWithConfigure.
-func (d *databasesDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
+func GetDatabaseDataSourceResponse(databases []string) ([]DatabaseNameModel, error) {
+	var ret []DatabaseNameModel
+	for _, db := range databases {
+		parts := strings.Split(db, "/")
+		if len(parts) != 3 {
+			return nil, fmt.Errorf("Unexpected format for database name: %s", db)
+		}
+		ret = append(ret, DatabaseNameModel{
+			Organization: parts[0],
+			Project:      parts[1],
+			Name:         parts[2],
+		})
 	}
+	return ret, nil
+}
 
-	client, ok := req.ProviderData.(*nuodbaas.APIClient)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *openapi.APIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
+func NewDatabasesDataSourceState() DataSourceState {
+	return &DatabasesDataSourceModel{}
+}
+
+func NewDatabasesDataSource() datasource.DataSource {
+	return &GenericDataSource{
+		resourceTypeName: "databases",
+		schema:           GetDatabasesDataSourceSchema(),
+		build:            NewDatabasesDataSourceState,
 	}
-
-	d.client = client
 }

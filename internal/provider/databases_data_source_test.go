@@ -25,7 +25,10 @@ func TestAccDatabasesDataSourceEmpty(t *testing.T) {
 	project := "proj"
 
 	// REST service on k8s does not like filtering by non-existent projects. Envtest does not care.
-	require.NoError(t, nuodbaas_client_test.NewTestClient(context.TODO()).CreateProject(t, organization, project, "dev", "n0.nano"))
+	ctx := context.TODO()
+	client, err := nuodbaas_client_test.DefaultApiClient()
+	require.NoError(t, err)
+	require.NoError(t, nuodbaas_client_test.CreateProject(t, ctx, client, organization, project, "dev", "n0.nano"))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -129,11 +132,13 @@ func testFilter(db1Name string, db1Proj string, db1Org string, db2Name string, d
 	}
 
 	// Create test databases
-	client := nuodbaas_client_test.NewTestClient(context.TODO())
-	require.NoError(t, client.CreateProject(t, db1Org, db1Proj, "dev", "n0.nano"))
-	require.NoError(t, client.CreateDatabase(t, db1Org, db1Proj, db1Name, "pass"))
-	require.NoError(t, client.CreateProject(t, db2Org, db2Proj, "dev", "n0.nano"))
-	require.NoError(t, client.CreateDatabase(t, db2Org, db2Proj, db2Name, "pass"))
+	ctx := context.TODO()
+	client, err := nuodbaas_client_test.DefaultApiClient()
+	require.NoError(t, err)
+	require.NoError(t, nuodbaas_client_test.CreateProject(t, ctx, client, db1Org, db1Proj, "dev", "n0.nano"))
+	require.NoError(t, nuodbaas_client_test.CreateDatabase(t, ctx, client, db1Org, db1Proj, db1Name, "pass"))
+	require.NoError(t, nuodbaas_client_test.CreateProject(t, ctx, client, db2Org, db2Proj, "dev", "n0.nano"))
+	require.NoError(t, nuodbaas_client_test.CreateDatabase(t, ctx, client, db2Org, db2Proj, db2Name, "pass"))
 
 	dataSourceDefinition := fmt.Sprintf(`
 						data "%s" "%s" {
@@ -167,7 +172,7 @@ func testFilter(db1Name string, db1Proj string, db1Org string, db2Name string, d
 }
 
 func getDatabasesDatasourceTypeName() string {
-	source := databasesDataSource{}
+	source := NewDatabasesDataSource()
 
 	ctx := context.TODO() // Not used
 

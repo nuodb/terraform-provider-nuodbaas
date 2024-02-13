@@ -27,6 +27,10 @@ import (
 )
 
 func testChart(t *testing.T, plan string, configVariables config.Variables, hasResources bool, noApply bool, checkClean bool) {
+	if checkClean {
+		nuodbaas_client_test.CheckClean()
+	}
+
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: map[string]func() (tfprotov6.ProviderServer, error){
 			"nuodbaas": providerserver.NewProtocol6WithError(provider.New("test")()),
@@ -41,7 +45,7 @@ func testChart(t *testing.T, plan string, configVariables config.Variables, hasR
 		},
 		CheckDestroy: func(s *terraform.State) error {
 			if checkClean {
-				return nuodbaas_client_test.NewTestClient(context.TODO()).CheckClean()
+				return nuodbaas_client_test.CheckClean()
 			}
 			return nil
 		},
@@ -109,16 +113,18 @@ func TestExamplesDatasources(t *testing.T) {
 	// Other plan parts that the example assumes exist
 	setUp := ``
 
-	client := nuodbaas_client_test.NewTestClient(context.TODO())
-	require.NoError(t, client.CreateProject(t, "system", "nuodb", "dev", "n0.nano"))
-	require.NoError(t, client.CreateDatabase(t, "system", "nuodb", "dbaas", "pass"))
+	ctx := context.TODO()
+	client, err := nuodbaas_client_test.DefaultApiClient()
+	require.NoError(t, err)
+	require.NoError(t, nuodbaas_client_test.CreateProject(t, ctx, client, "system", "nuodb", "dev", "n0.nano"))
+	require.NoError(t, nuodbaas_client_test.CreateDatabase(t, ctx, client, "system", "nuodb", "dbaas", "pass"))
 
 	testChartDir(t, path, setUp, configVariables, false, noApplyDefault(t), false)
 
-	require.NoError(t, client.DeleteDatabase("system", "nuodb", "dbaas", false))
-	require.NoError(t, client.DeleteProject("system", "nuodb", false))
+	require.NoError(t, nuodbaas_client_test.DeleteDatabase(ctx, client, "system", "nuodb", "dbaas", false))
+	require.NoError(t, nuodbaas_client_test.DeleteProject(ctx, client, "system", "nuodb", false))
 
-	require.NoError(t, client.CheckClean())
+	require.NoError(t, nuodbaas_client_test.CheckClean())
 }
 
 func TestExamplesProvider(t *testing.T) {

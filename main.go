@@ -14,15 +14,16 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 
-// Run "go generate" to format example terraform files and generate the docs for the registry/website
+// Generate model structs and client for REST API:
+//go:generate bin/oapi-codegen -generate types -include-tags databases,projects -package openapi -o openapi/types.go openapi.yaml
+//go:generate bin/oapi-codegen -generate client -include-tags databases,projects -package openapi -o openapi/client.go openapi.yaml
+//go:generate bin/oapi-codegen -generate spec -include-tags databases,projects -package openapi -o openapi/spec.go openapi.yaml
 
-// If you do not have terraform installed, you can remove the formatting command, but its suggested to
-// ensure the documentation is formatted properly.
+// Format Terraform examples:
 //go:generate terraform fmt -recursive ./examples/
 
-// Run the docs generation tool, check its repository for more information on how it works and how docs
-// can be customized.
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name nuodbaas
+// Generate documentation:
+//go:generate bin/tfplugindocs generate --provider-name nuodbaas
 
 var (
 	// these will be set by the goreleaser configuration

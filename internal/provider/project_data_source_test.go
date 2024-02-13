@@ -11,8 +11,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 	nuodbaas_client_test "github.com/nuodb/terraform-provider-nuodbaas/internal/client/testclient"
+	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,18 +26,22 @@ func TestAccProjectDataSource(t *testing.T) {
 	tierParamKey := "foo"
 	tierParamValue := "bar"
 
-	model := nuodbaas.ProjectModel{
+	model := openapi.ProjectModel{
 		Sla:  sla,
 		Tier: tier,
-		Maintenance: &nuodbaas.MaintenanceModel{
+		Maintenance: &openapi.MaintenanceModel{
 			IsDisabled: &disabled,
 		},
-		Properties: &nuodbaas.ProjectPropertiesModel{
+		Properties: &openapi.ProjectPropertiesModel{
 			TierParameters: &map[string]string{tierParamKey: tierParamValue},
 		},
 	}
 
-	require.NoError(t, nuodbaas_client_test.NewTestClient(context.TODO()).CreateProjectWithModel(t, organizationName, projectName, model))
+	ctx := context.TODO()
+
+	client, err := nuodbaas_client_test.DefaultApiClient()
+	require.NoError(t, err)
+	require.NoError(t, nuodbaas_client_test.CreateProjectWithModel(t, ctx, client, organizationName, projectName, model))
 
 	resourceName := "project_details"
 	resourcePath := fmt.Sprintf("data.%s.%s", getProjectDatasourceTypeName(), resourceName)
@@ -58,7 +62,6 @@ func TestAccProjectDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr(resourcePath, "sla", sla),
 					resource.TestCheckResourceAttr(resourcePath, "tier", tier),
 					resource.TestCheckResourceAttr(resourcePath, "maintenance.is_disabled", "true"),
-					resource.TestCheckResourceAttrSet(resourcePath, "resource_version"),
 					resource.TestCheckResourceAttr(resourcePath, "properties.tier_parameters.%", "1"),
 					resource.TestCheckResourceAttr(resourcePath, "properties.tier_parameters."+tierParamKey, tierParamValue),
 				),
@@ -68,7 +71,7 @@ func TestAccProjectDataSource(t *testing.T) {
 }
 
 func getProjectDatasourceTypeName() string {
-	source := projectDataSource{}
+	source := NewProjectDataSource()
 
 	ctx := context.TODO() // Not used
 

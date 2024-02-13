@@ -22,8 +22,9 @@ PROJECT_DIR := $(shell pwd)
 BIN_DIR ?= 	$(PROJECT_DIR)/bin
 TEST_RESULTS ?= $(PROJECT_DIR)/test-results
 
-GOTESTSUM_VERSION ?= v1.11.0
-GOTESTSUM_BIN := $(BIN_DIR)/gotestsum
+GOTESTSUM_BIN := bin/gotestsum
+TFPLUGINDOCS_BIN := bin/tfplugindocs
+OAPI_CODEGEN_BIN := bin/oapi-codegen
 
 PUBLISH_VERSION ?= 0.1.0
 PUBLISH_DIR ?= $(PROJECT_DIR)/dist
@@ -104,12 +105,20 @@ undeploy-cp: ## Uninstall a local Control Plane previously installed by this scr
 	kubectl -n kube-system delete leases.coordination.k8s.io cert-manager-cainjector-leader-election --ignore-not-found=$(IGNORE_NOT_FOUND)
 	kubectl -n kube-system delete leases.coordination.k8s.io cert-manager-controller --ignore-not-found=$(IGNORE_NOT_FOUND)
 
-$(GOTESTSUM_BIN):
-	$(call go-get-tool,gotest.tools/gotestsum@$(GOTESTSUM_VERSION))
+bin/%: install-tools ;
+
+.PHONY: install-tools
+install-tools: ## Install tools declared as dependencies in tools.go
+	@echo "Installing build tools declared in tools.go..."
+	@go list -e -f '{{range .Imports}}{{.}} {{end}}' tools.go | GOBIN=$(BIN_DIR) xargs go install
+
+.PHONY: check-no-changes
+check-no-changes: ## Check that there are no uncommitted changes
+	$(eval GIT_STATUS := $(shell git status --porcelain))
+	@[ "$(GIT_STATUS)" = "" ] || ( echo "There are uncommitted changes:\n$(GIT_STATUS)"; exit 1; )
 
 .PHONY: generate
-generate: ## Generate Golang client for the NuoDB REST API and Terraform provider documentation
-	./scripts/generate-client.sh
+generate: check-no-changes $(TFPLUGINDOCS_BIN) $(OAPI_CODEGEN_BIN) ## Generate Golang client for the NuoDB REST API and Terraform provider documentation
 	go generate
 
 .PHONY: extract-creds
@@ -153,12 +162,4 @@ $(eval PLUGIN_PKG := $(PUBLISH_DIR)/terraform-provider-nuodbaas_$(PUBLISH_VERSIO
 mkdir -p $(PUBLISH_STAGING)
 GOOS=$(1) GOARCH=$(2) go build -o $(PUBLISH_STAGING)/terraform-provider-nuodbaas_v$(PUBLISH_VERSION)
 cd $(PUBLISH_STAGING) && zip $(PLUGIN_PKG) ./*
-endef
-
-# Use 'go install' to fetch tool, falling back to 'go get' if the tool is not
-# made available locally. 'go install' should work in Golang versions >=1.16,
-# while 'go get' should work in Golang <1.16.
-define go-get-tool
-@echo "Downloading $(1)"
-export GO111MODULE=on GOBIN=$(BIN_DIR) && go install $(1) || go get $(1)
 endef

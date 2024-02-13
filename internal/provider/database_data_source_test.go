@@ -12,8 +12,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
 	nuodbaas_client_test "github.com/nuodb/terraform-provider-nuodbaas/internal/client/testclient"
+	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,21 +31,24 @@ func TestAccDatabaseDataSource(t *testing.T) {
 	tierParamKey := "foo"
 	tierParamValue := "bar"
 
-	model := nuodbaas.DatabaseCreateUpdateModel{
+	model := openapi.DatabaseCreateUpdateModel{
 		DbaPassword: &password,
-		Properties: &nuodbaas.DatabasePropertiesModel{
+		Properties: &openapi.DatabasePropertiesModel{
 			ArchiveDiskSize: &archiveDisk,
 			JournalDiskSize: &journalDisk,
 			TierParameters:  &map[string]string{tierParamKey: tierParamValue},
 		},
-		Maintenance: &nuodbaas.MaintenanceModel{
+		Maintenance: &openapi.MaintenanceModel{
 			IsDisabled: &disabled,
 		},
 	}
 
-	client := nuodbaas_client_test.NewTestClient(context.TODO())
-	require.NoError(t, client.CreateProject(t, organizationName, projectName, sla, tier))
-	require.NoError(t, client.CreateDatabaseWithModel(t, organizationName, projectName, dbName, model))
+	ctx := context.TODO()
+
+	client, err := nuodbaas_client_test.DefaultApiClient()
+	require.NoError(t, err)
+	require.NoError(t, nuodbaas_client_test.CreateProject(t, ctx, client, organizationName, projectName, sla, tier))
+	require.NoError(t, nuodbaas_client_test.CreateDatabaseWithModel(t, ctx, client, organizationName, projectName, dbName, model))
 
 	resourceName := "database_details"
 	resourcePath := fmt.Sprintf("data.%s.%s", getDatabaseDatasourceTypeName(), resourceName)
@@ -67,7 +70,6 @@ func TestAccDatabaseDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr(resourcePath, "name", dbName),
 					resource.TestCheckResourceAttr(resourcePath, "tier", tier),
 					resource.TestCheckResourceAttr(resourcePath, "maintenance.is_disabled", strconv.FormatBool(disabled)),
-					resource.TestCheckResourceAttrSet(resourcePath, "resource_version"),
 					resource.TestCheckResourceAttr(resourcePath, "properties.archive_disk_size", archiveDisk),
 					resource.TestCheckResourceAttr(resourcePath, "properties.journal_disk_size", journalDisk),
 					resource.TestCheckResourceAttr(resourcePath, "properties.tier_parameters.%", "1"),
@@ -82,7 +84,7 @@ func TestAccDatabaseDataSource(t *testing.T) {
 }
 
 func getDatabaseDatasourceTypeName() string {
-	source := databaseDataSource{}
+	source := NewDatabaseDataSource()
 
 	ctx := context.TODO() // Not used
 

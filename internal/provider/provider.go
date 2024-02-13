@@ -110,7 +110,11 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 	}
 
 	// Disable server certificate verification if skip_verify=true
-	apiClient := nuodbaas_client.NewApiClient(skipVerify, urlBase, user, password)
+	apiClient, err := nuodbaas_client.NewApiClient(urlBase, user, password, skipVerify)
+	if err != nil {
+		resp.Diagnostics.AddError("Client error", err.Error())
+		return
+	}
 	resp.DataSourceData = apiClient
 	resp.ResourceData = apiClient
 }
