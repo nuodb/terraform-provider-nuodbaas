@@ -89,3 +89,8 @@ To run a single test:
 ```sh
 TESTARGS="-run='TestAccProjectResource'" make testacc
 ```
+
+Certain tests respect the `-test.short` flag to skip non-critical scenarios. When testing against a real control plane, this option can significantly speed up test execution.
+```sh
+TESTARGS="-test.short" make testacc
+```

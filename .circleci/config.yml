@@ -45,6 +45,7 @@ jobs:
       KUBERNETES_VERSION: "1.28.3"
       TEST_RESULTS: /tmp/test-results
       OUTPUT_DIR: /tmp/service-logs
+      TESTARGS: "-short"
     steps:
       - run_tests
 
