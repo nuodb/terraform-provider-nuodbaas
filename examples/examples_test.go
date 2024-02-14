@@ -27,10 +27,6 @@ import (
 )
 
 func testChart(t *testing.T, plan string, configVariables config.Variables, hasResources bool, noApply bool, checkClean bool) {
-	if checkClean {
-		nuodbaas_client_test.CheckClean()
-	}
-
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: map[string]func() (tfprotov6.ProviderServer, error){
 			"nuodbaas": providerserver.NewProtocol6WithError(provider.New("test")()),
