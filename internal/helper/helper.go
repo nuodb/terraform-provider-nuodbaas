@@ -105,14 +105,17 @@ func DeleteDatabaseByName(ctx context.Context, client *openapi.Client, organizat
 	return ParseResponse(resp, nil)
 }
 
-func GetDatabases(ctx context.Context, client *openapi.Client, organization, project string, listAccessible bool) ([]string, error) {
+func GetDatabases(ctx context.Context, client *openapi.Client, organization, project string, labelFilter *string, listAccessible bool) ([]string, error) {
 	var databases []string
 	if len(organization) == 0 {
 		if len(project) != 0 {
 			return nil, fmt.Errorf("Cannot specify project filter (%s) without organization", project)
 		}
 
-		params := openapi.GetAllDatabasesParams{ListAccessible: &listAccessible}
+		params := openapi.GetAllDatabasesParams{
+			LabelFilter:    labelFilter,
+			ListAccessible: &listAccessible,
+		}
 		resp, err := client.GetAllDatabases(ctx, &params)
 		if err != nil {
 			return nil, err
@@ -124,7 +127,10 @@ func GetDatabases(ctx context.Context, client *openapi.Client, organization, pro
 		}
 		databases = *itemList.Items
 	} else if len(project) == 0 {
-		params := openapi.GetOrganizationDatabasesParams{ListAccessible: &listAccessible}
+		params := openapi.GetOrganizationDatabasesParams{
+			LabelFilter:    labelFilter,
+			ListAccessible: &listAccessible,
+		}
 		resp, err := client.GetOrganizationDatabases(ctx, organization, &params)
 		if err != nil {
 			return nil, err
@@ -138,7 +144,10 @@ func GetDatabases(ctx context.Context, client *openapi.Client, organization, pro
 			databases = append(databases, organization+"/"+db)
 		}
 	} else {
-		params := openapi.GetDatabasesParams{ListAccessible: &listAccessible}
+		params := openapi.GetDatabasesParams{
+			LabelFilter:    labelFilter,
+			ListAccessible: &listAccessible,
+		}
 		resp, err := client.GetDatabases(ctx, organization, project, &params)
 		if err != nil {
 			return nil, err
@@ -171,10 +180,13 @@ func DeleteProjectByName(ctx context.Context, client *openapi.Client, organizati
 	return ParseResponse(resp, nil)
 }
 
-func GetProjects(ctx context.Context, client *openapi.Client, organization string, listAccessible bool) ([]string, error) {
+func GetProjects(ctx context.Context, client *openapi.Client, organization string, labelFilter *string, listAccessible bool) ([]string, error) {
 	var projects []string
 	if len(organization) == 0 {
-		params := openapi.GetAllProjectsParams{ListAccessible: &listAccessible}
+		params := openapi.GetAllProjectsParams{
+			LabelFilter:    labelFilter,
+			ListAccessible: &listAccessible,
+		}
 		resp, err := client.GetAllProjects(ctx, &params)
 		if err != nil {
 			return nil, err
@@ -186,7 +198,10 @@ func GetProjects(ctx context.Context, client *openapi.Client, organization strin
 		}
 		projects = *itemList.Items
 	} else {
-		params := openapi.GetProjectsParams{ListAccessible: &listAccessible}
+		params := openapi.GetProjectsParams{
+			LabelFilter:    labelFilter,
+			ListAccessible: &listAccessible,
+		}
 		resp, err := client.GetProjects(ctx, organization, &params)
 		if err != nil {
 			return nil, err

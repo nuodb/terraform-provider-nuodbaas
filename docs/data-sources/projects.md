@@ -3,12 +3,12 @@
 page_title: "nuodbaas_projects Data Source - nuodbaas"
 subcategory: ""
 description: |-
-  Data source for listing NuoDB projects provisioned using the DBaaS Control Plane
+  Data source for listing NuoDB projects created using the DBaaS Control Plane
 ---
 
 # nuodbaas_projects (Data Source)
 
-Data source for listing NuoDB projects provisioned using the DBaaS Control Plane
+Data source for listing NuoDB projects created using the DBaaS Control Plane
 
 ## Example Usage
 
@@ -18,7 +18,7 @@ data "nuodbaas_projects" "projects_list" {}
 
 # Get all projects in a given organization
 data "nuodbaas_projects" "org_projects_list" {
-  filter {
+  filter = {
     organization = "system"
   }
 }
@@ -29,18 +29,23 @@ data "nuodbaas_projects" "org_projects_list" {
 
 ### Optional
 
-- `filter` (Block, Optional) Filters to apply to project list (see [below for nested schema](#nestedblock--filter))
+- `filter` (Attributes) Filters to apply to projects (see [below for nested schema](#nestedatt--filter))
 
 ### Read-Only
 
 - `projects` (Attributes List) The list of projects that satisfy the filter requirements (see [below for nested schema](#nestedatt--projects))
 
-<a id="nestedblock--filter"></a>
+<a id="nestedatt--filter"></a>
 ### Nested Schema for `filter`
 
 Optional:
 
-- `organization` (String) The organization to return projects for
+- `labels` (List of String) List of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
+  * `key` - Only return items that have label with specified key
+  * `key=value` - Only return items that have label with specified key set to value
+  * `!key` - Only return items that do _not_ have label with specified key
+  * `key!=value` - Only return items that do _not_ have label with specified key set to value
+- `organization` (String) The organization to filter projects on
 
 
 <a id="nestedatt--projects"></a>
@@ -49,4 +54,4 @@ Optional:
 Read-Only:
 
 - `name` (String) The name of the project
-- `organization` (String) The name of the organization the project belongs to
+- `organization` (String) The organization the project belongs to

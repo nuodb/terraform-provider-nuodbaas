@@ -3,12 +3,12 @@
 page_title: "nuodbaas_database Resource - nuodbaas"
 subcategory: ""
 description: |-
-  Resource for managing NuoDB databases provisioned using the DBaaS Control Plane
+  Resource for managing NuoDB databases created using the DBaaS Control Plane
 ---
 
 # nuodbaas_database (Resource)
 
-Resource for managing NuoDB databases provisioned using the DBaaS Control Plane
+Resource for managing NuoDB databases created using the DBaaS Control Plane
 
 ## Example Usage
 

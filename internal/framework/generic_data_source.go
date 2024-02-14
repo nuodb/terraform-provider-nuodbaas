@@ -2,7 +2,7 @@
 All Rights Reserved.
 */
 
-package provider
+package framework
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 
-	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/helper"
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
@@ -27,39 +26,41 @@ var (
 // provider API to DataSourceState.
 type GenericDataSource struct {
 	client           *openapi.Client
-	resourceTypeName string
-	description      string
-	getOpenApiSchema func() (*openapi3.Schema, error)
-	schema           *schema.Schema
-	build            func() DataSourceState
+	TypeName         string
+	Description      string
+	GetOpenApiSchema func() (*openapi3.Schema, error)
+	SchemaOverride   *schema.Schema
+	Build            func() DataSourceState
 }
 
 // DataSourceState handles interactions with the provider API.
 type DataSourceState interface {
 	State
+
+	// Read retrieves the state of the resource from the backend.
 	Read(context.Context, *openapi.Client) error
 }
 
 func (d *GenericDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_" + d.resourceTypeName
+	resp.TypeName = req.ProviderTypeName + "_" + d.TypeName
 }
 
 func (d *GenericDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	// If explicit schema is supplied, return that
-	if d.schema != nil {
-		resp.Schema = *d.schema
+	if d.SchemaOverride != nil {
+		resp.Schema = *d.SchemaOverride
 		return
 	}
 	// Otherwise, build schema from OpenAPI specification
-	oas, err := d.getOpenApiSchema()
+	oas, err := d.GetOpenApiSchema()
 	if err != nil {
 		resp.Diagnostics.AddError("Schema Creation Error", err.Error())
 		return
 	}
 	resp.Schema = schema.Schema{
-		Description:         d.description,
-		MarkdownDescription: d.description,
-		Attributes:          framework.ToDataSourceSchema(oas),
+		Description:         d.Description,
+		MarkdownDescription: d.Description,
+		Attributes:          ToDataSourceSchema(oas),
 	}
 }
 
@@ -82,7 +83,7 @@ func (d *GenericDataSource) Configure(ctx context.Context, req datasource.Config
 
 func (d *GenericDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	// Read data source attributes from config
-	state := d.build()
+	state := d.Build()
 	if !ReadResource(ctx, &resp.Diagnostics, req.Config.Get, state) {
 		return
 	}
@@ -93,7 +94,7 @@ func (d *GenericDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading "+d.resourceTypeName, err.Error())
+		resp.Diagnostics.AddError("Error reading "+d.TypeName, err.Error())
 		return
 	}
 	// Save updated data into Terraform state

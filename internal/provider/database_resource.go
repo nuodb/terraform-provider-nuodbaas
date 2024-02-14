@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	_ ResourceState = &DatabaseResourceModel{}
+	_ framework.ResourceState = &DatabaseResourceModel{}
 )
 
 type DatabaseResourceModel openapi.DatabaseCreateUpdateModel
@@ -124,15 +124,15 @@ func (state *DatabaseResourceModel) SetId(id string) error {
 	return nil
 }
 
-func NewDatabaseResourceState() ResourceState {
+func NewDatabaseResourceState() framework.ResourceState {
 	return &DatabaseResourceModel{}
 }
 
 func NewDatabaseResource() resource.Resource {
-	return &GenericResource{
-		resourceTypeName: "database",
-		description:      "Resource for managing NuoDB databases provisioned using the DBaaS Control Plane",
-		getOpenApiSchema: framework.GetDatabaseResourceSchema,
-		build:            NewDatabaseResourceState,
+	return &framework.GenericResource{
+		TypeName:         "database",
+		Description:      "Resource for managing NuoDB databases created using the DBaaS Control Plane",
+		GetOpenApiSchema: framework.GetDatabaseResourceSchema,
+		Build:            NewDatabaseResourceState,
 	}
 }

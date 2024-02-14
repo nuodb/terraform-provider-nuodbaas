@@ -179,9 +179,9 @@ func CheckClean() error {
 }
 
 func GetProjects(ctx context.Context, client *openapi.Client) ([]string, error) {
-	return helper.GetProjects(ctx, client, "", true)
+	return helper.GetProjects(ctx, client, "", nil, true)
 }
 
 func GetDatabases(ctx context.Context, client *openapi.Client) ([]string, error) {
-	return helper.GetDatabases(ctx, client, "", "", true)
+	return helper.GetDatabases(ctx, client, "", "", nil, true)
 }

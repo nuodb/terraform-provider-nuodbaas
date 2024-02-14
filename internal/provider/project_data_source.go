@@ -10,15 +10,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 )
 
-func NewProjectDataSourceState() DataSourceState {
+func NewProjectDataSourceState() framework.DataSourceState {
 	return &ProjectResourceModel{}
 }
 
 func NewProjectDataSource() datasource.DataSource {
-	return &GenericDataSource{
-		resourceTypeName: "project",
-		description:      "Data source for exposing information about NuoDB projects provisioned using the DBaaS Control Plane",
-		getOpenApiSchema: framework.GetProjectSchema,
-		build:            NewProjectDataSourceState,
+	return &framework.GenericDataSource{
+		TypeName:         "project",
+		Description:      "Data source for exposing information about NuoDB projects created using the DBaaS Control Plane",
+		GetOpenApiSchema: framework.GetProjectSchema,
+		Build:            NewProjectDataSourceState,
 	}
 }

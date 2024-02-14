@@ -2,7 +2,7 @@
 All Rights Reserved.
 */
 
-package provider
+package framework
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 
-	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/helper"
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
@@ -32,10 +31,10 @@ var (
 // ResourceState.
 type GenericResource struct {
 	client           *openapi.Client
-	resourceTypeName string
-	description      string
-	getOpenApiSchema func() (*openapi3.Schema, error)
-	build            func() ResourceState
+	TypeName         string
+	Description      string
+	GetOpenApiSchema func() (*openapi3.Schema, error)
+	Build            func() ResourceState
 }
 
 // State is a marker interface for all structs that model Terraform resources
@@ -45,32 +44,52 @@ type State interface{}
 // ResourceState handles interactions with the provider API.
 type ResourceState interface {
 	State
+
+	// Reset resets the local state of the resource to the zero value.
 	Reset()
+
+	// GetResourceVersion returns the resource version used to guard against
+	// concurrent updates from the local state.
 	GetResourceVersion() string
+
+	// IsReady returns true if the resource is in the desired state
+	// according to its spec, based on the local state.
 	IsReady() bool
+
+	// Create creates the resource in the backend based on the local state
+	// and waits for it to satisfy IsReady().
 	Create(context.Context, *openapi.Client) error
+
+	// Read retrieves the state of the resource from the backend.
 	Read(context.Context, *openapi.Client) error
+
+	// Update updates the resource in the backend to match the local state
+	// and waits for it to satisfy IsReady().
 	Update(context.Context, *openapi.Client) error
+
+	// Delete deletes the resource from the backend and waits for it to be
+	// cleaned up.
 	Delete(context.Context, *openapi.Client) error
+
 	// Deserialize the resource ID
 	SetId(string) error
 }
 
 func (r *GenericResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_" + r.resourceTypeName
+	resp.TypeName = req.ProviderTypeName + "_" + r.TypeName
 }
 
 func (r *GenericResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	// Get OpenAPI spec and convert it to Terraform schema
-	oas, err := r.getOpenApiSchema()
+	oas, err := r.GetOpenApiSchema()
 	if err != nil {
 		resp.Diagnostics.AddError("Schema Creation Error", err.Error())
 		return
 	}
 	resp.Schema = schema.Schema{
-		Description:         r.description,
-		MarkdownDescription: r.description,
-		Attributes:          framework.ToResourceSchema(oas, false),
+		Description:         r.Description,
+		MarkdownDescription: r.Description,
+		Attributes:          ToResourceSchema(oas, false),
 	}
 }
 
@@ -93,20 +112,20 @@ func (r *GenericResource) Configure(ctx context.Context, req resource.ConfigureR
 
 func (r *GenericResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Read desired resource state from Terraform
-	state := r.build()
+	state := r.Build()
 	if !ReadResource(ctx, &resp.Diagnostics, req.Plan.Get, state) {
 		return
 	}
 	// Create the resource
 	err := state.Create(ctx, r.client)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating "+r.resourceTypeName, err.Error())
+		resp.Diagnostics.AddError("Error creating "+r.TypeName, err.Error())
 		return
 	}
 	// Get resource state after creation
 	err = state.Read(ctx, r.client)
 	if err != nil {
-		resp.Diagnostics.AddError("Error refreshing "+r.resourceTypeName+" after create", err.Error())
+		resp.Diagnostics.AddError("Error refreshing "+r.TypeName+" after create", err.Error())
 		return
 	}
 	// Save resource into Terraform state
@@ -117,14 +136,14 @@ func (r *GenericResource) Create(ctx context.Context, req resource.CreateRequest
 	// Wait for resource to become ready
 	err = r.AwaitReady(ctx, state)
 	if err != nil {
-		resp.Diagnostics.AddError("Error waiting for "+r.resourceTypeName+" to become ready", err.Error())
+		resp.Diagnostics.AddError("Error waiting for "+r.TypeName+" to become ready", err.Error())
 		return
 	}
 }
 
 func (r *GenericResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Read resource from Terraform state
-	state := r.build()
+	state := r.Build()
 	if !ReadResource(ctx, &resp.Diagnostics, req.State.Get, state) {
 		return
 	}
@@ -135,7 +154,7 @@ func (r *GenericResource) Read(ctx context.Context, req resource.ReadRequest, re
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading "+r.resourceTypeName, err.Error())
+		resp.Diagnostics.AddError("Error reading "+r.TypeName, err.Error())
 		return
 	}
 	// Save resource into Terraform state
@@ -144,20 +163,20 @@ func (r *GenericResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 func (r *GenericResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Read desired resource state from Terraform
-	state := r.build()
+	state := r.Build()
 	if !ReadResource(ctx, &resp.Diagnostics, req.Plan.Get, state) {
 		return
 	}
 	// Update the resource
 	err := state.Update(ctx, r.client)
 	if err != nil {
-		resp.Diagnostics.AddError("Error updating "+r.resourceTypeName, err.Error())
+		resp.Diagnostics.AddError("Error updating "+r.TypeName, err.Error())
 		return
 	}
 	// Get resource state after update
 	err = state.Read(ctx, r.client)
 	if err != nil {
-		resp.Diagnostics.AddError("Error refreshing "+r.resourceTypeName+" after update", err.Error())
+		resp.Diagnostics.AddError("Error refreshing "+r.TypeName+" after update", err.Error())
 		return
 	}
 	// Save resource into Terraform state
@@ -168,35 +187,34 @@ func (r *GenericResource) Update(ctx context.Context, req resource.UpdateRequest
 	// Wait for resource to become ready
 	err = r.AwaitReady(ctx, state)
 	if err != nil {
-		resp.Diagnostics.AddError("Error waiting for "+r.resourceTypeName+" to become ready", err.Error())
+		resp.Diagnostics.AddError("Error waiting for "+r.TypeName+" to become ready", err.Error())
 		return
 	}
 }
 
 func (r *GenericResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Read resource from Terraform state
-	state := r.build()
+	state := r.Build()
 	if !ReadResource(ctx, &resp.Diagnostics, req.State.Get, state) {
 		return
 	}
 	// Delete the resource
 	err := state.Delete(ctx, r.client)
 	if err != nil {
-		resp.Diagnostics.AddError("Error deleting "+r.resourceTypeName, err.Error())
+		resp.Diagnostics.AddError("Error deleting "+r.TypeName, err.Error())
 		return
 	}
 	// Wait for resource to disappear
 	err = r.AwaitDeleted(ctx, state)
 	if err != nil {
-		resp.Diagnostics.AddError("Error waiting for "+r.resourceTypeName+" to be deleted", err.Error())
+		resp.Diagnostics.AddError("Error waiting for "+r.TypeName+" to be deleted", err.Error())
 		return
 	}
 }
 
 func (r *GenericResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	state := r.build()
+	state := r.Build()
 	err := state.SetId(req.ID)
-
 	if err != nil {
 		resp.Diagnostics.AddError("Unexpected Import Identifier", err.Error())
 		return
@@ -244,12 +262,18 @@ func (r *GenericResource) AwaitDeleted(ctx context.Context, state ResourceState)
 	}
 }
 
+// ReadResource decodes Terraform configuration, state, or plan to a model
+// struct containing ordinary Golang field types (e.g. bool, *int, []string)
+// that have the `tfsdk:"..."` tag.
 func ReadResource[T State](ctx context.Context, diags *diag.Diagnostics, fn func(context.Context, any) diag.Diagnostics, dest T) bool {
+	// Decode to opaque object type
 	var obj types.Object
 	diags.Append(fn(ctx, &obj)...)
 	if diags.HasError() {
 		return false
 	}
+	// Convert to target type, ignoring null and unknown values, which
+	// should deserialize as nil
 	diags.Append(obj.As(ctx, dest, basetypes.ObjectAsOptions{
 		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,
