@@ -65,7 +65,8 @@ func testChartDir(t *testing.T, path string, setUp string, configVariables confi
 	}))
 }
 
-func quickTests(t *testing.T) bool {
+// Should tests skip testing if charts apply successfully, in favor of faster execution.
+func noApplyDefault(t *testing.T) bool {
 	if testing.Short() {
 		t.Log("Not trying to apply examples because -short flag set.")
 		return true
@@ -81,7 +82,7 @@ func TestExamplesResourceProject(t *testing.T) {
 	// Other plan parts that the example assumes exist
 	setUp := ``
 
-	testChartDir(t, path, setUp, configVariables, true, quickTests(t), true)
+	testChartDir(t, path, setUp, configVariables, true, noApplyDefault(t), true)
 }
 
 func TestExamplesResourceDatabase(t *testing.T) {
@@ -97,7 +98,7 @@ func TestExamplesResourceDatabase(t *testing.T) {
 		tier         = "n0.nano"
 	  }`
 
-	testChartDir(t, path, setUp, configVariables, true, quickTests(t), true)
+	testChartDir(t, path, setUp, configVariables, true, noApplyDefault(t), true)
 }
 
 func TestExamplesDatasources(t *testing.T) {
@@ -112,7 +113,7 @@ func TestExamplesDatasources(t *testing.T) {
 	require.NoError(t, client.CreateProject(t, "system", "nuodb", "dev", "n0.nano"))
 	require.NoError(t, client.CreateDatabase(t, "system", "nuodb", "dbaas", "pass"))
 
-	testChartDir(t, path, setUp, configVariables, false, quickTests(t), false)
+	testChartDir(t, path, setUp, configVariables, false, noApplyDefault(t), false)
 
 	require.NoError(t, client.DeleteDatabase("system", "nuodb", "dbaas", false))
 	require.NoError(t, client.DeleteProject("system", "nuodb", false))
@@ -167,7 +168,7 @@ func TestExamplesProvider(t *testing.T) {
 				}
 			}
 
-			testChart(t, setUp+string(file.Bytes()), configVariables, true, quickTests(t), true)
+			testChart(t, setUp+string(file.Bytes()), configVariables, true, noApplyDefault(t), true)
 		})
 
 		return nil
