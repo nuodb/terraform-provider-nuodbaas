@@ -118,7 +118,7 @@ check-no-changes: ## Check that there are no uncommitted changes
 	@[ "$(GIT_STATUS)" = "" ] || ( echo "There are uncommitted changes:\n$(GIT_STATUS)"; exit 1; )
 
 .PHONY: generate
-generate: check-no-changes $(TFPLUGINDOCS_BIN) $(OAPI_CODEGEN_BIN) ## Generate Golang client for the NuoDB REST API and Terraform provider documentation
+generate: $(TFPLUGINDOCS_BIN) $(OAPI_CODEGEN_BIN) ## Generate Golang client for the NuoDB REST API and Terraform provider documentation
 	go generate
 
 .PHONY: extract-creds

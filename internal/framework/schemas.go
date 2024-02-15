@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	DatabaseSchemaName = "DatabaseCreateUpdateModel"
-	ProjectSchemaName  = "ProjectModel"
+	DatabaseResourceSchemaName   = "DatabaseCreateUpdateModel"
+	DatabaseDataSourceSchemaName = "DatabaseModel"
+	ProjectSchemaName            = "ProjectModel"
 )
 
 func getSchemas() (openapi3.Schemas, error) {
@@ -36,7 +37,7 @@ func GetSchema(name string) (*openapi3.Schema, error) {
 		return nil, err
 	}
 	schemaRef, ok := schemas[name]
-	if ok || schemaRef != nil {
+	if ok && schemaRef != nil {
 		if schemaRef.Value != nil {
 			return schemaRef.Value, nil
 		}
@@ -44,8 +45,12 @@ func GetSchema(name string) (*openapi3.Schema, error) {
 	return nil, fmt.Errorf("Schema %s not found", name)
 }
 
-func GetDatabaseSchema() (*openapi3.Schema, error) {
-	return GetSchema(DatabaseSchemaName)
+func GetDatabaseResourceSchema() (*openapi3.Schema, error) {
+	return GetSchema(DatabaseResourceSchemaName)
+}
+
+func GetDatabaseDataSourceSchema() (*openapi3.Schema, error) {
+	return GetSchema(DatabaseDataSourceSchemaName)
 }
 
 func GetProjectSchema() (*openapi3.Schema, error) {

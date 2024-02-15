@@ -99,11 +99,11 @@ func DeleteDatabaseByName(ctx context.Context, client *openapi.Client, organizat
 func GetDatabases(ctx context.Context, client *openapi.Client, organization, project string, listAccessible bool) ([]string, error) {
 	var databases []string
 	if len(organization) == 0 {
-		params := openapi.GetAllDatabasesParams{ListAccessible: &listAccessible}
 		if len(project) != 0 {
 			return nil, fmt.Errorf("Cannot specify project filter (%s) without organization", project)
 		}
 
+		params := openapi.GetAllDatabasesParams{ListAccessible: &listAccessible}
 		resp, err := client.GetAllDatabases(ctx, &params)
 		if err != nil {
 			return nil, err
