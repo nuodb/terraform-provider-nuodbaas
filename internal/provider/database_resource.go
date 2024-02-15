@@ -81,19 +81,26 @@ func (state *DatabaseResourceModel) Update(ctx context.Context, client *openapi.
 	for {
 		state.ResourceVersion = latest.ResourceVersion
 		resp, err := client.CreateDatabase(ctx, state.Organization, state.Project, state.Name, openapi.DatabaseCreateUpdateModel(*state))
-		if err == nil {
-			break
+		if err != nil {
+			return err
 		}
+		// Decode the response and check that there is no error
 		err = helper.ParseResponse(resp, nil)
+		if err == nil {
+			// Add back DBA password so that it is preserved in state
+			state.DbaPassword = dbaPassword
+			return nil
+		}
+		// If error is not retriable (code=CONCURRENT_UPDATE), fail fast
 		if apiError, ok := err.(*helper.ApiError); !ok || apiError.GetCode() != openapi.CONCURRENTUPDATE {
 			return err
 		}
 		// Re-fetch database and get resourceVersion
 		err = latest.Read(ctx, client)
+		if err != nil {
+			return err
+		}
 	}
-	// Add back DBA password so that it is preserved in state
-	state.DbaPassword = dbaPassword
-	return nil
 }
 
 func (state *DatabaseResourceModel) Delete(ctx context.Context, client *openapi.Client) error {

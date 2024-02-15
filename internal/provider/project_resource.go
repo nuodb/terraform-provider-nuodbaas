@@ -71,17 +71,24 @@ func (state *ProjectResourceModel) Update(ctx context.Context, client *openapi.C
 	for {
 		state.ResourceVersion = latest.ResourceVersion
 		resp, err := client.CreateProject(ctx, state.Organization, state.Name, openapi.ProjectModel(*state))
-		if err == nil {
-			break
+		if err != nil {
+			return err
 		}
+		// Decode the response and check that there is no error
 		err = helper.ParseResponse(resp, nil)
+		if err == nil {
+			return nil
+		}
+		// If error is not retriable (code=CONCURRENT_UPDATE), fail fast
 		if apiError, ok := err.(*helper.ApiError); !ok || apiError.GetCode() != openapi.CONCURRENTUPDATE {
 			return err
 		}
 		// Re-fetch project and get resourceVersion
 		err = latest.Read(ctx, client)
+		if err != nil {
+			return err
+		}
 	}
-	return nil
 }
 
 func (state *ProjectResourceModel) Delete(ctx context.Context, client *openapi.Client) error {
