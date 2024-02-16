@@ -23,7 +23,8 @@ import (
 )
 
 var (
-	_ resource.ResourceWithConfigure = &GenericResource{}
+	_ resource.ResourceWithConfigure   = &GenericResource{}
+	_ resource.ResourceWithImportState = &GenericResource{}
 )
 
 // GenericResource is a Resource implementation that handles all interactions
@@ -51,6 +52,8 @@ type ResourceState interface {
 	Read(context.Context, *openapi.Client) error
 	Update(context.Context, *openapi.Client) error
 	Delete(context.Context, *openapi.Client) error
+	// Deserialize the resource ID
+	SetId(string) error
 }
 
 func (r *GenericResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -188,6 +191,18 @@ func (r *GenericResource) Delete(ctx context.Context, req resource.DeleteRequest
 		resp.Diagnostics.AddError("Error waiting for "+r.resourceTypeName+" to be deleted", err.Error())
 		return
 	}
+}
+
+func (r *GenericResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	state := r.build()
+	err := state.SetId(req.ID)
+
+	if err != nil {
+		resp.Diagnostics.AddError("Unexpected Import Identifier", err.Error())
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 const (

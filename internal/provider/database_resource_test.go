@@ -57,10 +57,12 @@ func TestAccDatabaseResource(t *testing.T) {
 			},
 			{
 				// Import it
-				ResourceName:      "nuodbaas_database.db",
-				ImportState:       true,
-				ImportStateVerify: true,
-				SkipFunc:          func() (bool, error) { return true, nil }, //TODO: Import does not work
+				ResourceName:                         "nuodbaas_database.db",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        "org/proj/db",
+				ImportStateVerifyIdentifierAttribute: "name",
+				ImportStateVerifyIgnore:              []string{"dba_password"},
 			},
 			{
 				// Update the database by setting it to be disabled

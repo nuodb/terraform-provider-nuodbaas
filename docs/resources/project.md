@@ -97,3 +97,13 @@ Read-Only:
   * `Expired` - The project and its databases have expired
   * `Failed` - The project has failed to achieve a usable state
   * `Deleting` - The project has been marked for deletion, which is in progress
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# An existing project can be imported by specifying the organization
+# and project name, seperated by "/"
+terraform import nuodbaas_project.nuodb system/nuodb
+```

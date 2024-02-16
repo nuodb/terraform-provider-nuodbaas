@@ -1,6 +1,11 @@
 # Changelog
 
-## 0.1.0 (Unreleased)
+## Unreleased
+
+### Added
+- `import` project and database resources.
+
+## 0.1.0 - 2024-02-02
 Initial version of the NuoDB DBaaS provider.
 
 **This is a pre-release version.
