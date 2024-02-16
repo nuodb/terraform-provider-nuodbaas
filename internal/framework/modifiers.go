@@ -222,15 +222,15 @@ func requiresReplace(req GenericRequest, resp *GenericResponse) {
 	resp.RequiresReplace = true
 }
 
-func UseStateForUnknown() GenericPlanModifier {
-	return GenericPlanModifier{
+func UseStateForUnknown() *GenericPlanModifier {
+	return &GenericPlanModifier{
 		description: "Once set, the value of this attribute in state will not change.",
 		fn:          useStateForUnknown,
 	}
 }
 
-func RequiresReplace() GenericPlanModifier {
-	return GenericPlanModifier{
+func RequiresReplace() *GenericPlanModifier {
+	return &GenericPlanModifier{
 		description: "If the value of this attribute changes, Terraform will destroy and recreate the resource.",
 		fn:          requiresReplace,
 	}

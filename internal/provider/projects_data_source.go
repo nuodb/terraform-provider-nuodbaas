@@ -7,54 +7,55 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 
-	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
-	"github.com/nuodb/terraform-provider-nuodbaas/helper"
-	"github.com/nuodb/terraform-provider-nuodbaas/internal/model"
+	"github.com/nuodb/terraform-provider-nuodbaas/internal/helper"
+	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 )
 
-var _ datasource.DataSourceWithConfigure = &projectsDataSource{}
+var (
+	_ DataSourceState = &ProjectsDataSourceModel{}
+)
 
-func NewProjectsDataSource() datasource.DataSource {
-	return &projectsDataSource{}
-}
-
-type projectsDataSource struct {
-	client *nuodbaas.APIClient
-}
-
-type projectsModel struct {
-	Filter   *projectFilterModel                `tfsdk:"filter"`
-	Projects []model.ProjectDataSourceNameModel `tfsdk:"projects"`
-}
-
-type projectFilterModel struct {
+type ProjectFilterModel struct {
 	Organization *string `tfsdk:"organization"`
 }
 
-// Schema implements datasource.DataSource.
-func (d *projectsDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	resp.Schema = schema.Schema{
-		Description:         "A listing of projects that exist in NuoDB DBaaS.",
-		MarkdownDescription: "A listing of projects that exist in NuoDB DBaaS.",
+type ProjectNameModel struct {
+	Organization string `tfsdk:"organization"`
+	Name         string `tfsdk:"name"`
+}
+
+type ProjectsDataSourceModel struct {
+	Filter   *ProjectFilterModel `tfsdk:"filter"`
+	Projects []ProjectNameModel  `tfsdk:"projects"`
+}
+
+// GetProjectsDataSourceSchema returns the schema for the projects (plural) data
+// source. This has to be provided explicitly because there is no schema in the
+// OpenAPI spec for the REST API that corresponds to it.
+func GetProjectsDataSourceSchema() *schema.Schema {
+	return &schema.Schema{
+		Description:         "Data source for listing NuoDB projects provisioned using the DBaaS Control Plane",
+		MarkdownDescription: "Data source for listing NuoDB projects provisioned using the DBaaS Control Plane",
 		Attributes: map[string]schema.Attribute{
 			"projects": schema.ListNestedAttribute{
-				Description:         "The databases that exist.",
-				MarkdownDescription: "The databases that exist.",
+				Description:         "The list of projects that satisfy the filter requirements",
+				MarkdownDescription: "The list of projects that satisfy the filter requirements",
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"name": schema.StringAttribute{
-							Description:         "Name of the project",
-							MarkdownDescription: "Name of the project",
+						"organization": schema.StringAttribute{
+							Description:         "The name of the organization the project belongs to",
+							MarkdownDescription: "The name of the organization the project belongs to",
 							Computed:            true,
 						},
-						"organization": schema.StringAttribute{
-							Description:         "Name of the organization for which project is created",
-							MarkdownDescription: "Name of the organization for which project is created",
+						"name": schema.StringAttribute{
+							Description:         "The name of the project",
+							MarkdownDescription: "The name of the project",
 							Computed:            true,
 						},
 					},
@@ -63,12 +64,12 @@ func (d *projectsDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 		},
 		Blocks: map[string]schema.Block{
 			"filter": schema.SingleNestedBlock{
-				Description:         "Filters to narrow the list of fetched projects.",
-				MarkdownDescription: "Filters to narrow the list of fetched projects.",
+				Description:         "Filters to apply to project list",
+				MarkdownDescription: "Filters to apply to project list",
 				Attributes: map[string]schema.Attribute{
 					"organization": schema.StringAttribute{
-						Description:         "Only return databases in a given organization.",
-						MarkdownDescription: "Only return databases in a given organization.",
+						Description:         "The organization to return projects for",
+						MarkdownDescription: "The organization to return projects for",
 						Optional:            true,
 					},
 				},
@@ -77,58 +78,45 @@ func (d *projectsDataSource) Schema(_ context.Context, req datasource.SchemaRequ
 	}
 }
 
-// Metadata implements datasource.DataSource.
-func (d *projectsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_projects"
-}
-
 // Read implements datasource.DataSource.
-func (d *projectsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var state projectsModel
-	if !helper.ReadResource(ctx, resp.Diagnostics, req.Config.Get, &state) {
-		return
-	}
-
+func (state *ProjectsDataSourceModel) Read(ctx context.Context, client *openapi.Client) error {
 	var organization string
 	if state.Filter != nil {
 		if state.Filter.Organization != nil {
 			organization = *state.Filter.Organization
 		}
 	}
-	projects, err := helper.GetProjects(ctx, d.client, organization, true)
+	projects, err := helper.GetProjects(ctx, client, organization, true)
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error getting projects",
-			helper.GetApiErrorMessage(err, "Could not get projects, unexpected error:"),
-		)
-		return
+		return err
 	}
-
-	state.Projects, err = helper.GetProjectDataSourceResponse(projects)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Conversion Failure",
-			"Could not get convert project names: "+err.Error())
-		return
-	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	state.Projects, err = GetProjectDataSourceResponse(projects)
+	return err
 }
 
-// Configure implements datasource.DataSourceWithConfigure.
-func (d *projectsDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
+func GetProjectDataSourceResponse(projects []string) ([]ProjectNameModel, error) {
+	var ret []ProjectNameModel
+	for _, project := range projects {
+		parts := strings.Split(project, "/")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("Unexpected format for project name: %s", project)
+		}
+		ret = append(ret, ProjectNameModel{
+			Organization: parts[0],
+			Name:         parts[1],
+		})
 	}
+	return ret, nil
+}
 
-	client, ok := req.ProviderData.(*nuodbaas.APIClient)
+func NewProjectsDataSourceState() DataSourceState {
+	return &ProjectsDataSourceModel{}
+}
 
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *nuodbaas.APIClient, got: %T. Please report this issue to NuoDB.Support@3ds.com", req.ProviderData),
-		)
-		return
+func NewProjectsDataSource() datasource.DataSource {
+	return &GenericDataSource{
+		resourceTypeName: "projects",
+		schema:           GetProjectsDataSourceSchema(),
+		build:            NewProjectsDataSourceState,
 	}
-
-	d.client = client
 }

@@ -35,7 +35,7 @@ func testAccPreCheck(t *testing.T) {
 }
 
 func checkClean(_ *terraform.State) error {
-	return nuodbaas_client_test.NewTestClient(context.TODO()).CheckClean()
+	return nuodbaas_client_test.CheckClean()
 }
 
 func getProviderTypeName() string {

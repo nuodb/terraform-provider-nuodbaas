@@ -3,12 +3,12 @@
 page_title: "nuodbaas_project Data Source - nuodbaas"
 subcategory: ""
 description: |-
-  The state of a given project.
+  Data source for exposing information about NuoDB projects provisioned using the DBaaS Control Plane
 ---
 
 # nuodbaas_project (Data Source)
 
-The state of a given project.
+Data source for exposing information about NuoDB projects provisioned using the DBaaS Control Plane
 
 ## Example Usage
 
@@ -25,15 +25,16 @@ data "nuodbaas_project" "project_details" {
 
 ### Required
 
-- `name` (String) Name of the project
-- `organization` (String) Name of the organization for which project is created
+- `name` (String) The name of the project
+- `organization` (String) The organization that the project belongs to
 
 ### Read-Only
 
-- `maintenance` (Attributes) Maintenance shutdown status of the project. Shutting down a project also shuts down all databases belonging to it. (see [below for nested schema](#nestedatt--maintenance))
-- `properties` (Attributes) Project configuration properties. (see [below for nested schema](#nestedatt--properties))
-- `resource_version` (String) The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.
+- `labels` (Map of String) User-defined labels attached to the resource that can be used for filtering
+- `maintenance` (Attributes) (see [below for nested schema](#nestedatt--maintenance))
+- `properties` (Attributes) (see [below for nested schema](#nestedatt--properties))
 - `sla` (String) The SLA for the project. Cannot be updated once the project is created.
+- `status` (Attributes) (see [below for nested schema](#nestedatt--status))
 - `tier` (String) The service tier for the project
 
 <a id="nestedatt--maintenance"></a>
@@ -41,12 +42,35 @@ data "nuodbaas_project" "project_details" {
 
 Read-Only:
 
+- `expires_at_time` (String) The time at which the project or database will be disabled
+- `expires_in` (String) The time until the project or database is disabled, e.g. `1d`
 - `is_disabled` (Boolean) Whether the project or database should be shutdown
 
 
 <a id="nestedatt--properties"></a>
 ### Nested Schema for `properties`
 
-Optional:
+Read-Only:
 
+- `product_version` (String) The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb-ce/tags. If omitted, the project version will be resolved based on the SLA and cluster configuration.
 - `tier_parameters` (Map of String) Opaque parameters supplied to project service tier.
+
+
+<a id="nestedatt--status"></a>
+### Nested Schema for `status`
+
+Read-Only:
+
+- `ca_pem` (String) The PEM-encoded certificate for SQL clients to verify database servers within the project
+- `message` (String) Message summarizing the state of the project
+- `ready` (Boolean) Whether the project is ready
+- `shutdown` (Boolean) Whether the project and all of its databases have shutdown
+- `state` (String) The state of the project:
+  * `Available` - The project is available
+  * `Creating` - The project is being created and not yet available
+  * `Modifying` - The project is being modified
+  * `Stopping` - Shutdown is in progress for this project
+  * `Stopped` - The project and its databases have been stopped
+  * `Expired` - The project and its databases have expired
+  * `Failed` - The project has failed to achieve a usable state
+  * `Deleting` - The project has been marked for deletion, which is in progress

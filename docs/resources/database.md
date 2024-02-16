@@ -3,15 +3,12 @@
 page_title: "nuodbaas_database Resource - nuodbaas"
 subcategory: ""
 description: |-
-  A resource to create a new database.
-  ~> Note When creating a project and database in the same chart, make sure that the database resource has an explicit dependency on the project resource (for example, by using values from the project in the database, like in the examples).
+  Resource for managing NuoDB databases provisioned using the DBaaS Control Plane
 ---
 
 # nuodbaas_database (Resource)
 
-A resource to create a new database.
-
- ~> **Note** When creating a project and database in the same chart, make sure that the database resource has an explicit dependency on the project resource (for example, by using values from the project in the database, like in the examples).
+Resource for managing NuoDB databases provisioned using the DBaaS Control Plane
 
 ## Example Usage
 
@@ -41,11 +38,6 @@ resource "nuodbaas_database" "dbaas" {
       capacityType = "spot"
     }
   }
-
-  timeouts {
-    create = "5m"
-    update = "5m"
-  }
 }
 ```
 
@@ -55,27 +47,29 @@ resource "nuodbaas_database" "dbaas" {
 ### Required
 
 - `dba_password` (String, Sensitive) The password for the DBA user. Can only be specified when creating a database.
-- `name` (String) Name of the database.
-- `organization` (String) Name of the organization which this database belongs to (should match the organization of the project).
-- `project` (String) The name of the project for which database belongs to.
+- `name` (String) The name of the database
+- `organization` (String) The organization that the database belongs to
+- `project` (String) The project that the database belongs to
 
 ### Optional
 
-- `maintenance` (Attributes) Maintenance shutdown status of the database. (see [below for nested schema](#nestedatt--maintenance))
-- `properties` (Attributes) Database configuration properties. (see [below for nested schema](#nestedatt--properties))
+- `labels` (Map of String) User-defined labels attached to the resource that can be used for filtering
+- `maintenance` (Attributes) (see [below for nested schema](#nestedatt--maintenance))
+- `properties` (Attributes) (see [below for nested schema](#nestedatt--properties))
+- `restore_from` (Attributes) (see [below for nested schema](#nestedatt--restore_from))
 - `tier` (String) The service tier for the database. If omitted, the project service tier is inherited.
-- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
-- `resource_version` (String) The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.
-- `status` (Attributes) Current database status. (see [below for nested schema](#nestedatt--status))
+- `status` (Attributes) (see [below for nested schema](#nestedatt--status))
 
 <a id="nestedatt--maintenance"></a>
 ### Nested Schema for `maintenance`
 
 Optional:
 
+- `expires_at_time` (String) The time at which the project or database will be disabled
+- `expires_in` (String) The time until the project or database is disabled, e.g. `1d`
 - `is_disabled` (Boolean) Whether the project or database should be shutdown
 
 
@@ -86,16 +80,16 @@ Optional:
 
 - `archive_disk_size` (String) The size of the archive volumes for the database. Can be only updated to increase the volume size.
 - `journal_disk_size` (String) The size of the journal volumes for the database. Can be only updated to increase the volume size.
+- `product_version` (String) The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb-ce/tags. If omitted, the database version will be inherited from the project.
 - `tier_parameters` (Map of String) Opaque parameters supplied to database service tier.
 
 
-<a id="nestedblock--timeouts"></a>
-### Nested Schema for `timeouts`
+<a id="nestedatt--restore_from"></a>
+### Nested Schema for `restore_from`
 
 Optional:
 
-- `create` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours).
-- `update` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours).
+- `backup` (String) The name of the backup to restore the database from. If a fully-qualified name is not supplied, then the organization, project, or name of the database being created is assumed.
 
 
 <a id="nestedatt--status"></a>
@@ -104,4 +98,16 @@ Optional:
 Read-Only:
 
 - `ca_pem` (String) The PEM-encoded certificate for SQL clients to verify database servers
-- `sql_end_point` (String) The endpoint for SQL clients to connect to
+- `message` (String) Message summarizing the state of the database
+- `ready` (Boolean) Whether the database is ready
+- `shutdown` (Boolean) Whether the database has shutdown
+- `sql_endpoint` (String) The endpoint for SQL clients to connect to
+- `state` (String) The state of the database:
+  * `Available` - The database is ready to accept SQL connections
+  * `Creating` - The database is being created and not yet available
+  * `Modifying` - The database is being modified
+  * `Stopping` - Shutdown is in progress for this database
+  * `Stopped` - The database has been stopped
+  * `Expired` - The database has expired
+  * `Failed` - The database has failed to achieve a usable state
+  * `Deleting` - The database has been marked for deletion, which is in progress

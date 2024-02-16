@@ -3,12 +3,12 @@
 page_title: "nuodbaas_databases Data Source - nuodbaas"
 subcategory: ""
 description: |-
-  A listing of databases deployed in NuoDB DBaaS.
+  Data source for listing NuoDB databases provisioned using the DBaaS Control Plane
 ---
 
 # nuodbaas_databases (Data Source)
 
-A listing of databases deployed in NuoDB DBaaS.
+Data source for listing NuoDB databases provisioned using the DBaaS Control Plane
 
 ## Example Usage
 
@@ -38,19 +38,19 @@ data "nuodbaas_databases" "proj_database_list" {
 
 ### Optional
 
-- `filter` (Block, Optional) Filters to narrow the list of fetched databases. (see [below for nested schema](#nestedblock--filter))
+- `filter` (Block, Optional) Filters to apply to database list (see [below for nested schema](#nestedblock--filter))
 
 ### Read-Only
 
-- `databases` (Attributes List) The databases that exist. (see [below for nested schema](#nestedatt--databases))
+- `databases` (Attributes List) The list of databases that satisfy the filter requirements (see [below for nested schema](#nestedatt--databases))
 
 <a id="nestedblock--filter"></a>
 ### Nested Schema for `filter`
 
 Optional:
 
-- `organization` (String) Only return databases in a given organization.
-- `project` (String) Only return databases in a given project. If supplied, the `organization` must also be provided.
+- `organization` (String) The organization to return databases for
+- `project` (String) The project to return databases for. If specified, the organization must also be specified.
 
 
 <a id="nestedatt--databases"></a>
@@ -58,6 +58,6 @@ Optional:
 
 Read-Only:
 
-- `name` (String) Name of the database.
-- `organization` (String) The organization that the database belongs to.
-- `project` (String) The name of the project to which the database belongs.
+- `name` (String) The name of the database
+- `organization` (String) The organization that the database belongs to
+- `project` (String) The project that the database belongs to

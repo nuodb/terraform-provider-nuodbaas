@@ -3,12 +3,12 @@
 page_title: "nuodbaas_projects Data Source - nuodbaas"
 subcategory: ""
 description: |-
-  A listing of projects that exist in NuoDB DBaaS.
+  Data source for listing NuoDB projects provisioned using the DBaaS Control Plane
 ---
 
 # nuodbaas_projects (Data Source)
 
-A listing of projects that exist in NuoDB DBaaS.
+Data source for listing NuoDB projects provisioned using the DBaaS Control Plane
 
 ## Example Usage
 
@@ -29,18 +29,18 @@ data "nuodbaas_projects" "org_projects_list" {
 
 ### Optional
 
-- `filter` (Block, Optional) Filters to narrow the list of fetched projects. (see [below for nested schema](#nestedblock--filter))
+- `filter` (Block, Optional) Filters to apply to project list (see [below for nested schema](#nestedblock--filter))
 
 ### Read-Only
 
-- `projects` (Attributes List) The databases that exist. (see [below for nested schema](#nestedatt--projects))
+- `projects` (Attributes List) The list of projects that satisfy the filter requirements (see [below for nested schema](#nestedatt--projects))
 
 <a id="nestedblock--filter"></a>
 ### Nested Schema for `filter`
 
 Optional:
 
-- `organization` (String) Only return databases in a given organization.
+- `organization` (String) The organization to return projects for
 
 
 <a id="nestedatt--projects"></a>
@@ -48,5 +48,5 @@ Optional:
 
 Read-Only:
 
-- `name` (String) Name of the project
-- `organization` (String) Name of the organization for which project is created
+- `name` (String) The name of the project
+- `organization` (String) The name of the organization the project belongs to

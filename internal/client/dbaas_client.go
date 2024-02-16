@@ -5,19 +5,30 @@ All Rights Reserved.
 package nuodbaas_client
 
 import (
+	"context"
 	"crypto/tls"
-	"encoding/base64"
-	"fmt"
 	"net/http"
 
-	nuodbaas "github.com/nuodb/terraform-provider-nuodbaas/client"
+	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 )
 
-func NewApiClient(skipVerify bool, urlBase string, user string, password string) *nuodbaas.APIClient {
-	configuration := nuodbaas.NewConfiguration()
+func WithBasicCredentials(user, password string) openapi.ClientOption {
+	return openapi.WithRequestEditorFn(func(_ context.Context, req *http.Request) error {
+		if user != "" {
+			req.SetBasicAuth(user, password)
+		}
+		return nil
+	})
+}
+
+func NewApiClient(urlBase string, user string, password string, skipVerify bool) (*openapi.Client, error) {
+	client, err := openapi.NewClient(urlBase, WithBasicCredentials(user, password))
+	if err != nil {
+		return nil, err
+	}
 
 	if skipVerify {
-		configuration.HTTPClient = &http.Client{
+		client.Client = &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
 					InsecureSkipVerify: true,
@@ -25,18 +36,5 @@ func NewApiClient(skipVerify bool, urlBase string, user string, password string)
 			},
 		}
 	}
-	configuration.Servers = nuodbaas.ServerConfigurations{
-		{URL: urlBase, Description: "The base URL to use for the Terraform provider"},
-	}
-	if user != "" {
-		configuration.DefaultHeader["Authorization"] = fmt.Sprintf("Basic %s", basicAuth(user, password))
-	}
-
-	apiClient := nuodbaas.NewAPIClient(configuration)
-	return apiClient
-}
-
-func basicAuth(username, password string) string {
-	auth := username + ":" + password
-	return base64.StdEncoding.EncodeToString([]byte(auth))
+	return client, nil
 }
