@@ -37,6 +37,8 @@ func TestAccProjectResource(t *testing.T) {
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "labels.key", "value"),
 					// product_version should be computed by the REST service
 					resource.TestCheckResourceAttrSet("nuodbaas_project.proj", "properties.product_version"),
+					// The create operation should block until the state is Available
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "status.state", "Available"),
 				),
 			},
 			{
@@ -49,8 +51,8 @@ func TestAccProjectResource(t *testing.T) {
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "tier", "n0.nano"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "labels.%", "1"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "labels.key", "value"),
-					// product_version should be computed by the REST service
 					resource.TestCheckResourceAttrSet("nuodbaas_project.proj", "properties.product_version"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "status.state", "Available"),
 				),
 			},
 			{
@@ -91,6 +93,8 @@ func TestAccProjectResource(t *testing.T) {
 					// Check updated attribute values
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "maintenance.is_disabled", "true"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "properties.product_version", "9.9.9"),
+					// The update operation should block until the state is Stopped when is_disabled=true
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "status.state", "Stopped"),
 				),
 			},
 			{
@@ -115,6 +119,7 @@ func TestAccProjectResource(t *testing.T) {
 					// Maintenance setting and properties should remain due to them being computed / UseStateForUnknown
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "maintenance.is_disabled", "true"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "properties.product_version", "9.9.9"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "status.state", "Stopped"),
 				),
 			},
 			{
