@@ -17,22 +17,28 @@ import (
 )
 
 func TestAccProjectDataSource(t *testing.T) {
-	organizationName := "org"
-	projectName := "proj"
-	sla := "dev"
-	tier := "n0.nano"
-
-	disabled := true
-	tierParamKey := "foo"
-	tierParamValue := "bar"
+	var (
+		organizationName = "org"
+		projectName      = "proj"
+		sla              = "dev"
+		tier             = "n0.nano"
+		disabled         = true
+		productVersion   = "6.0"
+		tierParamKey     = "foo"
+		tierParamValue   = "bar"
+	)
 
 	model := openapi.ProjectModel{
 		Sla:  sla,
 		Tier: tier,
+		Labels: &map[string]string{
+			"key": "value",
+		},
 		Maintenance: &openapi.MaintenanceModel{
 			IsDisabled: &disabled,
 		},
 		Properties: &openapi.ProjectPropertiesModel{
+			ProductVersion: &productVersion,
 			TierParameters: &map[string]string{tierParamKey: tierParamValue},
 		},
 	}
@@ -61,7 +67,10 @@ func TestAccProjectDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr(resourcePath, "name", projectName),
 					resource.TestCheckResourceAttr(resourcePath, "sla", sla),
 					resource.TestCheckResourceAttr(resourcePath, "tier", tier),
+					resource.TestCheckResourceAttr(resourcePath, "labels.%", "1"),
+					resource.TestCheckResourceAttr(resourcePath, "labels.key", "value"),
 					resource.TestCheckResourceAttr(resourcePath, "maintenance.is_disabled", "true"),
+					resource.TestCheckResourceAttr(resourcePath, "properties.product_version", "6.0"),
 					resource.TestCheckResourceAttr(resourcePath, "properties.tier_parameters.%", "1"),
 					resource.TestCheckResourceAttr(resourcePath, "properties.tier_parameters."+tierParamKey, tierParamValue),
 				),

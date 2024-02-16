@@ -6,6 +6,7 @@ package provider
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -46,4 +47,9 @@ func getProviderTypeName() string {
 	instance.Metadata(ctx, provider.MetadataRequest{}, &response)
 
 	return response.TypeName
+}
+
+func IsE2eTest() bool {
+	value, ok := os.LookupEnv("E2E_TEST")
+	return ok && value == "true"
 }

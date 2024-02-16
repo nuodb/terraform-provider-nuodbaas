@@ -3,12 +3,12 @@
 page_title: "nuodbaas_databases Data Source - nuodbaas"
 subcategory: ""
 description: |-
-  Data source for listing NuoDB databases provisioned using the DBaaS Control Plane
+  Data source for listing NuoDB databases created using the DBaaS Control Plane
 ---
 
 # nuodbaas_databases (Data Source)
 
-Data source for listing NuoDB databases provisioned using the DBaaS Control Plane
+Data source for listing NuoDB databases created using the DBaaS Control Plane
 
 ## Example Usage
 
@@ -19,14 +19,14 @@ data "nuodbaas_databases" "database_list" {}
 
 # Get all databases in a given organization
 data "nuodbaas_databases" "org_database_list" {
-  filter {
+  filter = {
     organization = "system"
   }
 }
 
 # Get all databases in a given project
 data "nuodbaas_databases" "proj_database_list" {
-  filter {
+  filter = {
     organization = "system"
     project      = "nuodb"
   }
@@ -38,19 +38,24 @@ data "nuodbaas_databases" "proj_database_list" {
 
 ### Optional
 
-- `filter` (Block, Optional) Filters to apply to database list (see [below for nested schema](#nestedblock--filter))
+- `filter` (Attributes) Filters to apply to databases (see [below for nested schema](#nestedatt--filter))
 
 ### Read-Only
 
 - `databases` (Attributes List) The list of databases that satisfy the filter requirements (see [below for nested schema](#nestedatt--databases))
 
-<a id="nestedblock--filter"></a>
+<a id="nestedatt--filter"></a>
 ### Nested Schema for `filter`
 
 Optional:
 
-- `organization` (String) The organization to return databases for
-- `project` (String) The project to return databases for. If specified, the organization must also be specified.
+- `labels` (List of String) List of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
+  * `key` - Only return items that have label with specified key
+  * `key=value` - Only return items that have label with specified key set to value
+  * `!key` - Only return items that do _not_ have label with specified key
+  * `key!=value` - Only return items that do _not_ have label with specified key set to value
+- `organization` (String) The organization to filter databases on
+- `project` (String) The project to filter databases on. If specified, the organization must also be specified.
 
 
 <a id="nestedatt--databases"></a>
@@ -59,5 +64,5 @@ Optional:
 Read-Only:
 
 - `name` (String) The name of the database
-- `organization` (String) The organization that the database belongs to
-- `project` (String) The project that the database belongs to
+- `organization` (String) The organization the database belongs to
+- `project` (String) The project the database belongs to

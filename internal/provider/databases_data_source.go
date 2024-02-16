@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/helper"
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
@@ -17,12 +18,13 @@ import (
 )
 
 var (
-	_ DataSourceState = &DatabasesDataSourceModel{}
+	_ framework.DataSourceState = &DatabasesDataSourceModel{}
 )
 
 type DatabaseFilterModel struct {
-	Organization *string `tfsdk:"organization"`
-	Project      *string `tfsdk:"project"`
+	Organization *string  `tfsdk:"organization"`
+	Project      *string  `tfsdk:"project"`
+	Labels       []string `tfsdk:"labels"`
 }
 
 type DatabaseNameModel struct {
@@ -40,58 +42,15 @@ type DatabasesDataSourceModel struct {
 // data source. This has to be provided explicitly because there is no schema in
 // the OpenAPI spec for the REST API that corresponds to it.
 func GetDatabasesDataSourceSchema() *schema.Schema {
-	return &schema.Schema{
-		Description:         "Data source for listing NuoDB databases provisioned using the DBaaS Control Plane",
-		MarkdownDescription: "Data source for listing NuoDB databases provisioned using the DBaaS Control Plane",
-		Attributes: map[string]schema.Attribute{
-			"databases": schema.ListNestedAttribute{
-				Description:         "The list of databases that satisfy the filter requirements",
-				MarkdownDescription: "The list of databases that satisfy the filter requirements",
-				Computed:            true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"name": schema.StringAttribute{
-							Description:         "The name of the database",
-							MarkdownDescription: "The name of the database",
-							Computed:            true,
-						},
-						"organization": schema.StringAttribute{
-							Description:         "The organization that the database belongs to",
-							MarkdownDescription: "The organization that the database belongs to",
-							Computed:            true,
-						},
-						"project": schema.StringAttribute{
-							Description:         "The project that the database belongs to",
-							MarkdownDescription: "The project that the database belongs to",
-							Computed:            true,
-						},
-					},
-				},
-			},
-		},
-		Blocks: map[string]schema.Block{
-			"filter": schema.SingleNestedBlock{
-				Description:         "Filters to apply to database list",
-				MarkdownDescription: "Filters to apply to database list",
-				Attributes: map[string]schema.Attribute{
-					"organization": schema.StringAttribute{
-						Description:         "The organization to return databases for",
-						MarkdownDescription: "The organization to return databases for",
-						Optional:            true,
-					},
-					"project": schema.StringAttribute{
-						Description:         "The project to return databases for. If specified, the organization must also be specified.",
-						MarkdownDescription: "The project to return databases for. If specified, the organization must also be specified.",
-						Optional:            true,
-					},
-				},
-			},
-		},
-	}
+	sb := framework.NewSchemaBuilder().WithDescription("Data source for listing NuoDB databases created using the DBaaS Control Plane")
+	sb.WithProjectScopeFilters("databases")
+	sb.WithProjectScopeList("database", "databases").WithNameAttribute("database")
+	return sb.Build()
 }
 
 func (state *DatabasesDataSourceModel) Read(ctx context.Context, client *openapi.Client) error {
 	var organization, project string
+	var labelFilter *string
 	if state.Filter != nil {
 		if state.Filter.Organization != nil {
 			organization = *state.Filter.Organization
@@ -99,8 +58,12 @@ func (state *DatabasesDataSourceModel) Read(ctx context.Context, client *openapi
 		if state.Filter.Project != nil {
 			project = *state.Filter.Project
 		}
+		if state.Filter.Labels != nil {
+			labelFilterStr := strings.Join(state.Filter.Labels, ",")
+			labelFilter = &labelFilterStr
+		}
 	}
-	databases, err := helper.GetDatabases(ctx, client, organization, project, true)
+	databases, err := helper.GetDatabases(ctx, client, organization, project, labelFilter, true)
 	if err != nil {
 		return err
 	}
@@ -124,14 +87,14 @@ func GetDatabaseDataSourceResponse(databases []string) ([]DatabaseNameModel, err
 	return ret, nil
 }
 
-func NewDatabasesDataSourceState() DataSourceState {
+func NewDatabasesDataSourceState() framework.DataSourceState {
 	return &DatabasesDataSourceModel{}
 }
 
 func NewDatabasesDataSource() datasource.DataSource {
-	return &GenericDataSource{
-		resourceTypeName: "databases",
-		schema:           GetDatabasesDataSourceSchema(),
-		build:            NewDatabasesDataSourceState,
+	return &framework.GenericDataSource{
+		TypeName:       "databases",
+		SchemaOverride: GetDatabasesDataSourceSchema(),
+		Build:          NewDatabasesDataSourceState,
 	}
 }

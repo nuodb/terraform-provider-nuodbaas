@@ -3,12 +3,12 @@
 page_title: "nuodbaas_project Resource - nuodbaas"
 subcategory: ""
 description: |-
-  Resource for managing NuoDB projects provisioned using the DBaaS Control Plane
+  Resource for managing NuoDB projects created using the DBaaS Control Plane
 ---
 
 # nuodbaas_project (Resource)
 
-Resource for managing NuoDB projects provisioned using the DBaaS Control Plane
+Resource for managing NuoDB projects created using the DBaaS Control Plane
 
 ## Example Usage
 

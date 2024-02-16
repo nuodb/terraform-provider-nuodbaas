@@ -3,12 +3,12 @@
 page_title: "nuodbaas_database Data Source - nuodbaas"
 subcategory: ""
 description: |-
-  Data source for exposing information about NuoDB databases provisioned using the DBaaS Control Plane
+  Data source for exposing information about NuoDB databases created using the DBaaS Control Plane
 ---
 
 # nuodbaas_database (Data Source)
 
-Data source for exposing information about NuoDB databases provisioned using the DBaaS Control Plane
+Data source for exposing information about NuoDB databases created using the DBaaS Control Plane
 
 ## Example Usage
 

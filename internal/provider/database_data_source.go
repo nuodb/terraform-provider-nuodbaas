@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	_ DataSourceState = &DatabaseResourceModel{}
+	_ framework.DataSourceState = &DatabaseResourceModel{}
 )
 
 type DatabaseDataSourceModel openapi.DatabaseModel
@@ -28,15 +28,15 @@ func (state *DatabaseDataSourceModel) Read(ctx context.Context, client *openapi.
 	return helper.ParseResponse(resp, state)
 }
 
-func NewDatabaseDataSourceState() DataSourceState {
+func NewDatabaseDataSourceState() framework.DataSourceState {
 	return &DatabaseDataSourceModel{}
 }
 
 func NewDatabaseDataSource() datasource.DataSource {
-	return &GenericDataSource{
-		resourceTypeName: "database",
-		description:      "Data source for exposing information about NuoDB databases provisioned using the DBaaS Control Plane",
-		getOpenApiSchema: framework.GetDatabaseDataSourceSchema,
-		build:            NewDatabaseDataSourceState,
+	return &framework.GenericDataSource{
+		TypeName:         "database",
+		Description:      "Data source for exposing information about NuoDB databases created using the DBaaS Control Plane",
+		GetOpenApiSchema: framework.GetDatabaseDataSourceSchema,
+		Build:            NewDatabaseDataSourceState,
 	}
 }

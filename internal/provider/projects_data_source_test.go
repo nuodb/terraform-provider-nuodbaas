@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	nuodbaas_client_test "github.com/nuodb/terraform-provider-nuodbaas/internal/client/testclient"
+	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,7 +34,7 @@ func TestAccProjectsDataSourceEmpty(t *testing.T) {
 			{
 				Config: providerConfig + fmt.Sprintf(`
 					data "%s" "%s" {
-						filter {
+						filter = {
 							organization = "someorg"
 						}
 					}
@@ -88,7 +89,16 @@ func TestAccProjectsDataSourceNotEmpty(t *testing.T) {
 	client, err := nuodbaas_client_test.DefaultApiClient()
 	require.NoError(t, err)
 	require.NoError(t, nuodbaas_client_test.CreateProject(t, ctx, client, proj1Org, proj1Name, "dev", "n0.nano"))
-	require.NoError(t, nuodbaas_client_test.CreateProject(t, ctx, client, proj2Org, proj2Name, "dev", "n0.nano"))
+
+	// Create project with label
+	model := openapi.ProjectModel{
+		Sla:  "dev",
+		Tier: "n0.nano",
+		Labels: &map[string]string{
+			"key": "value",
+		},
+	}
+	require.NoError(t, nuodbaas_client_test.CreateProjectWithModel(t, ctx, client, proj2Org, proj2Name, model))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -106,7 +116,7 @@ func TestAccProjectsDataSourceNotEmpty(t *testing.T) {
 			{
 				Config: providerConfig + fmt.Sprintf(`
 					data "%s" "%s" {
-						filter {
+						filter = {
 							organization = "%s"
 						}
 					}
@@ -116,6 +126,60 @@ func TestAccProjectsDataSourceNotEmpty(t *testing.T) {
 					resource.TestCheckResourceAttr(resourcePath, "projects.0.name", proj1Name),
 					resource.TestCheckResourceAttr(resourcePath, "projects.0.organization", proj1Org),
 				),
+			},
+			// Specify label filter key=value, which should return proj2
+			{
+				Config: providerConfig + fmt.Sprintf(`
+					data "%s" "%s" {
+						filter = {
+							labels = ["key=value"]
+						}
+					}
+				`, getProjectsDatasourceTypeName(), resourceName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourcePath, "projects.#", "1"),
+					resource.TestCheckResourceAttr(resourcePath, "projects.0.name", proj2Name),
+					resource.TestCheckResourceAttr(resourcePath, "projects.0.organization", proj2Org),
+				),
+				// Skip if running end-to-end test because path rewrite used with Nginx is broken and does not preserve query parameters
+				// TODO: Remove once path rewrite is fixed
+				SkipFunc: func() (bool, error) { return IsE2eTest(), nil },
+			},
+			// Specify label filter key!=value at org1 scope, which should return proj1
+			{
+				Config: providerConfig + fmt.Sprintf(`
+					data "%s" "%s" {
+						filter = {
+							organization = "%s"
+							labels = ["key!=value"]
+						}
+					}
+				`, getProjectsDatasourceTypeName(), resourceName, proj1Org),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourcePath, "projects.#", "1"),
+					resource.TestCheckResourceAttr(resourcePath, "projects.0.name", proj1Name),
+					resource.TestCheckResourceAttr(resourcePath, "projects.0.organization", proj1Org),
+				),
+				// Skip if running end-to-end test because path rewrite used with Nginx is broken and does not preserve query parameters
+				// TODO: Remove once path rewrite is fixed
+				SkipFunc: func() (bool, error) { return IsE2eTest(), nil },
+			},
+			// Specify label filter key=value at org1 scope, which should return nothing
+			{
+				Config: providerConfig + fmt.Sprintf(`
+					data "%s" "%s" {
+						filter = {
+							organization = "%s"
+							labels = ["key=value"]
+						}
+					}
+				`, getProjectsDatasourceTypeName(), resourceName, proj1Org),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourcePath, "projects.#", "0"),
+				),
+				// Skip if running end-to-end test because path rewrite used with Nginx is broken and does not preserve query parameters
+				// TODO: Remove once path rewrite is fixed
+				SkipFunc: func() (bool, error) { return IsE2eTest(), nil },
 			},
 		},
 	})

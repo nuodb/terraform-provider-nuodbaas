@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/helper"
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
@@ -17,11 +18,12 @@ import (
 )
 
 var (
-	_ DataSourceState = &ProjectsDataSourceModel{}
+	_ framework.DataSourceState = &ProjectsDataSourceModel{}
 )
 
 type ProjectFilterModel struct {
-	Organization *string `tfsdk:"organization"`
+	Organization *string  `tfsdk:"organization"`
+	Labels       []string `tfsdk:"labels"`
 }
 
 type ProjectNameModel struct {
@@ -38,55 +40,26 @@ type ProjectsDataSourceModel struct {
 // source. This has to be provided explicitly because there is no schema in the
 // OpenAPI spec for the REST API that corresponds to it.
 func GetProjectsDataSourceSchema() *schema.Schema {
-	return &schema.Schema{
-		Description:         "Data source for listing NuoDB projects provisioned using the DBaaS Control Plane",
-		MarkdownDescription: "Data source for listing NuoDB projects provisioned using the DBaaS Control Plane",
-		Attributes: map[string]schema.Attribute{
-			"projects": schema.ListNestedAttribute{
-				Description:         "The list of projects that satisfy the filter requirements",
-				MarkdownDescription: "The list of projects that satisfy the filter requirements",
-				Computed:            true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"organization": schema.StringAttribute{
-							Description:         "The name of the organization the project belongs to",
-							MarkdownDescription: "The name of the organization the project belongs to",
-							Computed:            true,
-						},
-						"name": schema.StringAttribute{
-							Description:         "The name of the project",
-							MarkdownDescription: "The name of the project",
-							Computed:            true,
-						},
-					},
-				},
-			},
-		},
-		Blocks: map[string]schema.Block{
-			"filter": schema.SingleNestedBlock{
-				Description:         "Filters to apply to project list",
-				MarkdownDescription: "Filters to apply to project list",
-				Attributes: map[string]schema.Attribute{
-					"organization": schema.StringAttribute{
-						Description:         "The organization to return projects for",
-						MarkdownDescription: "The organization to return projects for",
-						Optional:            true,
-					},
-				},
-			},
-		},
-	}
+	sb := framework.NewSchemaBuilder().WithDescription("Data source for listing NuoDB projects created using the DBaaS Control Plane")
+	sb.WithOrganizationScopeFilters("projects")
+	sb.WithOrganizationScopeList("project", "projects").WithNameAttribute("project")
+	return sb.Build()
 }
 
 // Read implements datasource.DataSource.
 func (state *ProjectsDataSourceModel) Read(ctx context.Context, client *openapi.Client) error {
 	var organization string
+	var labelFilter *string
 	if state.Filter != nil {
 		if state.Filter.Organization != nil {
 			organization = *state.Filter.Organization
 		}
+		if state.Filter.Labels != nil {
+			labelFilterStr := strings.Join(state.Filter.Labels, ",")
+			labelFilter = &labelFilterStr
+		}
 	}
-	projects, err := helper.GetProjects(ctx, client, organization, true)
+	projects, err := helper.GetProjects(ctx, client, organization, labelFilter, true)
 	if err != nil {
 		return err
 	}
@@ -109,14 +82,14 @@ func GetProjectDataSourceResponse(projects []string) ([]ProjectNameModel, error)
 	return ret, nil
 }
 
-func NewProjectsDataSourceState() DataSourceState {
+func NewProjectsDataSourceState() framework.DataSourceState {
 	return &ProjectsDataSourceModel{}
 }
 
 func NewProjectsDataSource() datasource.DataSource {
-	return &GenericDataSource{
-		resourceTypeName: "projects",
-		schema:           GetProjectsDataSourceSchema(),
-		build:            NewProjectsDataSourceState,
+	return &framework.GenericDataSource{
+		TypeName:       "projects",
+		SchemaOverride: GetProjectsDataSourceSchema(),
+		Build:          NewProjectsDataSourceState,
 	}
 }

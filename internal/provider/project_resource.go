@@ -17,7 +17,8 @@ import (
 )
 
 var (
-	_ ResourceState = &ProjectResourceModel{}
+	_ framework.ResourceState   = &ProjectResourceModel{}
+	_ framework.DataSourceState = &ProjectResourceModel{}
 )
 
 type ProjectResourceModel openapi.ProjectModel
@@ -111,15 +112,15 @@ func (state *ProjectResourceModel) SetId(id string) error {
 	return nil
 }
 
-func NewProjectResourceModel() ResourceState {
+func NewProjectResourceModel() framework.ResourceState {
 	return &ProjectResourceModel{}
 }
 
 func NewProjectResource() resource.Resource {
-	return &GenericResource{
-		resourceTypeName: "project",
-		description:      "Resource for managing NuoDB projects provisioned using the DBaaS Control Plane",
-		getOpenApiSchema: framework.GetProjectSchema,
-		build:            NewProjectResourceModel,
+	return &framework.GenericResource{
+		TypeName:         "project",
+		Description:      "Resource for managing NuoDB projects created using the DBaaS Control Plane",
+		GetOpenApiSchema: framework.GetProjectSchema,
+		Build:            NewProjectResourceModel,
 	}
 }

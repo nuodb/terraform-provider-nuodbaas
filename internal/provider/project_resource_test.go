@@ -5,6 +5,7 @@ All Rights Reserved.
 package provider
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -23,6 +24,7 @@ func TestAccProjectResource(t *testing.T) {
 						name         = "proj"
 						sla          = "dev"
 						tier         = "n0.nano"
+						labels       = { "key": "value" }
 					}
 				`,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -31,6 +33,10 @@ func TestAccProjectResource(t *testing.T) {
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "name", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "sla", "dev"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "tier", "n0.nano"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "labels.%", "1"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "labels.key", "value"),
+					// product_version should be computed by the REST service
+					resource.TestCheckResourceAttrSet("nuodbaas_project.proj", "properties.product_version"),
 				),
 			},
 			{
@@ -41,6 +47,10 @@ func TestAccProjectResource(t *testing.T) {
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "name", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "sla", "dev"),
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "tier", "n0.nano"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "labels.%", "1"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "labels.key", "value"),
+					// product_version should be computed by the REST service
+					resource.TestCheckResourceAttrSet("nuodbaas_project.proj", "properties.product_version"),
 				),
 			},
 			{
@@ -52,22 +62,76 @@ func TestAccProjectResource(t *testing.T) {
 				ImportStateVerifyIdentifierAttribute: "name",
 			},
 			{
-				// Update the project by setting it to be disabled
+				// Update the project by setting is_disabled and product_version
 				Config: providerConfig + `
 				resource "nuodbaas_project" "proj" {
 					organization = "org"
 					name         = "proj"
 					sla          = "dev"
 					tier         = "n0.nano"
-					maintenance = {
+					maintenance  = {
 						is_disabled = true
+					}
+					properties   = {
+						product_version = "9.9.9"
 					}
 				}
 				`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// TODO: Test that the resources match what is in the REST service
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "organization", "org"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "name", "proj"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "sla", "dev"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "tier", "n0.nano"),
+					// Labels should remain due to them being computed / UseStateForUnknown
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "labels.%", "1"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "labels.key", "value"),
+					// product_version should be computed by the REST service
+					resource.TestCheckResourceAttrSet("nuodbaas_project.proj", "properties.product_version"),
+					// Check updated attribute values
 					resource.TestCheckResourceAttr("nuodbaas_project.proj", "maintenance.is_disabled", "true"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "properties.product_version", "9.9.9"),
 				),
+			},
+			{
+				// Update the project by removing labels
+				Config: providerConfig + `
+				resource "nuodbaas_project" "proj" {
+					organization = "org"
+					name         = "proj"
+					sla          = "dev"
+					tier         = "n0.nano"
+					labels       = {}
+				}
+				`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					// TODO: Test that the resources match what is in the REST service
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "organization", "org"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "name", "proj"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "sla", "dev"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "tier", "n0.nano"),
+					// Labels should be removed due to explicit setting of labels={}
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "labels.%", "0"),
+					// Maintenance setting and properties should remain due to them being computed / UseStateForUnknown
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "maintenance.is_disabled", "true"),
+					resource.TestCheckResourceAttr("nuodbaas_project.proj", "properties.product_version", "9.9.9"),
+				),
+			},
+			{
+				// Negative test: specify an invalid product_version
+				Config: providerConfig + `
+				resource "nuodbaas_project" "proj" {
+					organization = "org"
+					name         = "proj"
+					sla          = "dev"
+					tier         = "n0.nano"
+					properties   = {
+						product_version = "x.y.z"
+					}
+				}
+				`,
+				// The testing library annoyingly does not allow checking of the detail message, only the summary
+				ExpectError: regexp.MustCompile("Error updating project"),
 			},
 		},
 		CheckDestroy: checkClean,

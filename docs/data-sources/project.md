@@ -3,12 +3,12 @@
 page_title: "nuodbaas_project Data Source - nuodbaas"
 subcategory: ""
 description: |-
-  Data source for exposing information about NuoDB projects provisioned using the DBaaS Control Plane
+  Data source for exposing information about NuoDB projects created using the DBaaS Control Plane
 ---
 
 # nuodbaas_project (Data Source)
 
-Data source for exposing information about NuoDB projects provisioned using the DBaaS Control Plane
+Data source for exposing information about NuoDB projects created using the DBaaS Control Plane
 
 ## Example Usage
 
