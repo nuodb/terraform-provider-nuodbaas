@@ -65,17 +65,26 @@ func ParseResponse(resp *http.Response, dest any) error {
 	if err != nil {
 		return err
 	}
-	if strings.Contains(resp.Header.Get("Content-Type"), "json") && resp.StatusCode >= http.StatusBadRequest {
-		apiError := ApiError{HttpResponse: resp}
-		if err := json.Unmarshal(bodyBytes, &apiError.ErrorContent); err != nil {
-			return err
+	// Decode JSON response
+	if strings.Contains(resp.Header.Get("Content-Type"), "json") {
+		// Decode ErrorContent response
+		if resp.StatusCode >= http.StatusBadRequest {
+			apiError := ApiError{HttpResponse: resp}
+			if err := json.Unmarshal(bodyBytes, &apiError.ErrorContent); err != nil {
+				return err
+			}
+			return &apiError
 		}
-		return &apiError
+		// Decode response to supplied target
+		if dest != nil {
+			if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+				return err
+			}
+		}
 	}
-	if strings.Contains(resp.Header.Get("Content-Type"), "json") && dest != nil {
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return err
-		}
+	// If an error response with an unexpected Content-Type was returned, return an error
+	if resp.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("Unexpectd response: status=[%s], content=[%s]", resp.Status, string(bodyBytes))
 	}
 	return nil
 }
