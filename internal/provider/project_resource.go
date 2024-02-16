@@ -6,6 +6,8 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/helper"
@@ -97,6 +99,16 @@ func (state *ProjectResourceModel) Delete(ctx context.Context, client *openapi.C
 		return err
 	}
 	return helper.ParseResponse(resp, nil)
+}
+
+func (state *ProjectResourceModel) SetId(id string) error {
+	pathParts := strings.Split(id, "/")
+	if len(pathParts) != 2 || pathParts[0] == "" || pathParts[1] == "" {
+		return fmt.Errorf("Expected an id with format \"organization/name\". Got: %s", id)
+	}
+	state.Organization = pathParts[0]
+	state.Name = pathParts[1]
+	return nil
 }
 
 func NewProjectResourceModel() ResourceState {

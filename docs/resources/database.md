@@ -111,3 +111,13 @@ Read-Only:
   * `Expired` - The database has expired
   * `Failed` - The database has failed to achieve a usable state
   * `Deleting` - The database has been marked for deletion, which is in progress
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# An existing database can be imported by specifying the organization,
+# project name, and database name, separated by "/"
+terraform import nuodbaas_database.db org/proj/db
+```

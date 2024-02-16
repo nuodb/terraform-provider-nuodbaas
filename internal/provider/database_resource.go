@@ -6,6 +6,8 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 
@@ -109,6 +111,17 @@ func (state *DatabaseResourceModel) Delete(ctx context.Context, client *openapi.
 		return err
 	}
 	return helper.ParseResponse(resp, nil)
+}
+
+func (state *DatabaseResourceModel) SetId(id string) error {
+	pathParts := strings.Split(id, "/")
+	if len(pathParts) != 3 || pathParts[0] == "" || pathParts[1] == "" || pathParts[2] == "" {
+		return fmt.Errorf("Expected an id with format \"organization/project/name\". Got: %s", id)
+	}
+	state.Organization = pathParts[0]
+	state.Project = pathParts[1]
+	state.Name = pathParts[2]
+	return nil
 }
 
 func NewDatabaseResourceState() ResourceState {

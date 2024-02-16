@@ -45,10 +45,11 @@ func TestAccProjectResource(t *testing.T) {
 			},
 			{
 				// Import it
-				ResourceName:      "nuodbaas_project.proj",
-				ImportState:       true,
-				ImportStateVerify: true,
-				SkipFunc:          func() (bool, error) { return true, nil }, //TODO: Import does not work
+				ResourceName:                         "nuodbaas_project.proj",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        "org/proj",
+				ImportStateVerifyIdentifierAttribute: "name",
 			},
 			{
 				// Update the project by setting it to be disabled

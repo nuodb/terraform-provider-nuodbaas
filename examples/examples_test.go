@@ -55,6 +55,11 @@ func testChartDir(t *testing.T, path string, setUp string, configVariables confi
 			return nil
 		}
 
+		if d.Name() == "import.sh" {
+			// No validation for import cli examples
+			return nil
+		}
+
 		t.Run(path, func(t *testing.T) {
 			plan, err := os.ReadFile(path)
 			require.NoError(t, err)
