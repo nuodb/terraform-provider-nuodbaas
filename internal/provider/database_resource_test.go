@@ -42,6 +42,8 @@ func TestAccDatabaseResource(t *testing.T) {
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "dba_password", "changeMe"),
 					// Tier is inherited from project
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "tier", "n0.nano"),
+					// The create operation should block until the state is Available
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "status.state", "Available"),
 				),
 			},
 			{
@@ -54,6 +56,7 @@ func TestAccDatabaseResource(t *testing.T) {
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "project", "proj"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "dba_password", "changeMe"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "tier", "n0.nano"),
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "status.state", "Available"),
 				),
 			},
 			{
@@ -97,6 +100,8 @@ func TestAccDatabaseResource(t *testing.T) {
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "labels.foo", "bar"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "maintenance.is_disabled", "true"),
 					resource.TestCheckResourceAttr("nuodbaas_database.db", "properties.product_version", "9.9.9"),
+					// The update operation should block until the state is Stopped when is_disabled=true
+					resource.TestCheckResourceAttr("nuodbaas_database.db", "status.state", "Stopped"),
 				),
 			},
 		},

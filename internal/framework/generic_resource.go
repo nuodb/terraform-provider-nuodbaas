@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
@@ -110,6 +111,30 @@ func (r *GenericResource) Configure(ctx context.Context, req resource.ConfigureR
 	r.client = client
 }
 
+func (r *GenericResource) finalizeCreateOrUpdate(ctx context.Context, state ResourceState, operation string, diags *diag.Diagnostics, tfstate *tfsdk.State) {
+	// Get resource state after create or update
+	err := state.Read(ctx, r.client)
+	if err != nil {
+		diags.AddError("Error refreshing "+r.TypeName+" after "+operation, err.Error())
+		return
+	}
+	// Save resource into Terraform state before waiting for it to become
+	// ready. This allows Terraform to manage the resource even if the
+	// readiness check times out.
+	diags.Append(tfstate.Set(ctx, state)...)
+	if diags.HasError() {
+		return
+	}
+	// Wait for resource to become ready
+	err = r.AwaitReady(ctx, state)
+	if err != nil {
+		diags.AddError("Error waiting for "+r.TypeName+" to become ready", err.Error())
+		return
+	}
+	// Save resource into Terraform state again now that it is ready
+	diags.Append(tfstate.Set(ctx, state)...)
+}
+
 func (r *GenericResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Read desired resource state from Terraform
 	state := r.Build()
@@ -122,23 +147,7 @@ func (r *GenericResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.AddError("Error creating "+r.TypeName, err.Error())
 		return
 	}
-	// Get resource state after creation
-	err = state.Read(ctx, r.client)
-	if err != nil {
-		resp.Diagnostics.AddError("Error refreshing "+r.TypeName+" after create", err.Error())
-		return
-	}
-	// Save resource into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	// Wait for resource to become ready
-	err = r.AwaitReady(ctx, state)
-	if err != nil {
-		resp.Diagnostics.AddError("Error waiting for "+r.TypeName+" to become ready", err.Error())
-		return
-	}
+	r.finalizeCreateOrUpdate(ctx, state, "create", &resp.Diagnostics, &resp.State)
 }
 
 func (r *GenericResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -173,23 +182,7 @@ func (r *GenericResource) Update(ctx context.Context, req resource.UpdateRequest
 		resp.Diagnostics.AddError("Error updating "+r.TypeName, err.Error())
 		return
 	}
-	// Get resource state after update
-	err = state.Read(ctx, r.client)
-	if err != nil {
-		resp.Diagnostics.AddError("Error refreshing "+r.TypeName+" after update", err.Error())
-		return
-	}
-	// Save resource into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	// Wait for resource to become ready
-	err = r.AwaitReady(ctx, state)
-	if err != nil {
-		resp.Diagnostics.AddError("Error waiting for "+r.TypeName+" to become ready", err.Error())
-		return
-	}
+	r.finalizeCreateOrUpdate(ctx, state, "update", &resp.Diagnostics, &resp.State)
 }
 
 func (r *GenericResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
