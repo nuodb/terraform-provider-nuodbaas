@@ -124,12 +124,7 @@ func CreateDatabaseWithModel(t *testing.T, ctx context.Context, client *openapi.
 	if err != nil {
 		return err
 	}
-	err = helper.ParseResponse(resp, nil)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return helper.ParseResponse(resp, nil)
 }
 
 func GetDatabase(ctx context.Context, client *openapi.Client, organization, project, name string) (*openapi.DatabaseModel, error) {

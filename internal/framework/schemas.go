@@ -114,7 +114,7 @@ func GetTerraformType(schemaRef *openapi3.SchemaRef) attr.Type {
 	}
 }
 
-func AppendNonNil[T any](arr []T, elems ...T) []T {
+func appendNonNil[T any](arr []T, elems ...T) []T {
 	for _, elem := range elems {
 		if !reflect.ValueOf(elem).IsNil() {
 			arr = append(arr, elem)
@@ -192,7 +192,7 @@ func ToResourceAttribute(oas *openapi3.Schema, required, readOnly bool) (string,
 			Optional:            optional,
 			Computed:            computed,
 			Sensitive:           sensitive,
-			PlanModifiers:       AppendNonNil([]planmodifier.List{}, planmodifier.List(useStateForUnknown), planmodifier.List(requiresReplace)),
+			PlanModifiers:       appendNonNil([]planmodifier.List{}, planmodifier.List(useStateForUnknown), planmodifier.List(requiresReplace)),
 			ElementType:         GetTerraformType(oas.Items),
 		}
 	case "boolean":
@@ -203,7 +203,7 @@ func ToResourceAttribute(oas *openapi3.Schema, required, readOnly bool) (string,
 			Optional:            optional,
 			Computed:            computed,
 			Sensitive:           sensitive,
-			PlanModifiers:       AppendNonNil([]planmodifier.Bool{}, planmodifier.Bool(useStateForUnknown), planmodifier.Bool(requiresReplace)),
+			PlanModifiers:       appendNonNil([]planmodifier.Bool{}, planmodifier.Bool(useStateForUnknown), planmodifier.Bool(requiresReplace)),
 		}
 	case "integer":
 		return name, &resource.Int64Attribute{
@@ -213,7 +213,7 @@ func ToResourceAttribute(oas *openapi3.Schema, required, readOnly bool) (string,
 			Optional:            optional,
 			Computed:            computed,
 			Sensitive:           sensitive,
-			PlanModifiers:       AppendNonNil([]planmodifier.Int64{}, planmodifier.Int64(useStateForUnknown), planmodifier.Int64(requiresReplace)),
+			PlanModifiers:       appendNonNil([]planmodifier.Int64{}, planmodifier.Int64(useStateForUnknown), planmodifier.Int64(requiresReplace)),
 		}
 	case "object":
 		if oas.AdditionalProperties.Schema != nil {
@@ -225,7 +225,7 @@ func ToResourceAttribute(oas *openapi3.Schema, required, readOnly bool) (string,
 				Computed:            computed,
 				Sensitive:           sensitive,
 				ElementType:         GetTerraformType(oas.AdditionalProperties.Schema),
-				PlanModifiers:       AppendNonNil([]planmodifier.Map{}, planmodifier.Map(useStateForUnknown), planmodifier.Map(requiresReplace)),
+				PlanModifiers:       appendNonNil([]planmodifier.Map{}, planmodifier.Map(useStateForUnknown), planmodifier.Map(requiresReplace)),
 			}
 		} else {
 			return name, &resource.SingleNestedAttribute{
@@ -236,7 +236,7 @@ func ToResourceAttribute(oas *openapi3.Schema, required, readOnly bool) (string,
 				Computed:            computed,
 				Sensitive:           sensitive,
 				Attributes:          ToResourceSchema(oas, readOnly),
-				PlanModifiers:       AppendNonNil([]planmodifier.Object{}, planmodifier.Object(useStateForUnknown), planmodifier.Object(requiresReplace)),
+				PlanModifiers:       appendNonNil([]planmodifier.Object{}, planmodifier.Object(useStateForUnknown), planmodifier.Object(requiresReplace)),
 			}
 		}
 	case "string":
@@ -247,7 +247,7 @@ func ToResourceAttribute(oas *openapi3.Schema, required, readOnly bool) (string,
 			Optional:            optional,
 			Computed:            computed,
 			Sensitive:           sensitive,
-			PlanModifiers:       AppendNonNil([]planmodifier.String{}, planmodifier.String(useStateForUnknown), planmodifier.String(requiresReplace)),
+			PlanModifiers:       appendNonNil([]planmodifier.String{}, planmodifier.String(useStateForUnknown), planmodifier.String(requiresReplace)),
 		}
 	default:
 		return "", nil
