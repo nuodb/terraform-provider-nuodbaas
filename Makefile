@@ -26,7 +26,7 @@ GOTESTSUM_BIN := bin/gotestsum
 TFPLUGINDOCS_BIN := bin/tfplugindocs
 OAPI_CODEGEN_BIN := bin/oapi-codegen
 
-PUBLISH_VERSION ?= 0.1.0
+PUBLISH_VERSION ?= 0.2.0
 PUBLISH_DIR ?= $(PROJECT_DIR)/dist
 
 IGNORE_NOT_FOUND ?= true

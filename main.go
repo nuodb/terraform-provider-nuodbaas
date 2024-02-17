@@ -28,7 +28,7 @@ import (
 var (
 	// these will be set by the goreleaser configuration
 	// to appropriate values for the compiled binary.
-	version string = "0.1.0"
+	version string = "0.2.0"
 
 	// goreleaser can pass other information to the main package, such as the specific commit
 	// https://goreleaser.com/cookbooks/using-main.version/
@@ -46,7 +46,6 @@ func main() {
 	}
 
 	err := providerserver.Serve(context.Background(), provider.New(version), opts)
-
 	if err != nil {
 		log.Fatal(err.Error())
 	}
