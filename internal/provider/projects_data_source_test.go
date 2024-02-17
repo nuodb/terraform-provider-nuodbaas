@@ -181,6 +181,22 @@ func TestAccProjectsDataSourceNotEmpty(t *testing.T) {
 				// TODO: Remove once path rewrite is fixed
 				SkipFunc: func() (bool, error) { return IsE2eTest(), nil },
 			},
+			// Specify label filter key=value,key!=value, which should return nothing
+			{
+				Config: providerConfig + fmt.Sprintf(`
+					data "%s" "%s" {
+						filter = {
+							labels = ["key=value", "key!=value"]
+						}
+					}
+				`, getProjectsDatasourceTypeName(), resourceName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourcePath, "projects.#", "0"),
+				),
+				// Skip if running end-to-end test because path rewrite used with Nginx is broken and does not preserve query parameters
+				// TODO: Remove once path rewrite is fixed
+				SkipFunc: func() (bool, error) { return IsE2eTest(), nil },
+			},
 		},
 	})
 }
