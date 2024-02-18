@@ -4,6 +4,12 @@ orbs:
   go: circleci/go@1.7.3
 
 executors:
+  go:
+    # Check https://circleci.com/developer/images/image/cimg/go for more details
+    docker:
+      - image: cimg/go:1.22.0
+    resource_class: small
+
   java:
     # Check https://circleci.com/developer/images/image/cimg/openjdk for more details
     docker:
@@ -27,10 +33,13 @@ commands:
       - run:
           name: "Run tests"
           command: "make testacc"
+      - run:
+          name: "Generate coverage report"
+          command: "make coverage-report"
       - store_artifacts:
-          name: "Upload log output from services"
-          path: /tmp/service-logs
-          destination: service-logs
+          name: "Upload test artifacts"
+          path: /tmp/test-artifacts
+          destination: test-artifacts
       - store_test_results:
           name: "Upload test results"
           path: /tmp/test-results
@@ -44,25 +53,36 @@ jobs:
       HELM_VERSION: "v3.14.0"
       KUBERNETES_VERSION: "1.28.3"
       TEST_RESULTS: /tmp/test-results
-      OUTPUT_DIR: /tmp/service-logs
+      OUTPUT_DIR: /tmp/test-artifacts
       TESTARGS: "-short"
     steps:
       - run_tests
 
   integration_tests:
     executor: java
-    resource_class: medium
     environment:
       KUBERNETES_VERSION: "1.28.3"
       TEST_RESULTS: /tmp/test-results
-      OUTPUT_DIR: /tmp/service-logs
+      OUTPUT_DIR: /tmp/test-artifacts
     steps:
       - go/install:
           version: "1.20"
       - run_tests
+
+  check_generated:
+    executor: go
+    steps:
+      - checkout
+      - run:
+          name: "Generate OpenAPI client and Terraform provider documentation"
+          command: make generate
+      - run:
+          name: "Check that there are no generated changes"
+          command: make check-no-changes
 
 workflows:
   test:
     jobs:
       - e2e_tests
       - integration_tests
+      - check_generated

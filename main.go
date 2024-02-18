@@ -20,7 +20,7 @@ import (
 //go:generate bin/oapi-codegen -generate spec -include-tags databases,projects -package openapi -o openapi/spec.go openapi.yaml
 
 // Format Terraform examples:
-//go:generate terraform fmt -recursive ./examples/
+//go:generate bin/terraform fmt -recursive ./examples/
 
 // Generate documentation:
 //go:generate bin/tfplugindocs generate --provider-name nuodbaas

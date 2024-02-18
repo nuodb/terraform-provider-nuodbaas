@@ -18,13 +18,18 @@ NGINX_CHARTS_VERSION ?= 4.7.1
 NGINX_CHART := https://github.com/kubernetes/ingress-nginx/releases/download/helm-chart-$(NGINX_CHARTS_VERSION)/ingress-nginx-$(NGINX_CHARTS_VERSION).tgz
 NGINX_INGRESS_VERSION ?= 1.8.1
 
+TERRAFORM_VERSION ?= 1.7.3
+TERRAFORM_DOWNLOAD_SITE ?= https://releases.hashicorp.com/terraform
+
 PROJECT_DIR := $(shell pwd)
 BIN_DIR ?= 	$(PROJECT_DIR)/bin
 TEST_RESULTS ?= $(PROJECT_DIR)/test-results
+OUTPUT_DIR ?= $(PROJECT_DIR)/tmp/test-artifacts
 
 GOTESTSUM_BIN := bin/gotestsum
 TFPLUGINDOCS_BIN := bin/tfplugindocs
 OAPI_CODEGEN_BIN := bin/oapi-codegen
+TERRAFORM_BIN := bin/terraform
 
 PUBLISH_VERSION ?= 0.2.0
 PUBLISH_DIR ?= $(PROJECT_DIR)/dist
@@ -68,7 +73,7 @@ deploy-cp: ## Deploy a local Control Plane to test with
 
 	helm upgrade --install $(HELM_CP_CRD_RELEASE) $(CP_CRD_CHART)
 
-	@# Wait for all Control Plane dependencies to be ready
+	@echo "Waiting for all Control Plane dependencies to be ready..."
 	kubectl -n $(HELM_JETSTACK_RELEASE) wait pod --all --for=condition=Ready
 	kubectl -l app.kubernetes.io/instance="$(HELM_NGINX_RELEASE)" wait pod --for=condition=ready --timeout=120s
 
@@ -88,7 +93,7 @@ deploy-cp: ## Deploy a local Control Plane to test with
 
 .PHONY: undeploy-cp
 undeploy-cp: ## Uninstall a local Control Plane previously installed by this script
-	# Clean up any left over DBaaS resources
+	@echo "Cleaning up any left over DBaaS resources..."
 	kubectl get databases.cp.nuodb.com -o name | xargs -r kubectl delete || $(IGNORE_NOT_FOUND)
 	kubectl get domains.cp.nuodb.com -o name | xargs -r kubectl delete || $(IGNORE_NOT_FOUND)
 	kubectl get servicetiers.cp.nuodb.com -o name | xargs -r kubectl delete || $(IGNORE_NOT_FOUND)
@@ -96,16 +101,25 @@ undeploy-cp: ## Uninstall a local Control Plane previously installed by this scr
 	kubectl get databasequotas.cp.nuodb.com -o name | xargs -r kubectl delete || $(IGNORE_NOT_FOUND)
 	kubectl get pvc -o name --selector=group=nuodb | xargs -r kubectl delete || $(IGNORE_NOT_FOUND)
 
-	# Uninstall DBaaS helm charts
+	@echo "Uninstalling DBaaS helm charts..."
 	helm uninstall $(HELM_CP_REST_RELEASE) $(HELM_CP_OPERATOR_RELEASE) || $(IGNORE_NOT_FOUND)
 	helm uninstall $(HELM_CP_CRD_RELEASE) $(HELM_NGINX_RELEASE) || $(IGNORE_NOT_FOUND)
 	helm uninstall $(HELM_JETSTACK_RELEASE) --namespace cert-manager || $(IGNORE_NOT_FOUND)
 
-	# Delete lease resources so that next time Cert Manager is deployed it does not have to wait for them to expire
+	@echo "Deleting lease resources so that next time Cert Manager is deployed it does not have to wait for them to expire..."
 	kubectl -n kube-system delete leases.coordination.k8s.io cert-manager-cainjector-leader-election --ignore-not-found=$(IGNORE_NOT_FOUND)
 	kubectl -n kube-system delete leases.coordination.k8s.io cert-manager-controller --ignore-not-found=$(IGNORE_NOT_FOUND)
 
-bin/%: install-tools ;
+bin/%:
+	$(MAKE) install-tools
+
+$(TERRAFORM_BIN):
+	$(eval OS := $(shell go env GOOS))
+	$(eval ARCH := $(shell go env GOARCH))
+	mkdir -p tmp
+	curl -L -s https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_$(OS)_$(ARCH).zip -o tmp/terraform.zip
+	cd tmp && unzip terraform.zip
+	mv tmp/terraform $(TERRAFORM_BIN)
 
 .PHONY: install-tools
 install-tools: ## Install tools declared as dependencies in tools.go
@@ -118,7 +132,7 @@ check-no-changes: ## Check that there are no uncommitted changes
 	@[ "$(GIT_STATUS)" = "" ] || ( echo "There are uncommitted changes:\n$(GIT_STATUS)"; exit 1; )
 
 .PHONY: generate
-generate: $(TFPLUGINDOCS_BIN) $(OAPI_CODEGEN_BIN) ## Generate Golang client for the NuoDB REST API and Terraform provider documentation
+generate: $(TFPLUGINDOCS_BIN) $(OAPI_CODEGEN_BIN) $(TERRAFORM_BIN) ## Generate Golang client for the NuoDB REST API and Terraform provider documentation
 	go generate
 
 .PHONY: extract-creds
@@ -131,9 +145,39 @@ extract-creds: ## Extract and print environment variables for use with running C
 	@echo "export NUODB_CP_PASSWORD=\"$(shell kubectl get secret dbaas-user-system-admin -o jsonpath='{.data.password}' | base64 -d)\""
 	@echo "export NUODB_CP_URL_BASE=\"http://$(HOST):$(PORT)/nuodb-cp\""
 
+.PHONY: deploy-test-helper
+deploy-test-helper: ## Download and run integration test helper consisting of envtest Kubernetes cluster and Control Plane REST service
+	mkdir -p tmp
+	curl -L -s https://github.com/nuodb/nuodb-cp-releases/releases/download/test-helper/test-helper.tgz -o tmp/test-helper.tgz
+	cd tmp/ && tar -xf test-helper.tgz
+
+	@echo "Starting K8s, mock operators, and REST service..."
+	mkdir -p $(OUTPUT_DIR)
+	OUTPUT_DIR=$(OUTPUT_DIR) MARK_AS_READY=true ./tmp/test-helper/setup-rest.sh
+
+.PHONY: undeploy-test-helper
+undeploy-test-helper: ## Teardown REST service and envtest Kubernetes cluster being used for integration testing
+	OUTPUT_DIR="$(OUTPUT_DIR)" ./tmp/test-helper/teardown-rest.sh
+
 .PHONY: testacc
 testacc: $(GOTESTSUM_BIN) ## Run acceptance tests
-	TF_ACC=1 $(GOTESTSUM_BIN) --junitfile $(TEST_RESULTS)/gotestsum-report.xml --format testname -- -v -count=1 -p 1 -timeout 30m $(TESTARGS) ./... 
+	mkdir -p $(TEST_RESULTS)
+	TF_ACC=1 $(GOTESTSUM_BIN) --junitfile $(TEST_RESULTS)/gotestsum-report.xml \
+		   --format testname -- -v -count=1 -p 1 -timeout 30m \
+		   -coverprofile $(TEST_RESULTS)/cover.out -coverpkg ./internal/... \
+		   $(TESTARGS) ./...
+
+.PHONY: coverage-report
+coverage-report:
+	go tool cover -html=$(TEST_RESULTS)/cover.out -o $(OUTPUT_DIR)/coverage.html
+	go tool cover -func $(TEST_RESULTS)/cover.out -o $(OUTPUT_DIR)/coverage.txt
+
+.PHONY: integration-tests
+integration-tests: ## Start test environment, run acceptance tests, generate coverage report, and teardown test environment
+	$(MAKE) deploy-test-helper
+	KUBECONFIG=$(OUTPUT_DIR)/kubeconfig.yml $(MAKE) testacc
+	$(MAKE) coverage-report
+	$(MAKE) undeploy-test-helper
 
 ##@ Build
 
