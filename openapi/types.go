@@ -23,6 +23,7 @@ const (
 	DatabaseStatusModelStateExpired   DatabaseStatusModelState = "Expired"
 	DatabaseStatusModelStateFailed    DatabaseStatusModelState = "Failed"
 	DatabaseStatusModelStateModifying DatabaseStatusModelState = "Modifying"
+	DatabaseStatusModelStateRestoring DatabaseStatusModelState = "Restoring"
 	DatabaseStatusModelStateStopped   DatabaseStatusModelState = "Stopped"
 	DatabaseStatusModelStateStopping  DatabaseStatusModelState = "Stopping"
 )
@@ -57,91 +58,91 @@ const (
 
 // DatabaseCreateUpdateModel defines model for DatabaseCreateUpdateModel.
 type DatabaseCreateUpdateModel struct {
-	// DbaPassword The password for the DBA user. Can only be specified when creating a database.
-	DbaPassword *string `json:"dbaPassword,omitempty" tfsdk:"dba_password"`
-
-	// Labels User-defined labels attached to the resource that can be used for filtering
-	Labels      *map[string]string `json:"labels,omitempty" tfsdk:"labels"`
-	Maintenance *MaintenanceModel  `json:"maintenance,omitempty" tfsdk:"maintenance"`
-
-	// Name The name of the database
-	Name string `json:"name" tfsdk:"name"`
-
 	// Organization The organization that the database belongs to
-	Organization string `json:"organization" tfsdk:"organization"`
+	Organization string `hcl:"organization" json:"organization" tfsdk:"organization"`
 
 	// Project The project that the database belongs to
-	Project    string                   `json:"project" tfsdk:"project"`
-	Properties *DatabasePropertiesModel `json:"properties,omitempty" tfsdk:"properties"`
+	Project string `hcl:"project" json:"project" tfsdk:"project"`
 
-	// ResourceVersion The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.
-	ResourceVersion *string              `json:"resourceVersion,omitempty" tfsdk:"-"`
-	RestoreFrom     *RestoreFromModel    `json:"restoreFrom,omitempty" tfsdk:"restore_from"`
-	Status          *DatabaseStatusModel `json:"status,omitempty" tfsdk:"status"`
+	// Name The name of the database
+	Name string `hcl:"name" json:"name" tfsdk:"name"`
+
+	// Labels User-defined labels attached to the resource that can be used for filtering
+	Labels *map[string]string `hcl:"labels" json:"labels,omitempty" tfsdk:"labels"`
+
+	// DbaPassword The password for the DBA user. Can only be specified when creating a database.
+	DbaPassword *string `hcl:"dba_password" json:"dbaPassword,omitempty" tfsdk:"dba_password"`
 
 	// Tier The service tier for the database. If omitted, the project service tier is inherited.
-	Tier *string `json:"tier,omitempty" tfsdk:"tier"`
+	Tier *string `hcl:"tier" json:"tier,omitempty" tfsdk:"tier"`
+
+	// ResourceVersion The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.
+	ResourceVersion *string                  `json:"resourceVersion,omitempty" tfsdk:"-"`
+	Maintenance     *MaintenanceModel        `hcl:"maintenance" json:"maintenance,omitempty" tfsdk:"maintenance"`
+	Properties      *DatabasePropertiesModel `hcl:"properties" json:"properties,omitempty" tfsdk:"properties"`
+	RestoreFrom     *RestoreFromModel        `hcl:"restore_from" json:"restoreFrom,omitempty" tfsdk:"restore_from"`
+	Status          *DatabaseStatusModel     `hcl:"status" json:"status,omitempty" tfsdk:"status"`
 }
 
 // DatabaseModel defines model for DatabaseModel.
 type DatabaseModel struct {
-	// Labels User-defined labels attached to the resource that can be used for filtering
-	Labels      *map[string]string `json:"labels,omitempty" tfsdk:"labels"`
-	Maintenance *MaintenanceModel  `json:"maintenance,omitempty" tfsdk:"maintenance"`
-
-	// Name The name of the database
-	Name string `json:"name" tfsdk:"name"`
-
 	// Organization The organization that the database belongs to
-	Organization string `json:"organization" tfsdk:"organization"`
+	Organization string `hcl:"organization" json:"organization" tfsdk:"organization"`
 
 	// Project The project that the database belongs to
-	Project    string                   `json:"project" tfsdk:"project"`
-	Properties *DatabasePropertiesModel `json:"properties,omitempty" tfsdk:"properties"`
+	Project string `hcl:"project" json:"project" tfsdk:"project"`
 
-	// ResourceVersion The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.
-	ResourceVersion *string              `json:"resourceVersion,omitempty" tfsdk:"-"`
-	RestoreFrom     *RestoreFromModel    `json:"restoreFrom,omitempty" tfsdk:"restore_from"`
-	Status          *DatabaseStatusModel `json:"status,omitempty" tfsdk:"status"`
+	// Name The name of the database
+	Name string `hcl:"name" json:"name" tfsdk:"name"`
+
+	// Labels User-defined labels attached to the resource that can be used for filtering
+	Labels *map[string]string `hcl:"labels" json:"labels,omitempty" tfsdk:"labels"`
 
 	// Tier The service tier for the database. If omitted, the project service tier is inherited.
-	Tier *string `json:"tier,omitempty" tfsdk:"tier"`
+	Tier *string `hcl:"tier" json:"tier,omitempty" tfsdk:"tier"`
+
+	// ResourceVersion The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.
+	ResourceVersion *string                  `json:"resourceVersion,omitempty" tfsdk:"-"`
+	Maintenance     *MaintenanceModel        `hcl:"maintenance" json:"maintenance,omitempty" tfsdk:"maintenance"`
+	Properties      *DatabasePropertiesModel `hcl:"properties" json:"properties,omitempty" tfsdk:"properties"`
+	RestoreFrom     *RestoreFromModel        `hcl:"restore_from" json:"restoreFrom,omitempty" tfsdk:"restore_from"`
+	Status          *DatabaseStatusModel     `hcl:"status" json:"status,omitempty" tfsdk:"status"`
 }
 
 // DatabasePropertiesModel defines model for DatabasePropertiesModel.
 type DatabasePropertiesModel struct {
 	// ArchiveDiskSize The size of the archive volumes for the database. Can be only updated to increase the volume size.
-	ArchiveDiskSize *string `json:"archiveDiskSize,omitempty" tfsdk:"archive_disk_size"`
+	ArchiveDiskSize *string `hcl:"archive_disk_size" json:"archiveDiskSize,omitempty" tfsdk:"archive_disk_size"`
+
+	// JournalDiskSize The size of the journal volumes for the database. Can be only updated to increase the volume size.
+	JournalDiskSize *string `hcl:"journal_disk_size" json:"journalDiskSize,omitempty" tfsdk:"journal_disk_size"`
+
+	// TierParameters Opaque parameters supplied to database service tier.
+	TierParameters *map[string]string `hcl:"tier_parameters" json:"tierParameters,omitempty" tfsdk:"tier_parameters"`
 
 	// InheritTierParameters Whether to inherit tier parameters from the project if the database service tier matches the project.
 	InheritTierParameters *bool `json:"inheritTierParameters,omitempty" tfsdk:"-"`
 
-	// JournalDiskSize The size of the journal volumes for the database. Can be only updated to increase the volume size.
-	JournalDiskSize *string `json:"journalDiskSize,omitempty" tfsdk:"journal_disk_size"`
-
 	// ProductVersion The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb-ce/tags. If omitted, the database version will be inherited from the project.
-	ProductVersion *string `json:"productVersion,omitempty" tfsdk:"product_version"`
-
-	// TierParameters Opaque parameters supplied to database service tier.
-	TierParameters *map[string]string `json:"tierParameters,omitempty" tfsdk:"tier_parameters"`
+	ProductVersion *string `hcl:"product_version" json:"productVersion,omitempty" tfsdk:"product_version"`
 }
 
 // DatabaseStatusModel defines model for DatabaseStatusModel.
 type DatabaseStatusModel struct {
-	// CaPem The PEM-encoded certificate for SQL clients to verify database servers
-	CaPem *string `json:"caPem,omitempty" tfsdk:"ca_pem"`
+	// SqlEndpoint The endpoint for SQL clients to connect to
+	SqlEndpoint *string `hcl:"sql_endpoint" json:"sqlEndpoint,omitempty" tfsdk:"sql_endpoint"`
 
-	// Message Message summarizing the state of the database
-	Message *string `json:"message,omitempty" tfsdk:"message"`
+	// CaPem The PEM-encoded certificate for SQL clients to verify database servers
+	CaPem *string `hcl:"ca_pem" json:"caPem,omitempty" tfsdk:"ca_pem"`
 
 	// Ready Whether the database is ready
-	Ready *bool `json:"ready,omitempty" tfsdk:"ready"`
+	Ready *bool `hcl:"ready" json:"ready,omitempty" tfsdk:"ready"`
 
 	// Shutdown Whether the database has shutdown
-	Shutdown *bool `json:"shutdown,omitempty" tfsdk:"shutdown"`
+	Shutdown *bool `hcl:"shutdown" json:"shutdown,omitempty" tfsdk:"shutdown"`
 
-	// SqlEndpoint The endpoint for SQL clients to connect to
-	SqlEndpoint *string `json:"sqlEndpoint,omitempty" tfsdk:"sql_endpoint"`
+	// Message Message summarizing the state of the database
+	Message *string `hcl:"message" json:"message,omitempty" tfsdk:"message"`
 
 	// State The state of the database:
 	//   * `Available` - The database is ready to accept SQL connections
@@ -152,7 +153,8 @@ type DatabaseStatusModel struct {
 	//   * `Expired` - The database has expired
 	//   * `Failed` - The database has failed to achieve a usable state
 	//   * `Deleting` - The database has been marked for deletion, which is in progress
-	State *DatabaseStatusModelState `json:"state,omitempty" tfsdk:"state"`
+	//   * `Restoring` - Restore from backup is in progress for this database
+	State *DatabaseStatusModelState `hcl:"state" json:"state,omitempty" tfsdk:"state"`
 }
 
 // DatabaseStatusModelState The state of the database:
@@ -164,6 +166,7 @@ type DatabaseStatusModel struct {
 //   - `Expired` - The database has expired
 //   - `Failed` - The database has failed to achieve a usable state
 //   - `Deleting` - The database has been marked for deletion, which is in progress
+//   - `Restoring` - Restore from backup is in progress for this database
 type DatabaseStatusModelState string
 
 // ErrorContent defines model for ErrorContent.
@@ -173,11 +176,11 @@ type ErrorContent struct {
 	//   * `CONCURRENT_UPDATE` - A concurrent update caused the `PUT` or `PATCH` request to fail. A `PUT` request can be retried after using `GET` to obtain the latest resource version and applying the desired change to it. A `PATCH` request can be retried without any changes to the request content.
 	Code *ErrorContentCode `json:"code,omitempty"`
 
-	// Detail Detail about the error
-	Detail *string `json:"detail,omitempty"`
-
 	// Status HTTP status code and reason
 	Status *string `json:"status,omitempty"`
+
+	// Detail Detail about the error
+	Detail *string `json:"detail,omitempty"`
 }
 
 // ErrorContentCode Application-level error code that describes how the error should be handled and how the `detail` field should be interpreted:
@@ -209,8 +212,8 @@ type JsonNode3 = bool
 
 // JsonPatchOperation defines model for JsonPatchOperation.
 type JsonPatchOperation struct {
-	From  *string              `json:"from,omitempty"`
 	Op    JsonPatchOperationOp `json:"op"`
+	From  *string              `json:"from,omitempty"`
 	Path  string               `json:"path"`
 	Value *JsonNode            `json:"value,omitempty"`
 }
@@ -221,61 +224,61 @@ type JsonPatchOperationOp string
 // MaintenanceModel defines model for MaintenanceModel.
 type MaintenanceModel struct {
 	// ExpiresAtTime The time at which the project or database will be disabled
-	ExpiresAtTime *time.Time `json:"expiresAtTime,omitempty" tfsdk:"expires_at_time"`
+	ExpiresAtTime *time.Time `hcl:"expires_at_time" json:"expiresAtTime,omitempty" tfsdk:"expires_at_time"`
 
 	// ExpiresIn The time until the project or database is disabled, e.g. `1d`
-	ExpiresIn *string `json:"expiresIn,omitempty" tfsdk:"expires_in"`
+	ExpiresIn *string `hcl:"expires_in" json:"expiresIn,omitempty" tfsdk:"expires_in"`
 
 	// IsDisabled Whether the project or database should be shutdown
-	IsDisabled *bool `json:"isDisabled,omitempty" tfsdk:"is_disabled"`
+	IsDisabled *bool `hcl:"is_disabled" json:"isDisabled,omitempty" tfsdk:"is_disabled"`
 }
 
 // ProjectModel defines model for ProjectModel.
 type ProjectModel struct {
-	// Labels User-defined labels attached to the resource that can be used for filtering
-	Labels      *map[string]string `json:"labels,omitempty" tfsdk:"labels"`
-	Maintenance *MaintenanceModel  `json:"maintenance,omitempty" tfsdk:"maintenance"`
+	// Organization The organization that the project belongs to
+	Organization string `hcl:"organization" json:"organization" tfsdk:"organization"`
 
 	// Name The name of the project
-	Name string `json:"name" tfsdk:"name"`
+	Name string `hcl:"name" json:"name" tfsdk:"name"`
 
-	// Organization The organization that the project belongs to
-	Organization string                  `json:"organization" tfsdk:"organization"`
-	Properties   *ProjectPropertiesModel `json:"properties,omitempty" tfsdk:"properties"`
-
-	// ResourceVersion The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.
-	ResourceVersion *string `json:"resourceVersion,omitempty" tfsdk:"-"`
+	// Labels User-defined labels attached to the resource that can be used for filtering
+	Labels *map[string]string `hcl:"labels" json:"labels,omitempty" tfsdk:"labels"`
 
 	// Sla The SLA for the project. Cannot be updated once the project is created.
-	Sla    string              `json:"sla" tfsdk:"sla"`
-	Status *ProjectStatusModel `json:"status,omitempty" tfsdk:"status"`
+	Sla string `hcl:"sla" json:"sla" tfsdk:"sla"`
 
 	// Tier The service tier for the project
-	Tier string `json:"tier" tfsdk:"tier"`
+	Tier string `hcl:"tier" json:"tier" tfsdk:"tier"`
+
+	// ResourceVersion The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.
+	ResourceVersion *string                 `json:"resourceVersion,omitempty" tfsdk:"-"`
+	Maintenance     *MaintenanceModel       `hcl:"maintenance" json:"maintenance,omitempty" tfsdk:"maintenance"`
+	Properties      *ProjectPropertiesModel `hcl:"properties" json:"properties,omitempty" tfsdk:"properties"`
+	Status          *ProjectStatusModel     `hcl:"status" json:"status,omitempty" tfsdk:"status"`
 }
 
 // ProjectPropertiesModel defines model for ProjectPropertiesModel.
 type ProjectPropertiesModel struct {
-	// ProductVersion The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb-ce/tags. If omitted, the project version will be resolved based on the SLA and cluster configuration.
-	ProductVersion *string `json:"productVersion,omitempty" tfsdk:"product_version"`
-
 	// TierParameters Opaque parameters supplied to project service tier.
-	TierParameters *map[string]string `json:"tierParameters,omitempty" tfsdk:"tier_parameters"`
+	TierParameters *map[string]string `hcl:"tier_parameters" json:"tierParameters,omitempty" tfsdk:"tier_parameters"`
+
+	// ProductVersion The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb-ce/tags. If omitted, the project version will be resolved based on the SLA and cluster configuration.
+	ProductVersion *string `hcl:"product_version" json:"productVersion,omitempty" tfsdk:"product_version"`
 }
 
 // ProjectStatusModel defines model for ProjectStatusModel.
 type ProjectStatusModel struct {
 	// CaPem The PEM-encoded certificate for SQL clients to verify database servers within the project
-	CaPem *string `json:"caPem,omitempty" tfsdk:"ca_pem"`
-
-	// Message Message summarizing the state of the project
-	Message *string `json:"message,omitempty" tfsdk:"message"`
+	CaPem *string `hcl:"ca_pem" json:"caPem,omitempty" tfsdk:"ca_pem"`
 
 	// Ready Whether the project is ready
-	Ready *bool `json:"ready,omitempty" tfsdk:"ready"`
+	Ready *bool `hcl:"ready" json:"ready,omitempty" tfsdk:"ready"`
 
 	// Shutdown Whether the project and all of its databases have shutdown
-	Shutdown *bool `json:"shutdown,omitempty" tfsdk:"shutdown"`
+	Shutdown *bool `hcl:"shutdown" json:"shutdown,omitempty" tfsdk:"shutdown"`
+
+	// Message Message summarizing the state of the project
+	Message *string `hcl:"message" json:"message,omitempty" tfsdk:"message"`
 
 	// State The state of the project:
 	//   * `Available` - The project is available
@@ -286,7 +289,7 @@ type ProjectStatusModel struct {
 	//   * `Expired` - The project and its databases have expired
 	//   * `Failed` - The project has failed to achieve a usable state
 	//   * `Deleting` - The project has been marked for deletion, which is in progress
-	State *ProjectStatusModelState `json:"state,omitempty" tfsdk:"state"`
+	State *ProjectStatusModelState `hcl:"state" json:"state,omitempty" tfsdk:"state"`
 }
 
 // ProjectStatusModelState The state of the project:
@@ -303,7 +306,7 @@ type ProjectStatusModelState string
 // RestoreFromModel defines model for RestoreFromModel.
 type RestoreFromModel struct {
 	// Backup The name of the backup to restore the database from. If a fully-qualified name is not supplied, then the organization, project, or name of the database being created is assumed.
-	Backup *string `json:"backup,omitempty" tfsdk:"backup"`
+	Backup *string `hcl:"backup" json:"backup,omitempty" tfsdk:"backup"`
 }
 
 // GetAllDatabasesParams defines parameters for GetAllDatabases.

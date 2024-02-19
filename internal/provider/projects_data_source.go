@@ -22,18 +22,18 @@ var (
 )
 
 type ProjectFilterModel struct {
-	Organization *string  `tfsdk:"organization"`
-	Labels       []string `tfsdk:"labels"`
+	Organization *string  `tfsdk:"organization" hcl:"organization"`
+	Labels       []string `tfsdk:"labels" hcl:"labels"`
 }
 
 type ProjectNameModel struct {
-	Organization string `tfsdk:"organization"`
-	Name         string `tfsdk:"name"`
+	Organization string `tfsdk:"organization" hcl:"organization"`
+	Name         string `tfsdk:"name" hcl:"name"`
 }
 
 type ProjectsDataSourceModel struct {
-	Filter   *ProjectFilterModel `tfsdk:"filter"`
-	Projects []ProjectNameModel  `tfsdk:"projects"`
+	Filter   *ProjectFilterModel `tfsdk:"filter" hcl:"filter"`
+	Projects []ProjectNameModel  `tfsdk:"projects" hcl:"projects"`
 }
 
 // GetProjectsDataSourceSchema returns the schema for the projects (plural) data

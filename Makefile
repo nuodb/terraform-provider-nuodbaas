@@ -19,10 +19,12 @@ NGINX_CHART := https://github.com/kubernetes/ingress-nginx/releases/download/hel
 NGINX_INGRESS_VERSION ?= 1.8.1
 
 TERRAFORM_VERSION ?= 1.7.3
-TERRAFORM_DOWNLOAD_SITE ?= https://releases.hashicorp.com/terraform
+KUBE_VERSION ?= 1.28.3
 
 PROJECT_DIR := $(shell pwd)
 BIN_DIR ?= 	$(PROJECT_DIR)/bin
+PATH := $(BIN_DIR):$(PATH)
+
 TEST_RESULTS ?= $(PROJECT_DIR)/test-results
 OUTPUT_DIR ?= $(PROJECT_DIR)/tmp/test-artifacts
 
@@ -30,6 +32,7 @@ GOTESTSUM_BIN := bin/gotestsum
 TFPLUGINDOCS_BIN := bin/tfplugindocs
 OAPI_CODEGEN_BIN := bin/oapi-codegen
 TERRAFORM_BIN := bin/terraform
+KUBECTL_BIN := bin/kubectl
 
 PUBLISH_VERSION ?= 0.2.0
 PUBLISH_DIR ?= $(PROJECT_DIR)/dist
@@ -116,10 +119,17 @@ bin/%:
 $(TERRAFORM_BIN):
 	$(eval OS := $(shell go env GOOS))
 	$(eval ARCH := $(shell go env GOARCH))
-	mkdir -p tmp
+	mkdir -p bin tmp
 	curl -L -s https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_$(OS)_$(ARCH).zip -o tmp/terraform.zip
 	cd tmp && unzip terraform.zip
 	mv tmp/terraform $(TERRAFORM_BIN)
+
+$(KUBECTL_BIN):
+	$(eval OS := $(shell go env GOOS))
+	$(eval ARCH := $(shell go env GOARCH))
+	mkdir -p bin
+	curl -L -s https://storage.googleapis.com/kubernetes-release/release/v$(KUBE_VERSION)/bin/$(OS)/$(ARCH)/kubectl -o $(KUBECTL_BIN)
+	chmod +x $(KUBECTL_BIN)
 
 .PHONY: install-tools
 install-tools: ## Install tools declared as dependencies in tools.go
@@ -146,7 +156,7 @@ extract-creds: ## Extract and print environment variables for use with running C
 	@echo "export NUODB_CP_URL_BASE=\"http://$(HOST):$(PORT)/nuodb-cp\""
 
 .PHONY: deploy-test-helper
-deploy-test-helper: ## Download and run integration test helper consisting of envtest Kubernetes cluster and Control Plane REST service
+deploy-test-helper: $(KUBECTL_BIN) ## Download and run integration test helper consisting of envtest Kubernetes cluster and Control Plane REST service
 	mkdir -p tmp
 	curl -L -s https://github.com/nuodb/nuodb-cp-releases/releases/download/test-helper/test-helper.tgz -o tmp/test-helper.tgz
 	cd tmp/ && tar -xf test-helper.tgz

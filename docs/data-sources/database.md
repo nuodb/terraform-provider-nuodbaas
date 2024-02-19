@@ -87,3 +87,4 @@ Read-Only:
   * `Expired` - The database has expired
   * `Failed` - The database has failed to achieve a usable state
   * `Deleting` - The database has been marked for deletion, which is in progress
+  * `Restoring` - Restore from backup is in progress for this database
