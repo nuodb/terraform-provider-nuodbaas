@@ -30,12 +30,8 @@ if [ "$E2E_TEST" = true ]; then
     # Extract credentials and make them available as environment variables for subsequent steps in job
     make extract-creds >> "$BASH_ENV"
 else
-    # Download test helper for REST service that includes CRUD-only K8s and mock operators
-    curl -Lo test-helper.tgz https://github.com/nuodb/nuodb-cp-releases/releases/download/test-helper/test-helper.tgz
-    tar -xf test-helper.tgz
-
-    # Start K8s, mock operators, and REST service
-    MARK_AS_READY=true ./test-helper/setup-rest.sh
+    # Download and start test helper for REST service that includes CRUD-only K8s and mock operators
+    make deploy-test-helper
 
     # Allow kubectl to be used against cluster by subsequent commands if needed
     echo "export KUBECONFIG=\"$OUTPUT_DIR/kubeconfig.yml\"" >> "$BASH_ENV"
