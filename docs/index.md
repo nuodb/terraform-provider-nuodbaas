@@ -70,5 +70,15 @@ data "nuodbaas_database" "database_details" {
 
 - `password` (String, Sensitive) The password for the user. If not specified, defaults to the `NUODB_CP_PASSWORD` environment variable.
 - `skip_verify` (Boolean) Whether to skip server certificate verification
+- `timeouts` (Attributes Map) Timeouts by resource type and operation (see [below for nested schema](#nestedatt--timeouts))
 - `url_base` (String) The base URL for the server, including the protocol. If not specified, defaults to the `NUODB_CP_URL_BASE` environment variable.
 - `user` (String) The name of the user in the format `<organization>/<user>`. If not specified, defaults to the `NUODB_CP_USER` environment variable.
+
+<a id="nestedatt--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String) The timeout to use for resource creation, specified as a duration with time unit suffix, e.g. `10m`
+- `delete` (String) The timeout to use for resource deletion, specified as a duration with time unit suffix, e.g. `30s`
+- `update` (String) The timeout to use for resource update, specified as a duration with time unit suffix, e.g. `1m`

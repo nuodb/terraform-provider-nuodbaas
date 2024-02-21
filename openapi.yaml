@@ -3221,8 +3221,9 @@ components:
           description: The organization that the backup belongs to
           x-tf-name: organization
           x-oapi-codegen-extra-tags:
-            tfsdk: organization
+            cty: organization
             hcl: organization
+            tfsdk: organization
           x-tf-identifier: true
           x-order: 0
         project:
@@ -3231,8 +3232,9 @@ components:
           description: The project that the backup belongs to
           x-tf-name: project
           x-oapi-codegen-extra-tags:
-            tfsdk: project
+            cty: project
             hcl: project
+            tfsdk: project
           x-tf-identifier: true
           x-order: 1
         database:
@@ -3241,8 +3243,9 @@ components:
           description: The database that the backup belongs to
           x-tf-name: database
           x-oapi-codegen-extra-tags:
-            tfsdk: database
+            cty: database
             hcl: database
+            tfsdk: database
           x-tf-identifier: true
           x-order: 2
         name:
@@ -3251,8 +3254,9 @@ components:
           description: The name of the backup
           x-tf-name: name
           x-oapi-codegen-extra-tags:
-            tfsdk: name
+            cty: name
             hcl: name
+            tfsdk: name
           x-tf-identifier: true
           x-order: 3
         labels:
@@ -3265,8 +3269,9 @@ components:
             for filtering
           x-tf-name: labels
           x-oapi-codegen-extra-tags:
-            tfsdk: labels
+            cty: labels
             hcl: labels
+            tfsdk: labels
           x-order: 4
         importSource:
           $ref: '#/components/schemas/ImportSourceModel'
@@ -3290,40 +3295,46 @@ components:
           example: 2024-01-01T00:00:00Z
           x-tf-name: creation_time
           x-oapi-codegen-extra-tags:
-            tfsdk: creation_time
+            cty: creation_time
             hcl: creation_time
+            tfsdk: creation_time
+          x-go-type: string
           x-order: 0
         backupHandle:
           type: string
           description: The handle for the backup
           x-tf-name: backup_handle
           x-oapi-codegen-extra-tags:
-            tfsdk: backup_handle
+            cty: backup_handle
             hcl: backup_handle
+            tfsdk: backup_handle
           x-order: 1
         backupPlugin:
           type: string
           description: The plugin used to manage the backup
           x-tf-name: backup_plugin
           x-oapi-codegen-extra-tags:
-            tfsdk: backup_plugin
+            cty: backup_plugin
             hcl: backup_plugin
+            tfsdk: backup_plugin
           x-order: 2
         readyToUse:
           type: boolean
           description: Whether the backup is ready to be used to restore a database
           x-tf-name: ready_to_use
           x-oapi-codegen-extra-tags:
-            tfsdk: ready_to_use
+            cty: ready_to_use
             hcl: ready_to_use
+            tfsdk: ready_to_use
           x-order: 3
         message:
           type: string
           description: Message summarizing the state of the backup
           x-tf-name: message
           x-oapi-codegen-extra-tags:
-            tfsdk: message
+            cty: message
             hcl: message
+            tfsdk: message
           x-order: 4
         state:
           type: string
@@ -3340,14 +3351,16 @@ components:
           - Deleting
           x-tf-name: state
           x-oapi-codegen-extra-tags:
-            tfsdk: state
+            cty: state
             hcl: state
+            tfsdk: state
           x-order: 5
       readOnly: true
       x-tf-name: status
       x-oapi-codegen-extra-tags:
-        tfsdk: status
+        cty: status
         hcl: status
+        tfsdk: status
     ImportSourceModel:
       required:
       - backupHandle
@@ -3359,8 +3372,9 @@ components:
           description: The existing backup handle to import
           x-tf-name: backup_handle
           x-oapi-codegen-extra-tags:
-            tfsdk: backup_handle
+            cty: backup_handle
             hcl: backup_handle
+            tfsdk: backup_handle
           x-immutable: true
           x-order: 0
         backupPlugin:
@@ -3368,14 +3382,16 @@ components:
           description: The plugin used to create the backup to import
           x-tf-name: backup_plugin
           x-oapi-codegen-extra-tags:
-            tfsdk: backup_plugin
+            cty: backup_plugin
             hcl: backup_plugin
+            tfsdk: backup_plugin
           x-immutable: true
           x-order: 1
       x-tf-name: import_source
       x-oapi-codegen-extra-tags:
-        tfsdk: import_source
+        cty: import_source
         hcl: import_source
+        tfsdk: import_source
     BackupCreateModel:
       required:
       - database
@@ -3389,8 +3405,9 @@ components:
           description: The organization that the backup belongs to
           x-tf-name: organization
           x-oapi-codegen-extra-tags:
-            tfsdk: organization
+            cty: organization
             hcl: organization
+            tfsdk: organization
           x-tf-identifier: true
           x-order: 0
         project:
@@ -3399,8 +3416,9 @@ components:
           description: The project that the backup belongs to
           x-tf-name: project
           x-oapi-codegen-extra-tags:
-            tfsdk: project
+            cty: project
             hcl: project
+            tfsdk: project
           x-tf-identifier: true
           x-order: 1
         database:
@@ -3409,8 +3427,9 @@ components:
           description: The database that the backup belongs to
           x-tf-name: database
           x-oapi-codegen-extra-tags:
-            tfsdk: database
+            cty: database
             hcl: database
+            tfsdk: database
           x-tf-identifier: true
           x-order: 2
         labels:
@@ -3423,8 +3442,9 @@ components:
             for filtering
           x-tf-name: labels
           x-oapi-codegen-extra-tags:
-            tfsdk: labels
+            cty: labels
             hcl: labels
+            tfsdk: labels
           x-order: 3
     ItemListString:
       type: object
@@ -3480,8 +3500,9 @@ components:
           description: The organization that the database belongs to
           x-tf-name: organization
           x-oapi-codegen-extra-tags:
-            tfsdk: organization
+            cty: organization
             hcl: organization
+            tfsdk: organization
           x-tf-identifier: true
           x-immutable: true
           x-order: 0
@@ -3491,8 +3512,9 @@ components:
           description: The project that the database belongs to
           x-tf-name: project
           x-oapi-codegen-extra-tags:
-            tfsdk: project
+            cty: project
             hcl: project
+            tfsdk: project
           x-tf-identifier: true
           x-immutable: true
           x-order: 1
@@ -3502,8 +3524,9 @@ components:
           description: The name of the database
           x-tf-name: name
           x-oapi-codegen-extra-tags:
-            tfsdk: name
+            cty: name
             hcl: name
+            tfsdk: name
           x-tf-identifier: true
           x-immutable: true
           x-order: 2
@@ -3517,8 +3540,9 @@ components:
             for filtering
           x-tf-name: labels
           x-oapi-codegen-extra-tags:
-            tfsdk: labels
+            cty: labels
             hcl: labels
+            tfsdk: labels
           x-order: 3
         dbaPassword:
           type: string
@@ -3527,8 +3551,9 @@ components:
           writeOnly: true
           x-tf-name: dba_password
           x-oapi-codegen-extra-tags:
-            tfsdk: dba_password
+            cty: dba_password
             hcl: dba_password
+            tfsdk: dba_password
           x-tf-sensitive: true
           x-immutable: true
           x-order: 4
@@ -3541,8 +3566,9 @@ components:
           example: n0.small
           x-tf-name: tier
           x-oapi-codegen-extra-tags:
-            tfsdk: tier
+            cty: tier
             hcl: tier
+            tfsdk: tier
           x-order: 6
         maintenance:
           $ref: '#/components/schemas/MaintenanceModel'
@@ -3569,8 +3595,9 @@ components:
           example: 2Ti
           x-tf-name: archive_disk_size
           x-oapi-codegen-extra-tags:
-            tfsdk: archive_disk_size
+            cty: archive_disk_size
             hcl: archive_disk_size
+            tfsdk: archive_disk_size
           x-order: 0
         journalDiskSize:
           pattern: "(([0-9]+(\\.[0-9]*)?)|(\\.[0-9]+))(([KMGTPE]i)|[numkMGTPE])?"
@@ -3580,8 +3607,9 @@ components:
           example: 50Gi
           x-tf-name: journal_disk_size
           x-oapi-codegen-extra-tags:
-            tfsdk: journal_disk_size
+            cty: journal_disk_size
             hcl: journal_disk_size
+            tfsdk: journal_disk_size
           x-order: 1
         tierParameters:
           type: object
@@ -3590,8 +3618,9 @@ components:
           description: Opaque parameters supplied to database service tier.
           x-tf-name: tier_parameters
           x-oapi-codegen-extra-tags:
-            tfsdk: tier_parameters
+            cty: tier_parameters
             hcl: tier_parameters
+            tfsdk: tier_parameters
           x-order: 2
         inheritTierParameters:
           type: boolean
@@ -3609,13 +3638,15 @@ components:
             \ version will be inherited from the project."
           x-tf-name: product_version
           x-oapi-codegen-extra-tags:
-            tfsdk: product_version
+            cty: product_version
             hcl: product_version
+            tfsdk: product_version
           x-order: 4
       x-tf-name: properties
       x-oapi-codegen-extra-tags:
-        tfsdk: properties
+        cty: properties
         hcl: properties
+        tfsdk: properties
     DatabaseStatusModel:
       type: object
       properties:
@@ -3624,8 +3655,9 @@ components:
           description: The endpoint for SQL clients to connect to
           x-tf-name: sql_endpoint
           x-oapi-codegen-extra-tags:
-            tfsdk: sql_endpoint
+            cty: sql_endpoint
             hcl: sql_endpoint
+            tfsdk: sql_endpoint
           x-order: 0
         caPem:
           type: string
@@ -3633,32 +3665,36 @@ components:
             servers
           x-tf-name: ca_pem
           x-oapi-codegen-extra-tags:
-            tfsdk: ca_pem
+            cty: ca_pem
             hcl: ca_pem
+            tfsdk: ca_pem
           x-order: 1
         ready:
           type: boolean
           description: Whether the database is ready
           x-tf-name: ready
           x-oapi-codegen-extra-tags:
-            tfsdk: ready
+            cty: ready
             hcl: ready
+            tfsdk: ready
           x-order: 2
         shutdown:
           type: boolean
           description: Whether the database has shutdown
           x-tf-name: shutdown
           x-oapi-codegen-extra-tags:
-            tfsdk: shutdown
+            cty: shutdown
             hcl: shutdown
+            tfsdk: shutdown
           x-order: 3
         message:
           type: string
           description: Message summarizing the state of the database
           x-tf-name: message
           x-oapi-codegen-extra-tags:
-            tfsdk: message
+            cty: message
             hcl: message
+            tfsdk: message
           x-order: 4
         state:
           type: string
@@ -3685,14 +3721,16 @@ components:
           - Restoring
           x-tf-name: state
           x-oapi-codegen-extra-tags:
-            tfsdk: state
+            cty: state
             hcl: state
+            tfsdk: state
           x-order: 5
       readOnly: true
       x-tf-name: status
       x-oapi-codegen-extra-tags:
-        tfsdk: status
+        cty: status
         hcl: status
+        tfsdk: status
     MaintenanceModel:
       type: object
       properties:
@@ -3703,8 +3741,10 @@ components:
           example: 2024-01-01T00:00:00Z
           x-tf-name: expires_at_time
           x-oapi-codegen-extra-tags:
-            tfsdk: expires_at_time
+            cty: expires_at_time
             hcl: expires_at_time
+            tfsdk: expires_at_time
+          x-go-type: string
           x-order: 0
         expiresIn:
           pattern: "(\\d+)\\s*([A-Za-zµ]+)"
@@ -3713,21 +3753,24 @@ components:
           example: 1d
           x-tf-name: expires_in
           x-oapi-codegen-extra-tags:
-            tfsdk: expires_in
+            cty: expires_in
             hcl: expires_in
+            tfsdk: expires_in
           x-order: 1
         isDisabled:
           type: boolean
           description: Whether the project or database should be shutdown
           x-tf-name: is_disabled
           x-oapi-codegen-extra-tags:
-            tfsdk: is_disabled
+            cty: is_disabled
             hcl: is_disabled
+            tfsdk: is_disabled
           x-order: 2
       x-tf-name: maintenance
       x-oapi-codegen-extra-tags:
-        tfsdk: maintenance
+        cty: maintenance
         hcl: maintenance
+        tfsdk: maintenance
     RestoreFromModel:
       type: object
       properties:
@@ -3740,14 +3783,16 @@ components:
           example: acme/messaging/demo/20240101120000
           x-tf-name: backup
           x-oapi-codegen-extra-tags:
-            tfsdk: backup
+            cty: backup
             hcl: backup
+            tfsdk: backup
           x-immutable: true
           x-order: 0
       x-tf-name: restore_from
       x-oapi-codegen-extra-tags:
-        tfsdk: restore_from
+        cty: restore_from
         hcl: restore_from
+        tfsdk: restore_from
     DatabaseModel:
       required:
       - name
@@ -3761,8 +3806,9 @@ components:
           description: The organization that the database belongs to
           x-tf-name: organization
           x-oapi-codegen-extra-tags:
-            tfsdk: organization
+            cty: organization
             hcl: organization
+            tfsdk: organization
           x-tf-identifier: true
           x-immutable: true
           x-order: 0
@@ -3772,8 +3818,9 @@ components:
           description: The project that the database belongs to
           x-tf-name: project
           x-oapi-codegen-extra-tags:
-            tfsdk: project
+            cty: project
             hcl: project
+            tfsdk: project
           x-tf-identifier: true
           x-immutable: true
           x-order: 1
@@ -3783,8 +3830,9 @@ components:
           description: The name of the database
           x-tf-name: name
           x-oapi-codegen-extra-tags:
-            tfsdk: name
+            cty: name
             hcl: name
+            tfsdk: name
           x-tf-identifier: true
           x-immutable: true
           x-order: 2
@@ -3798,8 +3846,9 @@ components:
             for filtering
           x-tf-name: labels
           x-oapi-codegen-extra-tags:
-            tfsdk: labels
+            cty: labels
             hcl: labels
+            tfsdk: labels
           x-order: 3
         restoreFrom:
           $ref: '#/components/schemas/RestoreFromModel'
@@ -3810,8 +3859,9 @@ components:
           example: n0.small
           x-tf-name: tier
           x-oapi-codegen-extra-tags:
-            tfsdk: tier
+            cty: tier
             hcl: tier
+            tfsdk: tier
           x-order: 5
         maintenance:
           $ref: '#/components/schemas/MaintenanceModel'
@@ -3845,8 +3895,9 @@ components:
       description: The rule specifying access for the user
       x-tf-name: access_rule
       x-oapi-codegen-extra-tags:
-        tfsdk: access_rule
+        cty: access_rule
         hcl: access_rule
+        tfsdk: access_rule
     LoginResponseModel:
       type: object
       properties:
@@ -3869,10 +3920,6 @@ components:
             \ exceed the access of the current user"
           items:
             type: string
-          x-tf-name: limit_allow
-          x-oapi-codegen-extra-tags:
-            tfsdk: limit_allow
-            hcl: limit_allow
           x-order: 0
         extraDeny:
           type: array
@@ -3880,24 +3927,16 @@ components:
             restrict access granted by the token
           items:
             type: string
-          x-tf-name: extra_deny
-          x-oapi-codegen-extra-tags:
-            tfsdk: extra_deny
-            hcl: extra_deny
           x-order: 1
         expiresIn:
           type: string
           description: "Requested seconds, minutes, hours or days (s,m,h,d) when token\
             \ should expire"
           x-order: 2
-          x-oapi-codegen-extra-tags:
-            tfsdk: "-"
         expiresAtTime:
           type: string
           description: Requested timestamp when token should expire (in ISO-8601 format)
           x-order: 3
-          x-oapi-codegen-extra-tags:
-            tfsdk: "-"
     ProjectModel:
       required:
       - name
@@ -3912,8 +3951,9 @@ components:
           description: The organization that the project belongs to
           x-tf-name: organization
           x-oapi-codegen-extra-tags:
-            tfsdk: organization
+            cty: organization
             hcl: organization
+            tfsdk: organization
           x-tf-identifier: true
           x-immutable: true
           x-order: 0
@@ -3923,8 +3963,9 @@ components:
           description: The name of the project
           x-tf-name: name
           x-oapi-codegen-extra-tags:
-            tfsdk: name
+            cty: name
             hcl: name
+            tfsdk: name
           x-tf-identifier: true
           x-immutable: true
           x-order: 1
@@ -3938,8 +3979,9 @@ components:
             for filtering
           x-tf-name: labels
           x-oapi-codegen-extra-tags:
-            tfsdk: labels
+            cty: labels
             hcl: labels
+            tfsdk: labels
           x-order: 2
         sla:
           type: string
@@ -3948,8 +3990,9 @@ components:
           example: dev
           x-tf-name: sla
           x-oapi-codegen-extra-tags:
-            tfsdk: sla
+            cty: sla
             hcl: sla
+            tfsdk: sla
           x-immutable: true
           x-order: 3
         tier:
@@ -3958,8 +4001,9 @@ components:
           example: n0.small
           x-tf-name: tier
           x-oapi-codegen-extra-tags:
-            tfsdk: tier
+            cty: tier
             hcl: tier
+            tfsdk: tier
           x-order: 4
         maintenance:
           $ref: '#/components/schemas/MaintenanceModel'
@@ -3985,8 +4029,9 @@ components:
           description: Opaque parameters supplied to project service tier.
           x-tf-name: tier_parameters
           x-oapi-codegen-extra-tags:
-            tfsdk: tier_parameters
+            cty: tier_parameters
             hcl: tier_parameters
+            tfsdk: tier_parameters
           x-order: 0
         productVersion:
           pattern: "([1-9][0-9]*|[1-9][0-9]*\\.[0-9]+|[1-9][0-9]*\\.[0-9]+\\.[0-9]+)([._-][a-z0-9._-]+)?"
@@ -3996,13 +4041,15 @@ components:
             \ version will be resolved based on the SLA and cluster configuration."
           x-tf-name: product_version
           x-oapi-codegen-extra-tags:
-            tfsdk: product_version
+            cty: product_version
             hcl: product_version
+            tfsdk: product_version
           x-order: 1
       x-tf-name: properties
       x-oapi-codegen-extra-tags:
-        tfsdk: properties
+        cty: properties
         hcl: properties
+        tfsdk: properties
     ProjectStatusModel:
       type: object
       properties:
@@ -4012,32 +4059,36 @@ components:
             servers within the project
           x-tf-name: ca_pem
           x-oapi-codegen-extra-tags:
-            tfsdk: ca_pem
+            cty: ca_pem
             hcl: ca_pem
+            tfsdk: ca_pem
           x-order: 0
         ready:
           type: boolean
           description: Whether the project is ready
           x-tf-name: ready
           x-oapi-codegen-extra-tags:
-            tfsdk: ready
+            cty: ready
             hcl: ready
+            tfsdk: ready
           x-order: 1
         shutdown:
           type: boolean
           description: Whether the project and all of its databases have shutdown
           x-tf-name: shutdown
           x-oapi-codegen-extra-tags:
-            tfsdk: shutdown
+            cty: shutdown
             hcl: shutdown
+            tfsdk: shutdown
           x-order: 2
         message:
           type: string
           description: Message summarizing the state of the project
           x-tf-name: message
           x-oapi-codegen-extra-tags:
-            tfsdk: message
+            cty: message
             hcl: message
+            tfsdk: message
           x-order: 3
         state:
           type: string
@@ -4062,14 +4113,16 @@ components:
           - Deleting
           x-tf-name: state
           x-oapi-codegen-extra-tags:
-            tfsdk: state
+            cty: state
             hcl: state
+            tfsdk: state
           x-order: 4
       readOnly: true
       x-tf-name: status
       x-oapi-codegen-extra-tags:
-        tfsdk: status
+        cty: status
         hcl: status
+        tfsdk: status
     DbaasUserCreateUpdateModel:
       required:
       - accessRule
@@ -4083,8 +4136,9 @@ components:
           description: The organization that the user belongs to
           x-tf-name: organization
           x-oapi-codegen-extra-tags:
-            tfsdk: organization
+            cty: organization
             hcl: organization
+            tfsdk: organization
           x-tf-identifier: true
           x-order: 0
         name:
@@ -4093,8 +4147,9 @@ components:
           description: The name of the user
           x-tf-name: name
           x-oapi-codegen-extra-tags:
-            tfsdk: name
+            cty: name
             hcl: name
+            tfsdk: name
           x-tf-identifier: true
           x-order: 1
         labels:
@@ -4107,8 +4162,9 @@ components:
             for filtering
           x-tf-name: labels
           x-oapi-codegen-extra-tags:
-            tfsdk: labels
+            cty: labels
             hcl: labels
+            tfsdk: labels
           x-order: 2
         password:
           type: string
@@ -4116,8 +4172,9 @@ components:
           writeOnly: true
           x-tf-name: password
           x-oapi-codegen-extra-tags:
-            tfsdk: password
+            cty: password
             hcl: password
+            tfsdk: password
           x-tf-sensitive: true
           x-order: 3
         accessRule:
@@ -4143,8 +4200,9 @@ components:
           description: The organization that the user belongs to
           x-tf-name: organization
           x-oapi-codegen-extra-tags:
-            tfsdk: organization
+            cty: organization
             hcl: organization
+            tfsdk: organization
           x-tf-identifier: true
           x-order: 0
         name:
@@ -4153,8 +4211,9 @@ components:
           description: The name of the user
           x-tf-name: name
           x-oapi-codegen-extra-tags:
-            tfsdk: name
+            cty: name
             hcl: name
+            tfsdk: name
           x-tf-identifier: true
           x-order: 1
         labels:
@@ -4167,8 +4226,9 @@ components:
             for filtering
           x-tf-name: labels
           x-oapi-codegen-extra-tags:
-            tfsdk: labels
+            cty: labels
             hcl: labels
+            tfsdk: labels
           x-order: 2
         accessRule:
           $ref: '#/components/schemas/DbaasAccessRuleModel'

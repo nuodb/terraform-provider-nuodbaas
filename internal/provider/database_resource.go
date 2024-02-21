@@ -33,14 +33,19 @@ func (state *DatabaseResourceModel) GetResourceVersion() string {
 	return ""
 }
 
-func (state *DatabaseResourceModel) IsReady() bool {
-	if state.Status.State == nil {
-		return false
+func (state *DatabaseResourceModel) CheckReady() error {
+	if state.Status == nil || state.Status.State == nil {
+		return fmt.Errorf("Database %s/%s/%s has no status information", state.Organization, state.Project, state.Name)
 	}
+	expectedState := openapi.DatabaseStatusModelStateAvailable
 	if state.Maintenance != nil && state.Maintenance.IsDisabled != nil && *state.Maintenance.IsDisabled {
-		return *state.Status.State == openapi.DatabaseStatusModelStateStopped
+		expectedState = openapi.DatabaseStatusModelStateStopped
 	}
-	return *state.Status.State == openapi.DatabaseStatusModelStateAvailable
+	if *state.Status.State != expectedState {
+		return fmt.Errorf("Database %s/%s/%s has an unexpected state: expected=%s, found=%s",
+			state.Organization, state.Project, state.Name, expectedState, *state.Status.State)
+	}
+	return nil
 }
 
 func (state *DatabaseResourceModel) Create(ctx context.Context, client *openapi.Client) error {
