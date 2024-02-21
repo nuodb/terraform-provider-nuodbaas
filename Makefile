@@ -183,7 +183,7 @@ coverage-report:
 	go tool cover -func $(TEST_RESULTS)/cover.out -o $(OUTPUT_DIR)/coverage.txt
 
 .PHONY: integration-tests
-integration-tests: ## Start test environment, run acceptance tests, generate coverage report, and teardown test environment
+integration-tests: $(TERRAFORM_BIN) $(KUBECTL_BIN) ## Start test environment, run acceptance tests, generate coverage report, and teardown test environment
 	$(MAKE) deploy-test-helper
 	KUBECONFIG=$(OUTPUT_DIR)/kubeconfig.yml $(MAKE) testacc
 	$(MAKE) coverage-report

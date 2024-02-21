@@ -22,17 +22,10 @@ executors:
     resource_class: medium
 
 commands:
-  run_tests:
+  upload_results:
     description: |
-      Setup environment and run tests
+      Push test results and artifacts
     steps:
-      - checkout
-      - run:
-          name: "Setup environment"
-          command: .circleci/setup.sh
-      - run:
-          name: "Run tests"
-          command: "make testacc"
       - run:
           name: "Generate coverage report"
           command: "make coverage-report"
@@ -56,7 +49,14 @@ jobs:
       OUTPUT_DIR: /tmp/test-artifacts
       TESTARGS: "-short"
     steps:
-      - run_tests
+      - checkout
+      - run:
+          name: "Setup environment"
+          command: .circleci/setup.sh
+      - run:
+          name: "Run tests"
+          command: "make testacc"
+      - upload_results
 
   integration_tests:
     executor: java
@@ -64,9 +64,18 @@ jobs:
       TEST_RESULTS: /tmp/test-results
       OUTPUT_DIR: /tmp/test-artifacts
     steps:
+      - checkout
       - go/install:
           version: "1.20"
-      - run_tests
+      - run:
+          name: "Create directories for results"
+          command: |
+            mkdir -p "$TEST_RESULTS" "$OUTPUT_DIR"
+      - run:
+          name: "Run integration tests"
+          command: |
+            make integration-tests
+      - upload_results
 
   check_generated:
     executor: go
