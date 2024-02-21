@@ -1343,18 +1343,23 @@ paths:
       - basicAuth: []
         bearerAuth: []
   /login:
-    get:
+    post:
       tags:
       - login
       summary: Login a user
       operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequestModel'
       responses:
         "200":
           description: The login was successful
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginModel'
+                $ref: '#/components/schemas/LoginResponseModel'
         "400":
           description: The user request was invalid
           content:
@@ -1375,6 +1380,18 @@ paths:
                 $ref: '#/components/schemas/ErrorContent'
         "404":
           description: Token authentication is not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContent'
+        "409":
+          description: An unexpected state was encountered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContent'
+        "415":
+          description: A media type other than `application/json` was supplied
           content:
             application/json:
               schema:
@@ -3202,18 +3219,42 @@ components:
           pattern: "[a-z][a-z0-9]*"
           type: string
           description: The organization that the backup belongs to
+          x-tf-name: organization
+          x-oapi-codegen-extra-tags:
+            tfsdk: organization
+            hcl: organization
+          x-tf-identifier: true
+          x-order: 0
         project:
           pattern: "[a-z][a-z0-9]*"
           type: string
           description: The project that the backup belongs to
+          x-tf-name: project
+          x-oapi-codegen-extra-tags:
+            tfsdk: project
+            hcl: project
+          x-tf-identifier: true
+          x-order: 1
         database:
           pattern: "[a-z][a-z0-9]*"
           type: string
           description: The database that the backup belongs to
+          x-tf-name: database
+          x-oapi-codegen-extra-tags:
+            tfsdk: database
+            hcl: database
+          x-tf-identifier: true
+          x-order: 2
         name:
           pattern: "([0-9]+|[a-z][a-z0-9]*)"
           type: string
           description: The name of the backup
+          x-tf-name: name
+          x-oapi-codegen-extra-tags:
+            tfsdk: name
+            hcl: name
+          x-tf-identifier: true
+          x-order: 3
         labels:
           pattern: "(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])"
           type: object
@@ -3222,6 +3263,11 @@ components:
             type: string
           description: User-defined labels attached to the resource that can be used
             for filtering
+          x-tf-name: labels
+          x-oapi-codegen-extra-tags:
+            tfsdk: labels
+            hcl: labels
+          x-order: 4
         importSource:
           $ref: '#/components/schemas/ImportSourceModel'
         resourceVersion:
@@ -3229,6 +3275,9 @@ components:
           description: "The version of the resource. When specified in a `PUT` request\
             \ payload, indicates that the resoure should be updated, and is used by\
             \ the system to guard against concurrent updates."
+          x-order: 6
+          x-oapi-codegen-extra-tags:
+            tfsdk: "-"
         status:
           $ref: '#/components/schemas/BackupStatusModel'
     BackupStatusModel:
@@ -3239,18 +3288,43 @@ components:
           description: The time that the backup was taken
           format: date-time
           example: 2024-01-01T00:00:00Z
+          x-tf-name: creation_time
+          x-oapi-codegen-extra-tags:
+            tfsdk: creation_time
+            hcl: creation_time
+          x-order: 0
         backupHandle:
           type: string
           description: The handle for the backup
+          x-tf-name: backup_handle
+          x-oapi-codegen-extra-tags:
+            tfsdk: backup_handle
+            hcl: backup_handle
+          x-order: 1
         backupPlugin:
           type: string
           description: The plugin used to manage the backup
+          x-tf-name: backup_plugin
+          x-oapi-codegen-extra-tags:
+            tfsdk: backup_plugin
+            hcl: backup_plugin
+          x-order: 2
         readyToUse:
           type: boolean
           description: Whether the backup is ready to be used to restore a database
+          x-tf-name: ready_to_use
+          x-oapi-codegen-extra-tags:
+            tfsdk: ready_to_use
+            hcl: ready_to_use
+          x-order: 3
         message:
           type: string
           description: Message summarizing the state of the backup
+          x-tf-name: message
+          x-oapi-codegen-extra-tags:
+            tfsdk: message
+            hcl: message
+          x-order: 4
         state:
           type: string
           description: |-
@@ -3264,7 +3338,16 @@ components:
           - Succeeded
           - Failed
           - Deleting
+          x-tf-name: state
+          x-oapi-codegen-extra-tags:
+            tfsdk: state
+            hcl: state
+          x-order: 5
       readOnly: true
+      x-tf-name: status
+      x-oapi-codegen-extra-tags:
+        tfsdk: status
+        hcl: status
     ImportSourceModel:
       required:
       - backupHandle
@@ -3274,11 +3357,25 @@ components:
         backupHandle:
           type: string
           description: The existing backup handle to import
+          x-tf-name: backup_handle
+          x-oapi-codegen-extra-tags:
+            tfsdk: backup_handle
+            hcl: backup_handle
           x-immutable: true
+          x-order: 0
         backupPlugin:
           type: string
           description: The plugin used to create the backup to import
+          x-tf-name: backup_plugin
+          x-oapi-codegen-extra-tags:
+            tfsdk: backup_plugin
+            hcl: backup_plugin
           x-immutable: true
+          x-order: 1
+      x-tf-name: import_source
+      x-oapi-codegen-extra-tags:
+        tfsdk: import_source
+        hcl: import_source
     BackupCreateModel:
       required:
       - database
@@ -3290,14 +3387,32 @@ components:
           pattern: "[a-z][a-z0-9]*"
           type: string
           description: The organization that the backup belongs to
+          x-tf-name: organization
+          x-oapi-codegen-extra-tags:
+            tfsdk: organization
+            hcl: organization
+          x-tf-identifier: true
+          x-order: 0
         project:
           pattern: "[a-z][a-z0-9]*"
           type: string
           description: The project that the backup belongs to
+          x-tf-name: project
+          x-oapi-codegen-extra-tags:
+            tfsdk: project
+            hcl: project
+          x-tf-identifier: true
+          x-order: 1
         database:
           pattern: "[a-z][a-z0-9]*"
           type: string
           description: The database that the backup belongs to
+          x-tf-name: database
+          x-oapi-codegen-extra-tags:
+            tfsdk: database
+            hcl: database
+          x-tf-identifier: true
+          x-order: 2
         labels:
           pattern: "(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])"
           type: object
@@ -3306,6 +3421,11 @@ components:
             type: string
           description: User-defined labels attached to the resource that can be used
             for filtering
+          x-tf-name: labels
+          x-oapi-codegen-extra-tags:
+            tfsdk: labels
+            hcl: labels
+          x-order: 3
     ItemListString:
       type: object
       properties:
@@ -3335,12 +3455,15 @@ components:
           - move
           - copy
           - test
+          x-order: 0
         from:
           pattern: /.*
           type: string
+          x-order: 1
         path:
           pattern: /.*
           type: string
+          x-order: 2
         value:
           $ref: '#/components/schemas/JsonNode'
     DatabaseCreateUpdateModel:
@@ -3358,8 +3481,10 @@ components:
           x-tf-name: organization
           x-oapi-codegen-extra-tags:
             tfsdk: organization
+            hcl: organization
           x-tf-identifier: true
           x-immutable: true
+          x-order: 0
         project:
           pattern: "[a-z][a-z0-9]*"
           type: string
@@ -3367,8 +3492,10 @@ components:
           x-tf-name: project
           x-oapi-codegen-extra-tags:
             tfsdk: project
+            hcl: project
           x-tf-identifier: true
           x-immutable: true
+          x-order: 1
         name:
           pattern: "[a-z][a-z0-9]*"
           type: string
@@ -3376,8 +3503,10 @@ components:
           x-tf-name: name
           x-oapi-codegen-extra-tags:
             tfsdk: name
+            hcl: name
           x-tf-identifier: true
           x-immutable: true
+          x-order: 2
         labels:
           pattern: "(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])"
           type: object
@@ -3389,6 +3518,8 @@ components:
           x-tf-name: labels
           x-oapi-codegen-extra-tags:
             tfsdk: labels
+            hcl: labels
+          x-order: 3
         dbaPassword:
           type: string
           description: The password for the DBA user. Can only be specified when creating
@@ -3397,8 +3528,10 @@ components:
           x-tf-name: dba_password
           x-oapi-codegen-extra-tags:
             tfsdk: dba_password
+            hcl: dba_password
           x-tf-sensitive: true
           x-immutable: true
+          x-order: 4
         restoreFrom:
           $ref: '#/components/schemas/RestoreFromModel'
         tier:
@@ -3409,6 +3542,8 @@ components:
           x-tf-name: tier
           x-oapi-codegen-extra-tags:
             tfsdk: tier
+            hcl: tier
+          x-order: 6
         maintenance:
           $ref: '#/components/schemas/MaintenanceModel'
         properties:
@@ -3418,6 +3553,7 @@ components:
           description: "The version of the resource. When specified in a `PUT` request\
             \ payload, indicates that the resoure should be updated, and is used by\
             \ the system to guard against concurrent updates."
+          x-order: 9
           x-oapi-codegen-extra-tags:
             tfsdk: "-"
         status:
@@ -3434,6 +3570,8 @@ components:
           x-tf-name: archive_disk_size
           x-oapi-codegen-extra-tags:
             tfsdk: archive_disk_size
+            hcl: archive_disk_size
+          x-order: 0
         journalDiskSize:
           pattern: "(([0-9]+(\\.[0-9]*)?)|(\\.[0-9]+))(([KMGTPE]i)|[numkMGTPE])?"
           type: string
@@ -3443,6 +3581,8 @@ components:
           x-tf-name: journal_disk_size
           x-oapi-codegen-extra-tags:
             tfsdk: journal_disk_size
+            hcl: journal_disk_size
+          x-order: 1
         tierParameters:
           type: object
           additionalProperties:
@@ -3451,11 +3591,14 @@ components:
           x-tf-name: tier_parameters
           x-oapi-codegen-extra-tags:
             tfsdk: tier_parameters
+            hcl: tier_parameters
+          x-order: 2
         inheritTierParameters:
           type: boolean
           description: Whether to inherit tier parameters from the project if the
             database service tier matches the project.
           writeOnly: true
+          x-order: 3
           x-oapi-codegen-extra-tags:
             tfsdk: "-"
         productVersion:
@@ -3467,9 +3610,12 @@ components:
           x-tf-name: product_version
           x-oapi-codegen-extra-tags:
             tfsdk: product_version
+            hcl: product_version
+          x-order: 4
       x-tf-name: properties
       x-oapi-codegen-extra-tags:
         tfsdk: properties
+        hcl: properties
     DatabaseStatusModel:
       type: object
       properties:
@@ -3479,6 +3625,8 @@ components:
           x-tf-name: sql_endpoint
           x-oapi-codegen-extra-tags:
             tfsdk: sql_endpoint
+            hcl: sql_endpoint
+          x-order: 0
         caPem:
           type: string
           description: The PEM-encoded certificate for SQL clients to verify database
@@ -3486,24 +3634,32 @@ components:
           x-tf-name: ca_pem
           x-oapi-codegen-extra-tags:
             tfsdk: ca_pem
+            hcl: ca_pem
+          x-order: 1
         ready:
           type: boolean
           description: Whether the database is ready
           x-tf-name: ready
           x-oapi-codegen-extra-tags:
             tfsdk: ready
+            hcl: ready
+          x-order: 2
         shutdown:
           type: boolean
           description: Whether the database has shutdown
           x-tf-name: shutdown
           x-oapi-codegen-extra-tags:
             tfsdk: shutdown
+            hcl: shutdown
+          x-order: 3
         message:
           type: string
           description: Message summarizing the state of the database
           x-tf-name: message
           x-oapi-codegen-extra-tags:
             tfsdk: message
+            hcl: message
+          x-order: 4
         state:
           type: string
           description: |-
@@ -3516,6 +3672,7 @@ components:
               * `Expired` - The database has expired
               * `Failed` - The database has failed to achieve a usable state
               * `Deleting` - The database has been marked for deletion, which is in progress
+              * `Restoring` - Restore from backup is in progress for this database
           enum:
           - Available
           - Creating
@@ -3525,13 +3682,17 @@ components:
           - Expired
           - Failed
           - Deleting
+          - Restoring
           x-tf-name: state
           x-oapi-codegen-extra-tags:
             tfsdk: state
+            hcl: state
+          x-order: 5
       readOnly: true
       x-tf-name: status
       x-oapi-codegen-extra-tags:
         tfsdk: status
+        hcl: status
     MaintenanceModel:
       type: object
       properties:
@@ -3543,6 +3704,8 @@ components:
           x-tf-name: expires_at_time
           x-oapi-codegen-extra-tags:
             tfsdk: expires_at_time
+            hcl: expires_at_time
+          x-order: 0
         expiresIn:
           pattern: "(\\d+)\\s*([A-Za-zµ]+)"
           type: string
@@ -3551,15 +3714,20 @@ components:
           x-tf-name: expires_in
           x-oapi-codegen-extra-tags:
             tfsdk: expires_in
+            hcl: expires_in
+          x-order: 1
         isDisabled:
           type: boolean
           description: Whether the project or database should be shutdown
           x-tf-name: is_disabled
           x-oapi-codegen-extra-tags:
             tfsdk: is_disabled
+            hcl: is_disabled
+          x-order: 2
       x-tf-name: maintenance
       x-oapi-codegen-extra-tags:
         tfsdk: maintenance
+        hcl: maintenance
     RestoreFromModel:
       type: object
       properties:
@@ -3573,10 +3741,13 @@ components:
           x-tf-name: backup
           x-oapi-codegen-extra-tags:
             tfsdk: backup
+            hcl: backup
           x-immutable: true
+          x-order: 0
       x-tf-name: restore_from
       x-oapi-codegen-extra-tags:
         tfsdk: restore_from
+        hcl: restore_from
     DatabaseModel:
       required:
       - name
@@ -3591,8 +3762,10 @@ components:
           x-tf-name: organization
           x-oapi-codegen-extra-tags:
             tfsdk: organization
+            hcl: organization
           x-tf-identifier: true
           x-immutable: true
+          x-order: 0
         project:
           pattern: "[a-z][a-z0-9]*"
           type: string
@@ -3600,8 +3773,10 @@ components:
           x-tf-name: project
           x-oapi-codegen-extra-tags:
             tfsdk: project
+            hcl: project
           x-tf-identifier: true
           x-immutable: true
+          x-order: 1
         name:
           pattern: "[a-z][a-z0-9]*"
           type: string
@@ -3609,8 +3784,10 @@ components:
           x-tf-name: name
           x-oapi-codegen-extra-tags:
             tfsdk: name
+            hcl: name
           x-tf-identifier: true
           x-immutable: true
+          x-order: 2
         labels:
           pattern: "(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])"
           type: object
@@ -3622,6 +3799,8 @@ components:
           x-tf-name: labels
           x-oapi-codegen-extra-tags:
             tfsdk: labels
+            hcl: labels
+          x-order: 3
         restoreFrom:
           $ref: '#/components/schemas/RestoreFromModel'
         tier:
@@ -3632,6 +3811,8 @@ components:
           x-tf-name: tier
           x-oapi-codegen-extra-tags:
             tfsdk: tier
+            hcl: tier
+          x-order: 5
         maintenance:
           $ref: '#/components/schemas/MaintenanceModel'
         properties:
@@ -3641,16 +3822,82 @@ components:
           description: "The version of the resource. When specified in a `PUT` request\
             \ payload, indicates that the resoure should be updated, and is used by\
             \ the system to guard against concurrent updates."
+          x-order: 8
           x-oapi-codegen-extra-tags:
             tfsdk: "-"
         status:
           $ref: '#/components/schemas/DatabaseStatusModel'
-    LoginModel:
+    DbaasAccessRuleModel:
+      type: object
+      properties:
+        allow:
+          type: array
+          description: "List of access rule entries in the form `<verb>:<resource\
+            \ specifier>[:<SLA>]` that specify requests to allow"
+          items:
+            type: string
+        deny:
+          type: array
+          description: List of access rule entries in the form `<verb>:<resource specifier>`
+            that specify requests to deny
+          items:
+            type: string
+      description: The rule specifying access for the user
+      x-tf-name: access_rule
+      x-oapi-codegen-extra-tags:
+        tfsdk: access_rule
+        hcl: access_rule
+    LoginResponseModel:
       type: object
       properties:
         token:
           type: string
           description: The authentication/authorization token
+          x-order: 0
+        accessRule:
+          $ref: '#/components/schemas/DbaasAccessRuleModel'
+        expiresAtTime:
+          type: string
+          description: The token expiration time
+          x-order: 2
+    LoginRequestModel:
+      type: object
+      properties:
+        limitAllow:
+          type: array
+          description: "The allow rule entries to use for the token, which cannot\
+            \ exceed the access of the current user"
+          items:
+            type: string
+          x-tf-name: limit_allow
+          x-oapi-codegen-extra-tags:
+            tfsdk: limit_allow
+            hcl: limit_allow
+          x-order: 0
+        extraDeny:
+          type: array
+          description: Extra deny rules entries to append to the access rule to further
+            restrict access granted by the token
+          items:
+            type: string
+          x-tf-name: extra_deny
+          x-oapi-codegen-extra-tags:
+            tfsdk: extra_deny
+            hcl: extra_deny
+          x-order: 1
+        expiresIn:
+          type: string
+          description: "Requested seconds, minutes, hours or days (s,m,h,d) when token\
+            \ should expire"
+          x-order: 2
+          x-oapi-codegen-extra-tags:
+            tfsdk: "-"
+        expiresAtTime:
+          type: string
+          description: Requested timestamp when token should expire (in ISO-8601 format)
+          x-order: 3
+          x-oapi-codegen-extra-tags:
+            tfsdk: "-"
     ProjectModel:
       required:
       - name
@@ -3666,8 +3913,10 @@ components:
           x-tf-name: organization
           x-oapi-codegen-extra-tags:
             tfsdk: organization
+            hcl: organization
           x-tf-identifier: true
           x-immutable: true
+          x-order: 0
         name:
           pattern: "[a-z][a-z0-9]*"
           type: string
@@ -3675,8 +3924,10 @@ components:
           x-tf-name: name
           x-oapi-codegen-extra-tags:
             tfsdk: name
+            hcl: name
           x-tf-identifier: true
           x-immutable: true
+          x-order: 1
         labels:
           pattern: "(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])"
           type: object
@@ -3688,6 +3939,8 @@ components:
           x-tf-name: labels
           x-oapi-codegen-extra-tags:
             tfsdk: labels
+            hcl: labels
+          x-order: 2
         sla:
           type: string
           description: The SLA for the project. Cannot be updated once the project
@@ -3696,7 +3949,9 @@ components:
           x-tf-name: sla
           x-oapi-codegen-extra-tags:
             tfsdk: sla
+            hcl: sla
           x-immutable: true
+          x-order: 3
         tier:
           type: string
           description: The service tier for the project
@@ -3704,6 +3959,8 @@ components:
           x-tf-name: tier
           x-oapi-codegen-extra-tags:
             tfsdk: tier
+            hcl: tier
+          x-order: 4
         maintenance:
           $ref: '#/components/schemas/MaintenanceModel'
         properties:
@@ -3713,6 +3970,7 @@ components:
           description: "The version of the resource. When specified in a `PUT` request\
             \ payload, indicates that the resoure should be updated, and is used by\
             \ the system to guard against concurrent updates."
+          x-order: 7
           x-oapi-codegen-extra-tags:
             tfsdk: "-"
         status:
@@ -3728,6 +3986,8 @@ components:
           x-tf-name: tier_parameters
           x-oapi-codegen-extra-tags:
             tfsdk: tier_parameters
+            hcl: tier_parameters
+          x-order: 0
         productVersion:
           pattern: "([1-9][0-9]*|[1-9][0-9]*\\.[0-9]+|[1-9][0-9]*\\.[0-9]+\\.[0-9]+)([._-][a-z0-9._-]+)?"
           type: string
@@ -3737,9 +3997,12 @@ components:
           x-tf-name: product_version
           x-oapi-codegen-extra-tags:
             tfsdk: product_version
+            hcl: product_version
+          x-order: 1
       x-tf-name: properties
       x-oapi-codegen-extra-tags:
         tfsdk: properties
+        hcl: properties
     ProjectStatusModel:
       type: object
       properties:
@@ -3750,24 +4013,32 @@ components:
           x-tf-name: ca_pem
           x-oapi-codegen-extra-tags:
             tfsdk: ca_pem
+            hcl: ca_pem
+          x-order: 0
         ready:
           type: boolean
           description: Whether the project is ready
           x-tf-name: ready
           x-oapi-codegen-extra-tags:
             tfsdk: ready
+            hcl: ready
+          x-order: 1
         shutdown:
           type: boolean
           description: Whether the project and all of its databases have shutdown
           x-tf-name: shutdown
           x-oapi-codegen-extra-tags:
             tfsdk: shutdown
+            hcl: shutdown
+          x-order: 2
         message:
           type: string
           description: Message summarizing the state of the project
           x-tf-name: message
           x-oapi-codegen-extra-tags:
             tfsdk: message
+            hcl: message
+          x-order: 3
         state:
           type: string
           description: |-
@@ -3792,26 +4063,13 @@ components:
           x-tf-name: state
           x-oapi-codegen-extra-tags:
             tfsdk: state
+            hcl: state
+          x-order: 4
       readOnly: true
       x-tf-name: status
       x-oapi-codegen-extra-tags:
         tfsdk: status
-    DbaasAccessRuleModel:
-      type: object
-      properties:
-        allow:
-          type: array
-          description: "List of access rule entries in the form `<verb>:<resource\
-            \ specifier>[:<SLA>]` that specify requests to allow"
-          items:
-            type: string
-        deny:
-          type: array
-          description: List of access rule entries in the form `<verb>:<resource specifier>`
-            that specify requests to deny
-          items:
-            type: string
-      description: The rule specifying access for the user
+        hcl: status
     DbaasUserCreateUpdateModel:
       required:
       - accessRule
@@ -3823,10 +4081,22 @@ components:
           pattern: "[a-z][a-z0-9]*"
           type: string
           description: The organization that the user belongs to
+          x-tf-name: organization
+          x-oapi-codegen-extra-tags:
+            tfsdk: organization
+            hcl: organization
+          x-tf-identifier: true
+          x-order: 0
         name:
           pattern: "[a-z][a-z0-9]*"
           type: string
           description: The name of the user
+          x-tf-name: name
+          x-oapi-codegen-extra-tags:
+            tfsdk: name
+            hcl: name
+          x-tf-identifier: true
+          x-order: 1
         labels:
           pattern: "(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])"
           type: object
@@ -3835,10 +4105,21 @@ components:
             type: string
           description: User-defined labels attached to the resource that can be used
             for filtering
+          x-tf-name: labels
+          x-oapi-codegen-extra-tags:
+            tfsdk: labels
+            hcl: labels
+          x-order: 2
         password:
           type: string
           description: The password for the user
           writeOnly: true
+          x-tf-name: password
+          x-oapi-codegen-extra-tags:
+            tfsdk: password
+            hcl: password
+          x-tf-sensitive: true
+          x-order: 3
         accessRule:
           $ref: '#/components/schemas/DbaasAccessRuleModel'
         resourceVersion:
@@ -3846,6 +4127,9 @@ components:
           description: "The version of the resource. When specified in a `PUT` request\
             \ payload, indicates that the resoure should be updated, and is used by\
             \ the system to guard against concurrent updates."
+          x-order: 5
+          x-oapi-codegen-extra-tags:
+            tfsdk: "-"
     DbaasUserModel:
       required:
       - accessRule
@@ -3857,10 +4141,22 @@ components:
           pattern: "[a-z][a-z0-9]*"
           type: string
           description: The organization that the user belongs to
+          x-tf-name: organization
+          x-oapi-codegen-extra-tags:
+            tfsdk: organization
+            hcl: organization
+          x-tf-identifier: true
+          x-order: 0
         name:
           pattern: "[a-z][a-z0-9]*"
           type: string
           description: The name of the user
+          x-tf-name: name
+          x-oapi-codegen-extra-tags:
+            tfsdk: name
+            hcl: name
+          x-tf-identifier: true
+          x-order: 1
         labels:
           pattern: "(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])"
           type: object
@@ -3869,6 +4165,11 @@ components:
             type: string
           description: User-defined labels attached to the resource that can be used
             for filtering
+          x-tf-name: labels
+          x-oapi-codegen-extra-tags:
+            tfsdk: labels
+            hcl: labels
+          x-order: 2
         accessRule:
           $ref: '#/components/schemas/DbaasAccessRuleModel'
         resourceVersion:
@@ -3876,6 +4177,9 @@ components:
           description: "The version of the resource. When specified in a `PUT` request\
             \ payload, indicates that the resoure should be updated, and is used by\
             \ the system to guard against concurrent updates."
+          x-order: 4
+          x-oapi-codegen-extra-tags:
+            tfsdk: "-"
     DatabaseQuotaModel:
       required:
       - name
@@ -3885,14 +4189,17 @@ components:
         name:
           type: string
           description: The name of the resource
+          x-order: 0
         description:
           type: string
           description: Human-readable description of the resource
+          x-order: 1
         resourceVersion:
           type: string
           description: "The version of the resource. When specified in a `PUT` request\
             \ payload, indicates that the resoure should be updated, and is used by\
             \ the system to guard against concurrent updates."
+          x-order: 2
         spec:
           $ref: '#/components/schemas/DatabaseQuotaSpec'
         status:
@@ -3905,6 +4212,7 @@ components:
           additionalProperties:
             $ref: '#/components/schemas/IntOrString'
           description: The set of desired hard limits for each named resource.
+          x-order: 0
         scope:
           $ref: '#/components/schemas/Scope'
     DatabaseQuotaStatus:
@@ -3918,6 +4226,7 @@ components:
               $ref: '#/components/schemas/IntOrString'
           description: The current observed total usage of the named resources per
             scoped group.
+          x-order: 0
       readOnly: true
     FieldSelector:
       type: object
@@ -3928,6 +4237,7 @@ components:
             \ with `AND`."
           items:
             $ref: '#/components/schemas/databasequotaspec_scope_fieldselector_MatchExpressions'
+          x-order: 0
         matchFields:
           type: object
           additionalProperties:
@@ -3935,6 +4245,7 @@ components:
           description: The field selector requirements as a map where each key-value
             pair is equivalent to an element of `matchExpressions` with `operator`
             set to `==`. The requirements are composed with `AND`.
+          x-order: 1
     IntOrString:
       type: object
       oneOf:
@@ -3950,6 +4261,7 @@ components:
             The requirements are ANDed.
           items:
             $ref: '#/components/schemas/databasequotaspec_scope_labelselector_MatchExpressions'
+          x-order: 0
         matchLabels:
           type: object
           additionalProperties:
@@ -3958,6 +4270,7 @@ components:
             \ in the matchLabels map is equivalent to an element of matchExpressions,\
             \ whose key field is \"key\", the operator is \"In\", and the values array\
             \ contains only \"value\". The requirements are ANDed."
+          x-order: 1
     Scope:
       type: object
       properties:
@@ -3969,6 +4282,7 @@ components:
             into groups.
           items:
             type: string
+          x-order: 1
         labelSelector:
           $ref: '#/components/schemas/LabelSelector'
     databasequotaspec_scope_fieldselector_MatchExpressions:
@@ -3980,13 +4294,16 @@ components:
         key:
           type: string
           description: The path of the field to apply the selector requirement to.
+          x-order: 0
         operator:
           type: string
           description: "The operator to apply to the field value. One of `=`, `==`,\
             \ and `!=`."
+          x-order: 1
         value:
           type: string
           description: The value to compare to.
+          x-order: 2
     databasequotaspec_scope_labelselector_MatchExpressions:
       required:
       - key
@@ -3996,10 +4313,12 @@ components:
         key:
           type: string
           description: key is the label key that the selector applies to.
+          x-order: 0
         operator:
           type: string
           description: "operator represents a key's relationship to a set of values.\
             \ Valid operators are In, NotIn, Exists and DoesNotExist."
+          x-order: 1
         values:
           type: array
           description: "values is an array of string values. If the operator is In\
@@ -4008,6 +4327,7 @@ components:
             \ during a strategic merge patch."
           items:
             type: string
+          x-order: 2
     AnyType:
       type: object
       additionalProperties:
@@ -4025,14 +4345,17 @@ components:
         name:
           type: string
           description: The name of the resource
+          x-order: 0
         description:
           type: string
           description: Human-readable description of the resource
+          x-order: 1
         resourceVersion:
           type: string
           description: "The version of the resource. When specified in a `PUT` request\
             \ payload, indicates that the resoure should be updated, and is used by\
             \ the system to guard against concurrent updates."
+          x-order: 2
         spec:
           $ref: '#/components/schemas/HelmFeatureSpec'
         status:
@@ -4044,20 +4367,24 @@ components:
           type: string
           description: The Helm chart version compatibility constraint for the Helm
             feature.
+          x-order: 0
         optional:
           type: boolean
           description: Whether the Helm feature is optional and does not emit an error
             if the Helm chart or product version is incompatible.
+          x-order: 1
         parameters:
           type: object
           additionalProperties:
             $ref: '#/components/schemas/Parameters'
           description: "The parameter definitions referenced in values. For example,\
             \ parameter named `foo` is referenced using `<< .meta.params.foo >>` template."
+          x-order: 2
         productCompatibility:
           type: string
           description: The NuoDB product version compatibility constraint for the
             Helm feature.
+          x-order: 3
         values:
           $ref: '#/components/schemas/AnyType'
     HelmFeatureStatus:
@@ -4068,9 +4395,11 @@ components:
       properties:
         default:
           type: string
+          x-order: 0
         jsonSchema:
           type: string
           description: A JSONSchema used to validate the parameter's value.
+          x-order: 1
     Features:
       required:
       - name
@@ -4079,10 +4408,12 @@ components:
         name:
           type: string
           description: The name of the resource.
+          x-order: 0
         namespace:
           type: string
           description: "The namespace of the resource. When not specified, the current\
             \ namespace is assumed."
+          x-order: 1
     ServiceTierModel:
       required:
       - name
@@ -4092,14 +4423,17 @@ components:
         name:
           type: string
           description: The name of the resource
+          x-order: 0
         description:
           type: string
           description: Human-readable description of the resource
+          x-order: 1
         resourceVersion:
           type: string
           description: "The version of the resource. When specified in a `PUT` request\
             \ payload, indicates that the resoure should be updated, and is used by\
             \ the system to guard against concurrent updates."
+          x-order: 2
         spec:
           $ref: '#/components/schemas/ServiceTierSpec'
         status:
@@ -4112,6 +4446,7 @@ components:
           description: The list of Helm features enabled for this service tier.
           items:
             $ref: '#/components/schemas/Features'
+          x-order: 0
     ServiceTierStatus:
       type: object
       readOnly: true
@@ -4127,12 +4462,15 @@ components:
           enum:
           - HTTP_ERROR
           - CONCURRENT_UPDATE
+          x-order: 0
         status:
           type: string
           description: HTTP status code and reason
+          x-order: 1
         detail:
           type: string
           description: Detail about the error
+          x-order: 2
   securitySchemes:
     basicAuth:
       type: http

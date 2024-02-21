@@ -22,20 +22,20 @@ var (
 )
 
 type DatabaseFilterModel struct {
-	Organization *string  `tfsdk:"organization"`
-	Project      *string  `tfsdk:"project"`
-	Labels       []string `tfsdk:"labels"`
+	Organization *string  `tfsdk:"organization" hcl:"organization"`
+	Project      *string  `tfsdk:"project" hcl:"project"`
+	Labels       []string `tfsdk:"labels" hcl:"labels"`
 }
 
 type DatabaseNameModel struct {
-	Organization string `tfsdk:"organization"`
-	Project      string `tfsdk:"project"`
-	Name         string `tfsdk:"name"`
+	Organization string `tfsdk:"organization" hcl:"organization"`
+	Project      string `tfsdk:"project" hcl:"project"`
+	Name         string `tfsdk:"name" hcl:"name"`
 }
 
 type DatabasesDataSourceModel struct {
-	Filter    *DatabaseFilterModel `tfsdk:"filter"`
-	Databases []DatabaseNameModel  `tfsdk:"databases"`
+	Filter    *DatabaseFilterModel `tfsdk:"filter" hcl:"filter"`
+	Databases []DatabaseNameModel  `tfsdk:"databases" hcl:"databases"`
 }
 
 // GetDatabasesDataSourceSchema returns the schema for the databases (plural)

@@ -61,7 +61,6 @@ jobs:
   integration_tests:
     executor: java
     environment:
-      KUBERNETES_VERSION: "1.28.3"
       TEST_RESULTS: /tmp/test-results
       OUTPUT_DIR: /tmp/test-artifacts
     steps:
