@@ -9,6 +9,9 @@ mkdir -p "$OUTPUT_DIR"
 # Download kubectl and terraform (used by some tests)
 make bin/kubectl bin/terraform
 
+# Make tools available on system path
+export PATH="$(pwd)/bin:$PATH"
+
 # Download minikube
 curl -Lo minikube https://storage.googleapis.com/minikube/releases/v"${MINIKUBE_VERSION}"/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
 
