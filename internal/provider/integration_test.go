@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
@@ -98,6 +99,12 @@ func TestFullLifecycle(t *testing.T) {
 	// Update database config attributes (tier, labels, and product_version)
 	// and execute `terraform apply`
 	tier := "n1.small"
+	if val, ok := os.LookupEnv("E2E_TEST"); ok && val == "true" {
+		// Avoid setting an unavailable service tier or increasing the
+		// replica count in end-to-end tests, which could be time
+		// consuming
+		tier = "n0.nano"
+	}
 	database.Tier = &tier
 	database.Labels = &map[string]string{
 		"priority": "high",
@@ -110,7 +117,8 @@ func TestFullLifecycle(t *testing.T) {
 	_, err = tf.Apply()
 	require.NoError(t, err)
 	err = actualDatabase.Read(ctx, client)
-	require.Equal(t, "n1.small", *actualDatabase.Tier)
+	require.NotNil(t, actualDatabase.Tier)
+	require.Equal(t, tier, *actualDatabase.Tier)
 	require.Equal(t, database.Labels, actualDatabase.Labels)
 	require.NotNil(t, actualDatabase.Properties)
 	require.Equal(t, database.Properties.ProductVersion, actualDatabase.Properties.ProductVersion)
@@ -128,7 +136,7 @@ func TestFullLifecycle(t *testing.T) {
 	_, err = tf.Apply()
 	require.NoError(t, err)
 	err = actualProject.Read(ctx, client)
-	require.Equal(t, "n1.small", actualProject.Tier)
+	require.Equal(t, tier, actualProject.Tier)
 	require.Equal(t, project.Labels, actualProject.Labels)
 	require.NotNil(t, actualProject.Properties)
 	require.Equal(t, project.Properties.ProductVersion, actualProject.Properties.ProductVersion)
