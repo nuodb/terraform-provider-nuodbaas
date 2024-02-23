@@ -114,17 +114,20 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 				Optional:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"create": schema.StringAttribute{
-							Description: "The timeout to use for resource creation, specified as a duration with time unit suffix, e.g. `10m`",
-							Optional:    true,
+						framework.CREATE_OPERATION: schema.StringAttribute{
+							Description: "The timeout for resource readiness after creation, specified as a duration with time unit suffix, e.g. `10m`. " +
+								"A timeout of `0` indicates not to wait.",
+							Optional: true,
 						},
-						"update": schema.StringAttribute{
-							Description: "The timeout to use for resource update, specified as a duration with time unit suffix, e.g. `1m`",
-							Optional:    true,
+						framework.UPDATE_OPERATION: schema.StringAttribute{
+							Description: "The timeout for resource readiness after update, specified as a duration with time unit suffix, e.g. `1m`. " +
+								"A timeout of `0` indicates not to wait.",
+							Optional: true,
 						},
-						"delete": schema.StringAttribute{
-							Description: "The timeout to use for resource deletion, specified as a duration with time unit suffix, e.g. `30s`",
-							Optional:    true,
+						framework.DELETE_OPERATION: schema.StringAttribute{
+							Description: "The timeout for resource deletion, specified as a duration with time unit suffix, e.g. `30s`. " +
+								"A timeout of `0` indicates not to wait.",
+							Optional: true,
 						},
 					},
 				},

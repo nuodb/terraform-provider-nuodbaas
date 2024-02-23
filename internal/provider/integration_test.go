@@ -147,14 +147,20 @@ func TestFullLifecycle(t *testing.T) {
 
 	// Obtain actual project and database state and check that 404 is returned
 	err = actualProject.Read(ctx, client)
+	require.Error(t, err)
 	require.True(t, helper.IsNotFound(err), "Unexpected error: "+err.Error())
 	err = actualDatabase.Read(ctx, client)
+	require.Error(t, err)
 	require.True(t, helper.IsNotFound(err), "Unexpected error: "+err.Error())
 
 }
 
 func TestTimeouts(t *testing.T) {
 	resetVars()
+
+	// Disable reconciliation
+	reset := SetMockReconcilePolicy(t, MockReconcilePolicy{MarkAsReady: "false"})
+	defer reset()
 
 	// Specify 5s timeout for all resources
 	timeout5s := "5s"
@@ -177,10 +183,6 @@ func TestTimeouts(t *testing.T) {
 	tf.WriteConfigT(t, builder.Build())
 	_, err := tf.Init()
 	require.NoError(t, err)
-
-	// Disable reconciliation
-	reset := SetMockReconcilePolicy(t, MockReconcilePolicy{MarkAsReady: "false"})
-	defer reset()
 
 	// Run `terraform apply` to create project and database, which should
 	// timeout at project creation

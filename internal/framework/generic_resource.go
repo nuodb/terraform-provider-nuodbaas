@@ -159,7 +159,7 @@ func (r *GenericResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.AddError("Error creating "+r.TypeName, err.Error())
 		return
 	}
-	r.finalizeCreateOrUpdate(ctx, state, "create", &resp.Diagnostics, &resp.State)
+	r.finalizeCreateOrUpdate(ctx, state, CREATE_OPERATION, &resp.Diagnostics, &resp.State)
 }
 
 func (r *GenericResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -194,7 +194,7 @@ func (r *GenericResource) Update(ctx context.Context, req resource.UpdateRequest
 		resp.Diagnostics.AddError("Error updating "+r.TypeName, err.Error())
 		return
 	}
-	r.finalizeCreateOrUpdate(ctx, state, "update", &resp.Diagnostics, &resp.State)
+	r.finalizeCreateOrUpdate(ctx, state, UPDATE_OPERATION, &resp.Diagnostics, &resp.State)
 }
 
 func (r *GenericResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -232,6 +232,10 @@ const (
 	READINESS_TIMEOUT = 5 * time.Minute
 	DELETION_TIMEOUT  = 1 * time.Minute
 	POLLING_INTERVAL  = 1 * time.Second
+	DEFAULT_RESOURCE  = "default"
+	CREATE_OPERATION  = "create"
+	UPDATE_OPERATION  = "update"
+	DELETE_OPERATION  = "delete"
 )
 
 type OperationTimeouts struct {
@@ -245,16 +249,16 @@ func ParseTimeouts(timeouts map[string]OperationTimeouts, resourceTypes map[stri
 	to := make(map[string]map[string]time.Duration, len(timeouts))
 	for resource, resourceTimeouts := range timeouts {
 		// Validate resource name
-		if resource != "default" {
+		if resource != DEFAULT_RESOURCE {
 			if _, ok := resourceTypes[resource]; !ok {
 				errList = append(errList, fmt.Errorf("Invalid resource type: %s", resource))
 			}
 		}
 		rto := make(map[string]time.Duration)
 		for operation, operationTimeout := range map[string]*string{
-			"create": resourceTimeouts.Create,
-			"update": resourceTimeouts.Update,
-			"delete": resourceTimeouts.Delete,
+			CREATE_OPERATION: resourceTimeouts.Create,
+			UPDATE_OPERATION: resourceTimeouts.Update,
+			DELETE_OPERATION: resourceTimeouts.Delete,
 		} {
 			if operationTimeout == nil {
 				continue
@@ -263,6 +267,10 @@ func ParseTimeouts(timeouts map[string]OperationTimeouts, resourceTypes map[stri
 			parsed, err := time.ParseDuration(*operationTimeout)
 			if err != nil {
 				errList = append(errList, fmt.Errorf("Invalid timeout for %s %s: %s", resource, operation, err.Error()))
+				continue
+			}
+			if parsed < 0 {
+				errList = append(errList, fmt.Errorf("Timeout for %s %s is negative: %s", resource, operation, parsed))
 				continue
 			}
 			rto[operation] = parsed
@@ -291,7 +299,7 @@ func (r *GenericResource) GetTimeout(operation string, defaultTimeout time.Durat
 		return *timeout
 	}
 	// Get configured default timeout for operation across all resources
-	if timeout := r.getTimeout("default", operation); timeout != nil {
+	if timeout := r.getTimeout(DEFAULT_RESOURCE, operation); timeout != nil {
 		return *timeout
 	}
 	return defaultTimeout
@@ -315,16 +323,18 @@ func (r *GenericResource) AwaitReady(ctx context.Context, state ResourceState, o
 
 		// Re-read resource state and check for timeout error
 		err := state.Read(ctx, r.client.Client)
-		if err != nil && os.IsTimeout(err) {
-			return fmt.Errorf("Timed out after %s: %s", timeout, readyErr.Error())
-		} else if err != nil {
+		if err != nil {
+			if os.IsTimeout(err) && ctx.Err() == context.DeadlineExceeded {
+				return fmt.Errorf("Timed out after %s: %s", timeout, readyErr.Error())
+			}
+			// Return verbatim error if not timeout
 			return err
 		}
 	}
 }
 
 func (r *GenericResource) AwaitDeleted(ctx context.Context, state ResourceState) error {
-	timeout := r.GetTimeout("delete", DELETION_TIMEOUT)
+	timeout := r.GetTimeout(DELETE_OPERATION, DELETION_TIMEOUT)
 	if timeout <= 0 {
 		// TODO(asz6): Log message saying that we are not waiting
 		return nil
@@ -349,7 +359,7 @@ func (r *GenericResource) AwaitDeleted(ctx context.Context, state ResourceState)
 // ReadResource decodes Terraform configuration, state, or plan to a model
 // struct containing ordinary Golang field types (e.g. bool, *int, []string)
 // that have the `tfsdk:"..."` tag.
-func ReadResource[T any](ctx context.Context, diags *diag.Diagnostics, fn func(context.Context, any) diag.Diagnostics, dest T) bool {
+func ReadResource(ctx context.Context, diags *diag.Diagnostics, fn func(context.Context, any) diag.Diagnostics, dest any) bool {
 	// Decode to opaque object type
 	var obj types.Object
 	diags.Append(fn(ctx, &obj)...)
