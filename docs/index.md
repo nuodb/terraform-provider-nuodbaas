@@ -79,6 +79,6 @@ data "nuodbaas_database" "database_details" {
 
 Optional:
 
-- `create` (String) The timeout to use for resource creation, specified as a duration with time unit suffix, e.g. `10m`
-- `delete` (String) The timeout to use for resource deletion, specified as a duration with time unit suffix, e.g. `30s`
-- `update` (String) The timeout to use for resource update, specified as a duration with time unit suffix, e.g. `1m`
+- `create` (String) The timeout for resource readiness after creation, specified as a duration with time unit suffix, e.g. `10m`. A timeout of `0` indicates not to wait.
+- `delete` (String) The timeout for resource deletion, specified as a duration with time unit suffix, e.g. `30s`. A timeout of `0` indicates not to wait.
+- `update` (String) The timeout for resource readiness after update, specified as a duration with time unit suffix, e.g. `1m`. A timeout of `0` indicates not to wait.
