@@ -56,7 +56,7 @@ type GenericResponse struct {
 	// Diagnostics report errors or warnings related to validating the data
 	// source configuration. An empty slice indicates success, with no warnings
 	// or errors generated.
-	Diagnostics diag.Diagnostics
+	Diagnostics *diag.Diagnostics
 }
 
 // GenericPlanModifier is a plan modifier implementation that can be applied to
@@ -97,7 +97,7 @@ func (m GenericPlanModifier) createRequest(
 func (m GenericPlanModifier) createResponse(
 	planValue attr.Value,
 	requiresReplace bool,
-	diagnostics diag.Diagnostics,
+	diagnostics *diag.Diagnostics,
 ) GenericResponse {
 	return GenericResponse{
 		PlanValue:       planValue,
@@ -115,7 +115,7 @@ func (m GenericPlanModifier) execute(req GenericRequest, resp *GenericResponse) 
 // PlanModifyBool implements the plan modification logic.
 func (m GenericPlanModifier) PlanModifyBool(_ context.Context, req planmodifier.BoolRequest, resp *planmodifier.BoolResponse) {
 	genericRequest := m.createRequest(req.Config, req.ConfigValue, req.Plan, req.PlanValue, req.State, req.StateValue)
-	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, resp.Diagnostics)
+	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
 	resp.PlanValue = genericResponse.PlanValue.(types.Bool)
@@ -124,7 +124,7 @@ func (m GenericPlanModifier) PlanModifyBool(_ context.Context, req planmodifier.
 // PlanModifyInt64 implements the plan modification logic.
 func (m GenericPlanModifier) PlanModifyInt64(_ context.Context, req planmodifier.Int64Request, resp *planmodifier.Int64Response) {
 	genericRequest := m.createRequest(req.Config, req.ConfigValue, req.Plan, req.PlanValue, req.State, req.StateValue)
-	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, resp.Diagnostics)
+	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
 	resp.PlanValue = genericResponse.PlanValue.(types.Int64)
@@ -133,7 +133,7 @@ func (m GenericPlanModifier) PlanModifyInt64(_ context.Context, req planmodifier
 // PlanModifyFloat64 implements the plan modification logic.
 func (m GenericPlanModifier) PlanModifyFloat64(_ context.Context, req planmodifier.Float64Request, resp *planmodifier.Float64Response) {
 	genericRequest := m.createRequest(req.Config, req.ConfigValue, req.Plan, req.PlanValue, req.State, req.StateValue)
-	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, resp.Diagnostics)
+	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
 	resp.PlanValue = genericResponse.PlanValue.(types.Float64)
@@ -142,7 +142,7 @@ func (m GenericPlanModifier) PlanModifyFloat64(_ context.Context, req planmodifi
 // PlanModifyNumber implements the plan modification logic.
 func (m GenericPlanModifier) PlanModifyNumber(_ context.Context, req planmodifier.NumberRequest, resp *planmodifier.NumberResponse) {
 	genericRequest := m.createRequest(req.Config, req.ConfigValue, req.Plan, req.PlanValue, req.State, req.StateValue)
-	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, resp.Diagnostics)
+	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
 	resp.PlanValue = genericResponse.PlanValue.(types.Number)
@@ -151,7 +151,7 @@ func (m GenericPlanModifier) PlanModifyNumber(_ context.Context, req planmodifie
 // PlanModifyString implements the plan modification logic.
 func (m GenericPlanModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
 	genericRequest := m.createRequest(req.Config, req.ConfigValue, req.Plan, req.PlanValue, req.State, req.StateValue)
-	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, resp.Diagnostics)
+	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
 	resp.PlanValue = genericResponse.PlanValue.(types.String)
@@ -160,7 +160,7 @@ func (m GenericPlanModifier) PlanModifyString(_ context.Context, req planmodifie
 // PlanModifyList implements the plan modification logic.
 func (m GenericPlanModifier) PlanModifyList(_ context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
 	genericRequest := m.createRequest(req.Config, req.ConfigValue, req.Plan, req.PlanValue, req.State, req.StateValue)
-	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, resp.Diagnostics)
+	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
 	resp.PlanValue = genericResponse.PlanValue.(types.List)
@@ -169,7 +169,7 @@ func (m GenericPlanModifier) PlanModifyList(_ context.Context, req planmodifier.
 // PlanModifyMap implements the plan modification logic.
 func (m GenericPlanModifier) PlanModifyMap(_ context.Context, req planmodifier.MapRequest, resp *planmodifier.MapResponse) {
 	genericRequest := m.createRequest(req.Config, req.ConfigValue, req.Plan, req.PlanValue, req.State, req.StateValue)
-	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, resp.Diagnostics)
+	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
 	resp.PlanValue = genericResponse.PlanValue.(types.Map)
@@ -178,7 +178,7 @@ func (m GenericPlanModifier) PlanModifyMap(_ context.Context, req planmodifier.M
 // PlanModifyObject implements the plan modification logic.
 func (m GenericPlanModifier) PlanModifyObject(_ context.Context, req planmodifier.ObjectRequest, resp *planmodifier.ObjectResponse) {
 	genericRequest := m.createRequest(req.Config, req.ConfigValue, req.Plan, req.PlanValue, req.State, req.StateValue)
-	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, resp.Diagnostics)
+	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
 	resp.PlanValue = genericResponse.PlanValue.(types.Object)

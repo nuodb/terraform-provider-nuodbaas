@@ -10,11 +10,13 @@ import (
 	"fmt"
 	"testing"
 
+	nuodbaas_client_test "github.com/nuodb/terraform-provider-nuodbaas/internal/client/testclient"
+	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/project"
+	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	nuodbaas_client_test "github.com/nuodb/terraform-provider-nuodbaas/internal/client/testclient"
-	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 	"github.com/stretchr/testify/require"
 )
 

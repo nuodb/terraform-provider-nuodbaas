@@ -136,7 +136,7 @@ func TestAccProjectResource(t *testing.T) {
 				}
 				`,
 				// The testing library annoyingly does not allow checking of the detail message, only the summary
-				ExpectError: regexp.MustCompile("Error updating project"),
+				ExpectError: regexp.MustCompile("Unable to update project"),
 			},
 		},
 		CheckDestroy: checkClean,

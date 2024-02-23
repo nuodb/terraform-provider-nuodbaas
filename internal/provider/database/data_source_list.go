@@ -2,7 +2,7 @@
 All Rights Reserved.
 */
 
-package provider
+package database
 
 import (
 	"context"
@@ -22,20 +22,20 @@ var (
 )
 
 type DatabaseFilterModel struct {
-	Organization *string  `tfsdk:"organization" hcl:"organization"`
-	Project      *string  `tfsdk:"project" hcl:"project"`
-	Labels       []string `tfsdk:"labels" hcl:"labels"`
+	Organization *string  `tfsdk:"organization" hcl:"organization" cty:"organization"`
+	Project      *string  `tfsdk:"project" hcl:"project" cty:"project"`
+	Labels       []string `tfsdk:"labels" hcl:"labels" cty:"labels"`
 }
 
 type DatabaseNameModel struct {
-	Organization string `tfsdk:"organization" hcl:"organization"`
-	Project      string `tfsdk:"project" hcl:"project"`
-	Name         string `tfsdk:"name" hcl:"name"`
+	Organization string `tfsdk:"organization" hcl:"organization" cty:"organization"`
+	Project      string `tfsdk:"project" hcl:"project" cty:"project"`
+	Name         string `tfsdk:"name" hcl:"name" cty:"name"`
 }
 
 type DatabasesDataSourceModel struct {
-	Filter    *DatabaseFilterModel `tfsdk:"filter" hcl:"filter"`
-	Databases []DatabaseNameModel  `tfsdk:"databases" hcl:"databases"`
+	Filter    *DatabaseFilterModel `tfsdk:"filter" hcl:"filter" cty:"filter"`
+	Databases []DatabaseNameModel  `tfsdk:"databases" hcl:"databases" cty:"databases"`
 }
 
 // GetDatabasesDataSourceSchema returns the schema for the databases (plural)

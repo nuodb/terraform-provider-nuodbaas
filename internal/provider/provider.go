@@ -11,6 +11,8 @@ import (
 
 	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
+	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/database"
+	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/project"
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -35,11 +37,11 @@ type NuoDbaasProvider struct {
 
 // NuoDbaasProviderModel describes the provider data model.
 type NuoDbaasProviderModel struct {
-	User       *string                                `tfsdk:"user" hcl:"user"`
-	Password   *string                                `tfsdk:"password" hcl:"password"`
-	UrlBase    *string                                `tfsdk:"url_base" hcl:"url_base"`
-	SkipVerify *bool                                  `tfsdk:"skip_verify" hcl:"skip_verify"`
-	Timeouts   map[string]framework.OperationTimeouts `tfsdk:"timeouts" hcl:"timeouts"`
+	User       *string                                `tfsdk:"user" hcl:"user" cty:"user"`
+	Password   *string                                `tfsdk:"password" hcl:"password" cty:"password"`
+	UrlBase    *string                                `tfsdk:"url_base" hcl:"url_base" cty:"url_base"`
+	SkipVerify *bool                                  `tfsdk:"skip_verify" hcl:"skip_verify" cty:"skip_verify"`
+	Timeouts   map[string]framework.OperationTimeouts `tfsdk:"timeouts" hcl:"timeouts" cty:"timeouts"`
 }
 
 func (pm *NuoDbaasProviderModel) GetUser() string {

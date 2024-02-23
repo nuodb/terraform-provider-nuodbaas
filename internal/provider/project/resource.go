@@ -2,7 +2,7 @@
 All Rights Reserved.
 */
 
-package provider
+package project
 
 import (
 	"context"
