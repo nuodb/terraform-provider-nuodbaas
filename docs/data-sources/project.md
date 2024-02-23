@@ -13,10 +13,10 @@ Data source for exposing information about NuoDB projects created using the DBaa
 ## Example Usage
 
 ```terraform
-# Get details about a single project
+# Data source that returns the attributes of a specific project
 data "nuodbaas_project" "project_details" {
-  name         = "nuodb"
-  organization = "system"
+  organization = "org"
+  name         = "proj"
 }
 ```
 

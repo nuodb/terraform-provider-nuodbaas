@@ -26,39 +26,45 @@ provider "nuodbaas" {
   user     = var.dbaas_credentials.user
   password = sensitive(var.dbaas_credentials.password)
   url_base = var.dbaas_credentials.url_base
+  timeouts = {
+    defaults = {
+      create = "10m"
+      update = "5m"
+      delete = "30s"
+    }
+  }
 }
 
-# Create a basic project
+# Create a project
 resource "nuodbaas_project" "proj" {
   organization = "org"
-  name         = "nuodb"
-  sla          = "prod"
+  name         = "proj"
+  sla          = "dev"
   tier         = "n0.nano"
 }
 
-# Add a database into the project
+# Create a database within the project
 resource "nuodbaas_database" "db" {
   organization = nuodbaas_project.proj.organization
   project      = nuodbaas_project.proj.name
   name         = "db"
-  dba_password = "helloworld"
+  dba_password = "secret"
 
-  # By using the attributes of nuodbaas_project.proj for organization and project,
-  # we are already creating an implicit dependency on the project being created
-  # before we add a database to it. If you do not want to (or cannot) depend on
-  # implicit dependencies, you can create an explicit one:
+  # By using the attributes of nuodbaas_project.proj for organization and
+  # project, we are defining an implicit dependency on the project, which
+  # causes it to be created before the database. An explicit dependency can be
+  # defined as follows:
   depends_on = [nuodbaas_project.proj]
 }
 
 data "nuodbaas_database" "database_details" {
-  name         = nuodbaas_database.db.name
   organization = nuodbaas_database.db.organization
   project      = nuodbaas_database.db.project
+  name         = nuodbaas_database.db.name
 
-  # By using the attributes of nuodbaas_database.db as arguments, we are
-  # creating an implicit dependency on the database being created before we
-  # try to fetch it. If you do not want to (or cannot) depend on
-  # implicit dependencies, you can create an explicit one:
+  # By using the attributes of nuodbaas_database.db, we are defining an
+  # implicit dependency on the database, which causes it to be created before
+  # the data source is read. An explicit dependency can be defined as follows:
   depends_on = [nuodbaas_database.db]
 }
 ```
@@ -70,7 +76,7 @@ data "nuodbaas_database" "database_details" {
 
 - `password` (String, Sensitive) The password for the user. If not specified, defaults to the `NUODB_CP_PASSWORD` environment variable.
 - `skip_verify` (Boolean) Whether to skip server certificate verification
-- `timeouts` (Attributes Map) Timeouts by resource type and operation (see [below for nested schema](#nestedatt--timeouts))
+- `timeouts` (Attributes Map) Timeouts by resource type and operation. A resource type of `default` is used to supply timeouts for all resources that are not specified explicitly. (see [below for nested schema](#nestedatt--timeouts))
 - `url_base` (String) The base URL for the server, including the protocol. If not specified, defaults to the `NUODB_CP_URL_BASE` environment variable.
 - `user` (String) The name of the user in the format `<organization>/<user>`. If not specified, defaults to the `NUODB_CP_USER` environment variable.
 

@@ -110,7 +110,7 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 				Optional:    true,
 			},
 			"timeouts": schema.MapNestedAttribute{
-				Description: "Timeouts by resource type and operation",
+				Description: "Timeouts by resource type and operation. A resource type of `default` is used to supply timeouts for all resources that are not specified explicitly.",
 				Optional:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{

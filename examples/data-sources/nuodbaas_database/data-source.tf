@@ -1,6 +1,6 @@
-# Get details about a single database
+# Data source that returns the attributes of a specific database
 data "nuodbaas_database" "database_details" {
-  name         = "dbaas"
-  organization = "system"
-  project      = "nuodb"
+  organization = "org"
+  project      = "proj"
+  name         = "db"
 }

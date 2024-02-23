@@ -96,10 +96,10 @@ func TestExamplesResourceDatabase(t *testing.T) {
 	configVariables := config.Variables{}
 
 	// Other plan parts that the example assumes exist
-	setUp := `resource "nuodbaas_project" "nuodb" {
+	setUp := `resource "nuodbaas_project" "proj" {
 		organization = "org"
-		name         = "nuodb"
-		sla          = "prod"
+		name         = "proj"
+		sla          = "dev"
 		tier         = "n0.nano"
 	  }`
 
@@ -117,13 +117,13 @@ func TestExamplesDatasources(t *testing.T) {
 	ctx := context.TODO()
 	client, err := nuodbaas_client_test.DefaultApiClient()
 	require.NoError(t, err)
-	require.NoError(t, nuodbaas_client_test.CreateProject(t, ctx, client, "system", "nuodb", "dev", "n0.nano"))
-	require.NoError(t, nuodbaas_client_test.CreateDatabase(t, ctx, client, "system", "nuodb", "dbaas", "pass"))
+	require.NoError(t, nuodbaas_client_test.CreateProject(t, ctx, client, "org", "proj", "dev", "n0.nano"))
+	require.NoError(t, nuodbaas_client_test.CreateDatabase(t, ctx, client, "org", "proj", "db", "pass"))
 
 	testChartDir(t, path, setUp, configVariables, false, noApplyDefault(t), false)
 
-	require.NoError(t, nuodbaas_client_test.DeleteDatabase(ctx, client, "system", "nuodb", "dbaas", false))
-	require.NoError(t, nuodbaas_client_test.DeleteProject(ctx, client, "system", "nuodb", false))
+	require.NoError(t, nuodbaas_client_test.DeleteDatabase(ctx, client, "org", "proj", "db", false))
+	require.NoError(t, nuodbaas_client_test.DeleteProject(ctx, client, "org", "proj", false))
 
 	require.NoError(t, nuodbaas_client_test.CheckClean())
 }

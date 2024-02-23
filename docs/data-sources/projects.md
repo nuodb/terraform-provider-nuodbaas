@@ -13,13 +13,20 @@ Data source for listing NuoDB projects created using the DBaaS Control Plane
 ## Example Usage
 
 ```terraform
-# Get all projects
-data "nuodbaas_projects" "projects_list" {}
+# Data source that returns the fully-qualified names of all projects
+data "nuodbaas_projects" "project_list" {}
 
-# Get all projects in a given organization
-data "nuodbaas_projects" "org_projects_list" {
+# Data source that returns the fully-qualified names of projects within an organization
+data "nuodbaas_projects" "org_project_list" {
   filter = {
-    organization = "system"
+    organization = "org"
+  }
+}
+
+# Data source that returns the fully-qualified names of projects satisfying label requirements
+data "nuodbaas_projects" "label_project_list" {
+  filter = {
+    labels = ["withkey", "key=expected", "key!=unexpected", "!withoutkey"]
   }
 }
 ```
