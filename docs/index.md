@@ -27,7 +27,7 @@ provider "nuodbaas" {
   password = sensitive(var.dbaas_credentials.password)
   url_base = var.dbaas_credentials.url_base
   timeouts = {
-    defaults = {
+    default = {
       create = "10m"
       update = "5m"
       delete = "30s"
