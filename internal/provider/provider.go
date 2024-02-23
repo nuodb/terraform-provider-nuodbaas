@@ -10,12 +10,14 @@ import (
 	"strings"
 
 	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
+	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
+	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // Ensure NuoDbaasProvider satisfies various provider interfaces.
@@ -33,10 +35,49 @@ type NuoDbaasProvider struct {
 
 // NuoDbaasProviderModel describes the provider data model.
 type NuoDbaasProviderModel struct {
-	User       types.String `tfsdk:"user"`
-	Password   types.String `tfsdk:"password"`
-	BaseUrl    types.String `tfsdk:"url_base"`
-	SkipVerify types.Bool   `tfsdk:"skip_verify"`
+	User       *string                                `tfsdk:"user" hcl:"user"`
+	Password   *string                                `tfsdk:"password" hcl:"password"`
+	UrlBase    *string                                `tfsdk:"url_base" hcl:"url_base"`
+	SkipVerify *bool                                  `tfsdk:"skip_verify" hcl:"skip_verify"`
+	Timeouts   map[string]framework.OperationTimeouts `tfsdk:"timeouts" hcl:"timeouts"`
+}
+
+func (pm *NuoDbaasProviderModel) GetUser() string {
+	if pm.User != nil {
+		return *pm.User
+	}
+	return os.Getenv("NUODB_CP_USER")
+}
+
+func (pm *NuoDbaasProviderModel) GetPassword() string {
+	if pm.Password != nil {
+		return *pm.Password
+	}
+	return os.Getenv("NUODB_CP_PASSWORD")
+}
+
+func (pm *NuoDbaasProviderModel) GetUrlBase() string {
+	if pm.UrlBase != nil {
+		return *pm.UrlBase
+	}
+	if ret := os.Getenv("NUODB_CP_URL_BASE"); ret != "" {
+		return ret
+	}
+	// TODO(asz6): Consider removing this hardcoded default, which is
+	// unlikely to be useful in a non-test environment
+	return "http://localhost:8080"
+}
+
+func (pm *NuoDbaasProviderModel) GetSkipVerify() bool {
+	if pm.SkipVerify != nil {
+		return *pm.SkipVerify
+	}
+	skipVerifyValue := os.Getenv("NUODB_CP_SKIP_VERIFY")
+	return skipVerifyValue == "1" || strings.ToLower(skipVerifyValue) == "true"
+}
+
+func (pm *NuoDbaasProviderModel) CreateClient() (*openapi.Client, error) {
+	return nuodbaas_client.NewApiClient(pm.GetUrlBase(), pm.GetUser(), pm.GetPassword(), pm.GetSkipVerify())
 }
 
 func (p *NuoDbaasProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -68,58 +109,75 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 				Description: "Whether to skip server certificate verification",
 				Optional:    true,
 			},
+			"timeouts": schema.MapNestedAttribute{
+				Description: "Timeouts by resource type and operation. A resource type of `default` is used to supply timeouts for all resources that are not specified explicitly.",
+				Optional:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						framework.CREATE_OPERATION: schema.StringAttribute{
+							Description: "The timeout for resource readiness after creation, specified as a duration with time unit suffix, e.g. `10m`. " +
+								"A timeout of `0` indicates not to wait.",
+							Optional: true,
+						},
+						framework.UPDATE_OPERATION: schema.StringAttribute{
+							Description: "The timeout for resource readiness after update, specified as a duration with time unit suffix, e.g. `1m`. " +
+								"A timeout of `0` indicates not to wait.",
+							Optional: true,
+						},
+						framework.DELETE_OPERATION: schema.StringAttribute{
+							Description: "The timeout for resource deletion, specified as a duration with time unit suffix, e.g. `30s`. " +
+								"A timeout of `0` indicates not to wait.",
+							Optional: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
 
 func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 	var config NuoDbaasProviderModel
-
-	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
-
-	if resp.Diagnostics.HasError() {
+	if !framework.ReadResource(ctx, &resp.Diagnostics, req.Config.Get, &config) {
 		return
 	}
 
-	user := os.Getenv("NUODB_CP_USER")
-	password := os.Getenv("NUODB_CP_PASSWORD")
-	urlBase := os.Getenv("NUODB_CP_URL_BASE")
-	skipVerify := false
-	if skipVerifyValue := os.Getenv("NUODB_CP_SKIP_VERIFY"); skipVerifyValue == "1" || strings.ToLower(skipVerifyValue) == "true" {
-		skipVerify = true
+	// Validate timeout configuration
+	timeouts, err := framework.ParseTimeouts(config.Timeouts, resourceTypes())
+	if err != nil {
+		resp.Diagnostics.AddAttributeError(path.Empty().AtName("timeouts"), "Invalid provider configuration", err.Error())
+		return
 	}
 
-	if !config.User.IsNull() {
-		user = config.User.ValueString()
-	}
-
-	if !config.Password.IsNull() {
-		password = config.Password.ValueString()
-	}
-
-	if !config.BaseUrl.IsNull() {
-		urlBase = config.BaseUrl.ValueString()
-	}
-
-	if !config.SkipVerify.IsNull() {
-		skipVerify = config.SkipVerify.ValueBool()
-	}
-
-	if urlBase == "" {
-		urlBase = "http://localhost:8080"
-	}
-
-	// Disable server certificate verification if skip_verify=true
-	apiClient, err := nuodbaas_client.NewApiClient(urlBase, user, password, skipVerify)
+	// Create client
+	client, err := config.CreateClient()
 	if err != nil {
 		resp.Diagnostics.AddError("Client error", err.Error())
 		return
 	}
-	resp.DataSourceData = apiClient
-	resp.ResourceData = apiClient
+
+	// Pass client as opaque data
+	resp.DataSourceData = client
+	resp.ResourceData = framework.NewClientWithTimeouts(client, timeouts)
 }
 
 func (p *NuoDbaasProvider) Resources(ctx context.Context) []func() resource.Resource {
+	return resources()
+}
+
+// resourceTypes returns the set of available resource types by name.
+func resourceTypes() map[string]struct{} {
+	set := make(map[string]struct{})
+	for _, resourceFn := range resources() {
+		resource, ok := resourceFn().(*framework.GenericResource)
+		if ok {
+			set[resource.TypeName] = struct{}{}
+		}
+	}
+	return set
+}
+
+func resources() []func() resource.Resource {
 	return []func() resource.Resource{
 		NewProjectResource,
 		NewDatabaseResource,
@@ -130,8 +188,8 @@ func (p *NuoDbaasProvider) DataSources(ctx context.Context) []func() datasource.
 	return []func() datasource.DataSource{
 		NewProjectDataSource,
 		NewProjectsDataSource,
-		NewDatabasesDataSource,
 		NewDatabaseDataSource,
+		NewDatabasesDataSource,
 	}
 }
 

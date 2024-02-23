@@ -6,7 +6,9 @@ package framework
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -27,11 +29,20 @@ var (
 	_ resource.ResourceWithImportState = &GenericResource{}
 )
 
+type ClientWithTimeouts struct {
+	*openapi.Client
+	timeouts map[string]map[string]time.Duration
+}
+
+func NewClientWithTimeouts(client *openapi.Client, timeouts map[string]map[string]time.Duration) *ClientWithTimeouts {
+	return &ClientWithTimeouts{Client: client, timeouts: timeouts}
+}
+
 // GenericResource is a Resource implementation that handles all interactions
 // with the Terraform API and delegates interaction with the provider API to
 // ResourceState.
 type GenericResource struct {
-	client           *openapi.Client
+	client           *ClientWithTimeouts
 	TypeName         string
 	Description      string
 	GetOpenApiSchema func() (*openapi3.Schema, error)
@@ -53,9 +64,9 @@ type ResourceState interface {
 	// concurrent updates from the local state.
 	GetResourceVersion() string
 
-	// IsReady returns true if the resource is in the desired state
-	// according to its spec, based on the local state.
-	IsReady() bool
+	// CheckReady returns an error if the resource is not in the desired
+	// state according to its spec, based on the local state.
+	CheckReady() error
 
 	// Create creates the resource in the backend based on the local state
 	// and waits for it to satisfy IsReady().
@@ -100,11 +111,12 @@ func (r *GenericResource) Configure(ctx context.Context, req resource.ConfigureR
 	if req.ProviderData == nil {
 		return
 	}
-	client, ok := req.ProviderData.(*openapi.Client)
+	client, ok := req.ProviderData.(*ClientWithTimeouts)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *openapi.Client, got: %T. Please report this issue to NuoDB.Support@3ds.com", req.ProviderData),
+			fmt.Sprintf("Expected %T, got: %T. Please report this issue to NuoDB.Support@3ds.com",
+				&ClientWithTimeouts{}, req.ProviderData),
 		)
 		return
 	}
@@ -113,7 +125,7 @@ func (r *GenericResource) Configure(ctx context.Context, req resource.ConfigureR
 
 func (r *GenericResource) finalizeCreateOrUpdate(ctx context.Context, state ResourceState, operation string, diags *diag.Diagnostics, tfstate *tfsdk.State) {
 	// Get resource state after create or update
-	err := state.Read(ctx, r.client)
+	err := state.Read(ctx, r.client.Client)
 	if err != nil {
 		diags.AddError("Error refreshing "+r.TypeName+" after "+operation, err.Error())
 		return
@@ -126,7 +138,7 @@ func (r *GenericResource) finalizeCreateOrUpdate(ctx context.Context, state Reso
 		return
 	}
 	// Wait for resource to become ready
-	err = r.AwaitReady(ctx, state)
+	err = r.AwaitReady(ctx, state, operation)
 	if err != nil {
 		diags.AddError("Error waiting for "+r.TypeName+" to become ready", err.Error())
 		return
@@ -142,12 +154,12 @@ func (r *GenericResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 	// Create the resource
-	err := state.Create(ctx, r.client)
+	err := state.Create(ctx, r.client.Client)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating "+r.TypeName, err.Error())
 		return
 	}
-	r.finalizeCreateOrUpdate(ctx, state, "create", &resp.Diagnostics, &resp.State)
+	r.finalizeCreateOrUpdate(ctx, state, CREATE_OPERATION, &resp.Diagnostics, &resp.State)
 }
 
 func (r *GenericResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -157,7 +169,7 @@ func (r *GenericResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 	// Get latest resource state
-	err := state.Read(ctx, r.client)
+	err := state.Read(ctx, r.client.Client)
 	if err != nil {
 		if helper.IsNotFound(err) {
 			resp.State.RemoveResource(ctx)
@@ -177,12 +189,12 @@ func (r *GenericResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 	// Update the resource
-	err := state.Update(ctx, r.client)
+	err := state.Update(ctx, r.client.Client)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating "+r.TypeName, err.Error())
 		return
 	}
-	r.finalizeCreateOrUpdate(ctx, state, "update", &resp.Diagnostics, &resp.State)
+	r.finalizeCreateOrUpdate(ctx, state, UPDATE_OPERATION, &resp.Diagnostics, &resp.State)
 }
 
 func (r *GenericResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -192,7 +204,7 @@ func (r *GenericResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 	// Delete the resource
-	err := state.Delete(ctx, r.client)
+	err := state.Delete(ctx, r.client.Client)
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting "+r.TypeName, err.Error())
 		return
@@ -220,30 +232,119 @@ const (
 	READINESS_TIMEOUT = 5 * time.Minute
 	DELETION_TIMEOUT  = 1 * time.Minute
 	POLLING_INTERVAL  = 1 * time.Second
+	DEFAULT_RESOURCE  = "default"
+	CREATE_OPERATION  = "create"
+	UPDATE_OPERATION  = "update"
+	DELETE_OPERATION  = "delete"
 )
 
-func (r *GenericResource) AwaitReady(ctx context.Context, state ResourceState) error {
-	ctx, cancel := context.WithTimeout(ctx, READINESS_TIMEOUT)
-	defer cancel()
-	for !state.IsReady() {
-		time.Sleep(POLLING_INTERVAL)
+type OperationTimeouts struct {
+	Create *string `tfsdk:"create" hcl:"create" cty:"create"`
+	Update *string `tfsdk:"update" hcl:"update" cty:"update"`
+	Delete *string `tfsdk:"delete" hcl:"delete" cty:"delete"`
+}
 
-		// Re-read resource state
-		err := state.Read(ctx, r.client)
-		if err != nil {
-			return err
+func ParseTimeouts(timeouts map[string]OperationTimeouts, resourceTypes map[string]struct{}) (map[string]map[string]time.Duration, error) {
+	var errList []error
+	to := make(map[string]map[string]time.Duration, len(timeouts))
+	for resource, resourceTimeouts := range timeouts {
+		// Validate resource name
+		if resource != DEFAULT_RESOURCE {
+			if _, ok := resourceTypes[resource]; !ok {
+				errList = append(errList, fmt.Errorf("Invalid resource type: %s", resource))
+			}
+		}
+		rto := make(map[string]time.Duration)
+		for operation, operationTimeout := range map[string]*string{
+			CREATE_OPERATION: resourceTimeouts.Create,
+			UPDATE_OPERATION: resourceTimeouts.Update,
+			DELETE_OPERATION: resourceTimeouts.Delete,
+		} {
+			if operationTimeout == nil {
+				continue
+			}
+			// Parse time duration
+			parsed, err := time.ParseDuration(*operationTimeout)
+			if err != nil {
+				errList = append(errList, fmt.Errorf("Invalid timeout for %s %s: %s", resource, operation, err.Error()))
+				continue
+			}
+			if parsed < 0 {
+				errList = append(errList, fmt.Errorf("Timeout for %s %s is negative: %s", resource, operation, parsed))
+				continue
+			}
+			rto[operation] = parsed
+		}
+		to[resource] = rto
+	}
+	return to, errors.Join(errList...)
+}
+
+func (r *GenericResource) getTimeout(resource, operation string) *time.Duration {
+	// Get timeouts for resource
+	timeouts, ok := r.client.timeouts[resource]
+	if ok {
+		// Get timeout for operation
+		timeout, ok := timeouts[operation]
+		if ok {
+			return &timeout
 		}
 	}
 	return nil
 }
 
+func (r *GenericResource) GetTimeout(operation string, defaultTimeout time.Duration) time.Duration {
+	// Get timeout for resource and operation
+	if timeout := r.getTimeout(r.TypeName, operation); timeout != nil {
+		return *timeout
+	}
+	// Get configured default timeout for operation across all resources
+	if timeout := r.getTimeout(DEFAULT_RESOURCE, operation); timeout != nil {
+		return *timeout
+	}
+	return defaultTimeout
+}
+
+func (r *GenericResource) AwaitReady(ctx context.Context, state ResourceState, operation string) error {
+	timeout := r.GetTimeout(operation, READINESS_TIMEOUT)
+	if timeout <= 0 {
+		// TODO(asz6): Log message saying that we are not waiting
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	for {
+		// Check if resource is ready
+		readyErr := state.CheckReady()
+		if readyErr == nil {
+			return nil
+		}
+		time.Sleep(POLLING_INTERVAL)
+
+		// Re-read resource state and check for timeout error
+		err := state.Read(ctx, r.client.Client)
+		if err != nil {
+			if os.IsTimeout(err) && ctx.Err() == context.DeadlineExceeded {
+				return fmt.Errorf("Timed out after %s: %s", timeout, readyErr.Error())
+			}
+			// Return verbatim error if not timeout
+			return err
+		}
+	}
+}
+
 func (r *GenericResource) AwaitDeleted(ctx context.Context, state ResourceState) error {
-	ctx, cancel := context.WithTimeout(ctx, DELETION_TIMEOUT)
+	timeout := r.GetTimeout(DELETE_OPERATION, DELETION_TIMEOUT)
+	if timeout <= 0 {
+		// TODO(asz6): Log message saying that we are not waiting
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	for {
 		// Try to read resource state and check that "404 Not Found"
 		// error is returned
-		err := state.Read(ctx, r.client)
+		err := state.Read(ctx, r.client.Client)
 		if err != nil {
 			if helper.IsNotFound(err) {
 				return nil
@@ -258,7 +359,7 @@ func (r *GenericResource) AwaitDeleted(ctx context.Context, state ResourceState)
 // ReadResource decodes Terraform configuration, state, or plan to a model
 // struct containing ordinary Golang field types (e.g. bool, *int, []string)
 // that have the `tfsdk:"..."` tag.
-func ReadResource[T State](ctx context.Context, diags *diag.Diagnostics, fn func(context.Context, any) diag.Diagnostics, dest T) bool {
+func ReadResource(ctx context.Context, diags *diag.Diagnostics, fn func(context.Context, any) diag.Diagnostics, dest any) bool {
 	// Decode to opaque object type
 	var obj types.Object
 	diags.Append(fn(ctx, &obj)...)

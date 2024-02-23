@@ -34,14 +34,19 @@ func (state *ProjectResourceModel) GetResourceVersion() string {
 	return ""
 }
 
-func (state *ProjectResourceModel) IsReady() bool {
-	if state.Status.State == nil {
-		return false
+func (state *ProjectResourceModel) CheckReady() error {
+	if state.Status == nil || state.Status.State == nil {
+		return fmt.Errorf("Project %s/%s has no status information", state.Organization, state.Name)
 	}
+	expectedState := openapi.ProjectStatusModelStateAvailable
 	if state.Maintenance != nil && state.Maintenance.IsDisabled != nil && *state.Maintenance.IsDisabled {
-		return *state.Status.State == openapi.ProjectStatusModelStateStopped
+		expectedState = openapi.ProjectStatusModelStateStopped
 	}
-	return *state.Status.State == openapi.ProjectStatusModelStateAvailable
+	if *state.Status.State != expectedState {
+		return fmt.Errorf("Project %s/%s has an unexpected state: expected=%s, found=%s",
+			state.Organization, state.Name, expectedState, *state.Status.State)
+	}
+	return nil
 }
 
 func (state *ProjectResourceModel) Create(ctx context.Context, client *openapi.Client) error {

@@ -1,23 +1,24 @@
-# A database project
-resource "nuodbaas_database" "nuodb" {
-  organization = nuodbaas_project.nuodb.organization
-  project      = nuodbaas_project.nuodb.name
-  name         = "nuodb"
-  dba_password = "helloworld"
+# A database with minimal configuration
+resource "nuodbaas_database" "basic" {
+  organization = nuodbaas_project.proj.organization
+  project      = nuodbaas_project.proj.name
+  name         = "basic"
+  dba_password = "secret"
 }
 
-# A database with more fields set
-resource "nuodbaas_database" "dbaas" {
-  organization = nuodbaas_project.nuodb.organization
-  project      = nuodbaas_project.nuodb.name
-  name         = "dbaas"
+# A database with explicit configuration for various attributes
+resource "nuodbaas_database" "db" {
+  organization = nuodbaas_project.proj.organization
+  project      = nuodbaas_project.proj.name
+  name         = "db"
   tier         = "n0.nano"
-  dba_password = "helloworld"
-  maintenance = {
-    is_disabled = false
+  dba_password = "secret"
+  labels = {
+    color  = "green"
+    flavor = "bold"
   }
-
   properties = {
+    archive_disk_size = "10Gi"
     tier_parameters = {
       zones        = jsonencode(["us-east-2a", "us-east-2c"])
       capacityType = "spot"

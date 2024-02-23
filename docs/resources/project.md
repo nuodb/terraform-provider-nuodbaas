@@ -13,25 +13,26 @@ Resource for managing NuoDB projects created using the DBaaS Control Plane
 ## Example Usage
 
 ```terraform
-# A basic project
-resource "nuodbaas_project" "nuodb" {
+# A project with minimal configuration
+resource "nuodbaas_project" "basic" {
   organization = "org"
-  name         = "nuodb"
-  sla          = "prod"
+  name         = "basic"
+  sla          = "dev"
   tier         = "n0.nano"
 }
 
-# A project with more fields set
-resource "nuodbaas_project" "dev" {
+# A project with explicit configuration for various attributes
+resource "nuodbaas_project" "proj" {
   organization = "org"
-  name         = "dev"
-  sla          = "dev"
+  name         = "proj"
+  sla          = "prod"
   tier         = "n0.nano"
-  maintenance = {
-    is_disabled = false
+  labels = {
+    color  = "blue"
+    flavor = "mild"
   }
-
   properties = {
+    product_version = "5.1"
     tier_parameters = {
       zone  = "us-east"
       group = "dev"

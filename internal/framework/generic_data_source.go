@@ -10,7 +10,6 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 
-	"github.com/nuodb/terraform-provider-nuodbaas/internal/helper"
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -74,7 +73,8 @@ func (d *GenericDataSource) Configure(ctx context.Context, req datasource.Config
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *openapi.Client, got: %T. Please report this issue to NuoDB.Support@3ds.com", req.ProviderData),
+			fmt.Sprintf("Expected %T, got: %T. Please report this issue to NuoDB.Support@3ds.com",
+				&openapi.Client{}, req.ProviderData),
 		)
 		return
 	}
@@ -90,10 +90,6 @@ func (d *GenericDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	// Read actual data from provider
 	err := state.Read(ctx, d.client)
 	if err != nil {
-		if helper.IsNotFound(err) {
-			resp.State.RemoveResource(ctx)
-			return
-		}
 		resp.Diagnostics.AddError("Error reading "+d.TypeName, err.Error())
 		return
 	}
