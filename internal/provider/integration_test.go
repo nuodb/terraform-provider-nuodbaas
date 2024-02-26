@@ -449,15 +449,6 @@ func TestNegative(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, string(out), "Cannot import non-existent remote object")
 
-	// Omit a required attribute and run `terraform apply`
-	vars.database.DbaPassword = nil
-	tf.WriteConfigT(t, vars.builder.Build())
-	out, err = tf.Apply()
-	require.Error(t, err)
-	require.Contains(t, string(out), "Missing required argument")
-	dbaPassword := "password"
-	vars.database.DbaPassword = &dbaPassword
-
 	// Specify an invalid attribute and run `terraform apply`
 	vars.project.Sla = ""
 	tf.WriteConfigT(t, vars.builder.Build())
@@ -510,7 +501,7 @@ func TestNegative(t *testing.T) {
 		Organization: "org",
 		Project:      "proj",
 		Name:         "nodep",
-		DbaPassword:  &dbaPassword,
+		DbaPassword:  vars.database.DbaPassword,
 	})
 	tf.WriteConfigT(t, vars.builder.Build())
 	out, err = tf.Apply()
@@ -555,6 +546,45 @@ func TestNegative(t *testing.T) {
 	out, err = tf.Run("import", "nuodbaas_database.db", "org/proj/db")
 	require.Error(t, err)
 	require.Contains(t, string(out), "Resource already managed by Terraform")
+
+	// Change the project SLA and verify that a warning is displayed by
+	// Terraform and that the request is also rejected by the server.
+	vars.project.Sla = "prod"
+	tf.WriteConfigT(t, vars.builder.Build())
+	out, err = tf.Apply()
+	require.Error(t, err)
+	require.Contains(t, string(out), "Immutable Attribute Change")
+	require.Contains(t, string(out), "`sla`")
+	require.Contains(t, string(out), "(`\"dev\"`)")
+	require.Contains(t, string(out), "Unable to update project")
+	vars.project.Sla = "dev"
+
+	// Change DBA password and verify that a warning is displayed by
+	// Terraform. Since the DBA password is only sent on create, there will
+	// not be an error from the server.
+	updatedPassword := "updated"
+	vars.database.DbaPassword = &updatedPassword
+	tf.WriteConfigT(t, vars.builder.Build())
+	out, err = tf.Apply()
+	require.NoError(t, err)
+	require.Contains(t, string(out), "Immutable Attribute Change")
+	require.Contains(t, string(out), "`dba_password`")
+	require.Contains(t, string(out), "(`<redacted>`)")
+
+	// Change the DBA password again, this time with
+	// NUODB_CP_ALLOW_DESTRUCTIVE_REPLACE=true
+	t.Run("allowDestructiveReplace", func(t *testing.T) {
+		os.Setenv(framework.ALLOW_DESTRUCTIVE_REPLACE_VAR, "true")
+		defer os.Unsetenv(framework.ALLOW_DESTRUCTIVE_REPLACE_VAR)
+
+		updatedPassword = "updated-again"
+		vars.database.DbaPassword = &updatedPassword
+		tf.WriteConfigT(t, vars.builder.Build())
+		out, err = tf.Apply()
+		require.NoError(t, err)
+		require.Contains(t, string(out), "# forces replacement")
+		require.Contains(t, string(out), "Apply complete! Resources: 1 added, 0 changed, 1 destroyed.")
+	})
 
 	t.Run("invalidProviderConfiguration", func(t *testing.T) {
 		defer func() {
@@ -640,19 +670,6 @@ func TestNegative(t *testing.T) {
 func TestImport(t *testing.T) {
 	vars := newTestVars()
 
-	// Create provider server that runs within test
-	ctx := context.Background()
-	reattachCfg, closeFn := CreateProviderServer(t, ctx)
-	defer closeFn()
-
-	// Create Terraform workspace and initialize it with config
-	tf := CreateTerraformWorkspace(t)
-	tf.SetReattachConfig(reattachCfg)
-	tf.WriteConfigT(t, vars.builder.Build())
-	_, err := tf.Init()
-	require.NoError(t, err)
-	defer tf.DestroySilently()
-
 	// Create a project and database by directly invoking the REST service
 	client, err := vars.providerCfg.CreateClient()
 	require.NoError(t, err)
@@ -664,6 +681,7 @@ func TestImport(t *testing.T) {
 		Sla:          "dev",
 		Tier:         "n0.nano",
 	}
+	ctx := context.Background()
 	err = project.Create(ctx, client)
 	require.NoError(t, err)
 	defer func() {
@@ -692,6 +710,25 @@ func TestImport(t *testing.T) {
 			ctx, database.Organization, database.Project, database.Name,
 			&openapi.DeleteDatabaseParams{TimeoutSeconds: &timeoutSeconds})
 	}()
+
+	// Create provider server that runs within test
+	reattachCfg, closeFn := CreateProviderServer(t, ctx)
+	defer closeFn()
+
+	// Remove DBA password from configuration, which is not needed because
+	// the database is already created. The presence of the dba_password
+	// attribute would trigger an unnecessary update or replace because it
+	// is not in state after `terraform import`, which is populated by a
+	// `GET /databases` response.
+	vars.database.DbaPassword = nil
+
+	// Create Terraform workspace and initialize it with config
+	tf := CreateTerraformWorkspace(t)
+	tf.SetReattachConfig(reattachCfg)
+	tf.WriteConfigT(t, vars.builder.Build())
+	_, err = tf.Init()
+	require.NoError(t, err)
+	defer tf.DestroySilently()
 
 	// Run `terraform apply` and verify that it fails due to the resources
 	// already existing
@@ -729,10 +766,6 @@ func TestImport(t *testing.T) {
 	// Run `terraform apply` and verify that there is nothing to do
 	out, err = tf.Apply()
 	require.NoError(t, err)
-	// TODO(asz6): On import, we do not have the DBA password in the state
-	// since it is populated by the 'GET /databases' response, and the DBA
-	// password is marked as required, so the configured value always
-	// differs from the state.
-	//require.Contains(t, string(out), "No changes.")
-	//require.Contains(t, string(out), "Your infrastructure matches the configuration.")
+	require.Contains(t, string(out), "No changes.")
+	require.Contains(t, string(out), "Your infrastructure matches the configuration.")
 }

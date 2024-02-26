@@ -47,13 +47,13 @@ resource "nuodbaas_database" "db" {
 
 ### Required
 
-- `dba_password` (String, Sensitive) The password for the DBA user. Can only be specified when creating a database.
 - `name` (String) The name of the database
 - `organization` (String) The organization that the database belongs to
 - `project` (String) The project that the database belongs to
 
 ### Optional
 
+- `dba_password` (String, Sensitive) The password for the DBA user. Can only be specified when creating a database.
 - `labels` (Map of String) User-defined labels attached to the resource that can be used for filtering
 - `maintenance` (Attributes) (see [below for nested schema](#nestedatt--maintenance))
 - `properties` (Attributes) (see [below for nested schema](#nestedatt--properties))
