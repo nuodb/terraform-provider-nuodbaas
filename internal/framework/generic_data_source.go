@@ -90,7 +90,7 @@ func (d *GenericDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	// Read actual data from provider
 	err := state.Read(ctx, d.client)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading "+d.TypeName, err.Error())
+		resp.Diagnostics.AddError("Unable to read "+d.TypeName, err.Error())
 		return
 	}
 	// Save updated data into Terraform state

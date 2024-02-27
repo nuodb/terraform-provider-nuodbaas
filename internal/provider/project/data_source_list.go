@@ -2,7 +2,7 @@
 All Rights Reserved.
 */
 
-package provider
+package project
 
 import (
 	"context"
@@ -22,18 +22,18 @@ var (
 )
 
 type ProjectFilterModel struct {
-	Organization *string  `tfsdk:"organization" hcl:"organization"`
-	Labels       []string `tfsdk:"labels" hcl:"labels"`
+	Organization *string  `tfsdk:"organization" hcl:"organization" cty:"organization"`
+	Labels       []string `tfsdk:"labels" hcl:"labels" cty:"labels"`
 }
 
 type ProjectNameModel struct {
-	Organization string `tfsdk:"organization" hcl:"organization"`
-	Name         string `tfsdk:"name" hcl:"name"`
+	Organization string `tfsdk:"organization" hcl:"organization" cty:"organization"`
+	Name         string `tfsdk:"name" hcl:"name" cty:"name"`
 }
 
 type ProjectsDataSourceModel struct {
-	Filter   *ProjectFilterModel `tfsdk:"filter" hcl:"filter"`
-	Projects []ProjectNameModel  `tfsdk:"projects" hcl:"projects"`
+	Filter   *ProjectFilterModel `tfsdk:"filter" hcl:"filter" cty:"filter"`
+	Projects []ProjectNameModel  `tfsdk:"projects" hcl:"projects" cty:"projects"`
 }
 
 // GetProjectsDataSourceSchema returns the schema for the projects (plural) data

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -127,7 +128,7 @@ func (r *GenericResource) finalizeCreateOrUpdate(ctx context.Context, state Reso
 	// Get resource state after create or update
 	err := state.Read(ctx, r.client.Client)
 	if err != nil {
-		diags.AddError("Error refreshing "+r.TypeName+" after "+operation, err.Error())
+		diags.AddError("Unable to refresh "+r.TypeName+" after "+operation, err.Error())
 		return
 	}
 	// Save resource into Terraform state before waiting for it to become
@@ -140,7 +141,7 @@ func (r *GenericResource) finalizeCreateOrUpdate(ctx context.Context, state Reso
 	// Wait for resource to become ready
 	err = r.AwaitReady(ctx, state, operation)
 	if err != nil {
-		diags.AddError("Error waiting for "+r.TypeName+" to become ready", err.Error())
+		diags.AddError("Unable to achieve desired state for "+r.TypeName, err.Error())
 		return
 	}
 	// Save resource into Terraform state again now that it is ready
@@ -156,7 +157,7 @@ func (r *GenericResource) Create(ctx context.Context, req resource.CreateRequest
 	// Create the resource
 	err := state.Create(ctx, r.client.Client)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating "+r.TypeName, err.Error())
+		resp.Diagnostics.AddError("Unable to create "+r.TypeName, err.Error())
 		return
 	}
 	r.finalizeCreateOrUpdate(ctx, state, CREATE_OPERATION, &resp.Diagnostics, &resp.State)
@@ -175,7 +176,7 @@ func (r *GenericResource) Read(ctx context.Context, req resource.ReadRequest, re
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading "+r.TypeName, err.Error())
+		resp.Diagnostics.AddError("Unable to read "+r.TypeName, err.Error())
 		return
 	}
 	// Save resource into Terraform state
@@ -191,7 +192,7 @@ func (r *GenericResource) Update(ctx context.Context, req resource.UpdateRequest
 	// Update the resource
 	err := state.Update(ctx, r.client.Client)
 	if err != nil {
-		resp.Diagnostics.AddError("Error updating "+r.TypeName, err.Error())
+		resp.Diagnostics.AddError("Unable to update "+r.TypeName, err.Error())
 		return
 	}
 	r.finalizeCreateOrUpdate(ctx, state, UPDATE_OPERATION, &resp.Diagnostics, &resp.State)
@@ -206,13 +207,13 @@ func (r *GenericResource) Delete(ctx context.Context, req resource.DeleteRequest
 	// Delete the resource
 	err := state.Delete(ctx, r.client.Client)
 	if err != nil {
-		resp.Diagnostics.AddError("Error deleting "+r.TypeName, err.Error())
+		resp.Diagnostics.AddError("Unable to delete "+r.TypeName, err.Error())
 		return
 	}
 	// Wait for resource to disappear
 	err = r.AwaitDeleted(ctx, state)
 	if err != nil {
-		resp.Diagnostics.AddError("Error waiting for "+r.TypeName+" to be deleted", err.Error())
+		resp.Diagnostics.AddError("Unable to finalize deletion of "+r.TypeName, err.Error())
 		return
 	}
 }
@@ -266,7 +267,9 @@ func ParseTimeouts(timeouts map[string]OperationTimeouts, resourceTypes map[stri
 			// Parse time duration
 			parsed, err := time.ParseDuration(*operationTimeout)
 			if err != nil {
-				errList = append(errList, fmt.Errorf("Invalid timeout for %s %s: %s", resource, operation, err.Error()))
+				// Trim superfluous "time: " prefix from error message
+				errMsg := strings.TrimPrefix(err.Error(), "time: ")
+				errList = append(errList, fmt.Errorf("Invalid timeout for %s %s: %s", resource, operation, errMsg))
 				continue
 			}
 			if parsed < 0 {

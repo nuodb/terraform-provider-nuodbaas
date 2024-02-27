@@ -9,8 +9,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"testing"
+
+	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
+	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/database"
+	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/project"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcl/v2/gohcl"
@@ -19,7 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
+	"github.com/rogpeppe/go-internal/diff"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,68 +51,120 @@ func (b *TfConfigBuilder) WithProviderConfig(name string, provider *NuoDbaasProv
 	return b
 }
 
-func (b *TfConfigBuilder) WithDatabaseResource(name string, database *DatabaseResourceModel, dependsOn ...string) *TfConfigBuilder {
-	key := "nuodbaas_database " + name
-	b.resources[key] = database
+func (b *TfConfigBuilder) WithResource(key string, resource any, dependsOn ...string) *TfConfigBuilder {
+	b.resources[key] = resource
 	if len(dependsOn) != 0 {
 		b.resourcesDependsOn[key] = []string(dependsOn)
 	}
 	return b
+}
+
+func (b *TfConfigBuilder) WithDataSource(key string, dataSource any, dependsOn ...string) *TfConfigBuilder {
+	b.dataSources[key] = dataSource
+	if len(dependsOn) != 0 {
+		b.dataSourcesDependsOn[key] = []string(dependsOn)
+	}
+	return b
+}
+
+func (b *TfConfigBuilder) WithoutResource(key string) *TfConfigBuilder {
+	delete(b.resources, key)
+	delete(b.resourcesDependsOn, key)
+	return b
+}
+
+func (b *TfConfigBuilder) WithoutDataSource(key string) *TfConfigBuilder {
+	delete(b.dataSources, key)
+	delete(b.dataSourcesDependsOn, key)
+	return b
+}
+
+func (b *TfConfigBuilder) WithDatabaseResource(name string, database *DatabaseResourceModel, dependsOn ...string) *TfConfigBuilder {
+	return b.WithResource("nuodbaas_database."+name, database, dependsOn...)
 }
 
 func (b *TfConfigBuilder) WithProjectResource(name string, project *ProjectResourceModel, dependsOn ...string) *TfConfigBuilder {
-	key := "nuodbaas_project " + name
-	b.resources[key] = project
-	if len(dependsOn) != 0 {
-		b.resourcesDependsOn[key] = []string(dependsOn)
-	}
-	return b
+	return b.WithResource("nuodbaas_project."+name, project, dependsOn...)
 }
 
 func (b *TfConfigBuilder) WithDatabaseDataSource(name string, database *DatabaseNameModel, dependsOn ...string) *TfConfigBuilder {
-	key := "nuodbaas_database " + name
-	b.dataSources[key] = database
-	if len(dependsOn) != 0 {
-		b.dataSourcesDependsOn[key] = []string(dependsOn)
-	}
-	return b
+	return b.WithDataSource("nuodbaas_database."+name, database, dependsOn...)
 }
 
 func (b *TfConfigBuilder) WithProjectDataSource(name string, project *ProjectNameModel, dependsOn ...string) *TfConfigBuilder {
-	key := "nuodbaas_project " + name
-	b.dataSources[key] = project
-	if len(dependsOn) != 0 {
-		b.dataSourcesDependsOn[key] = []string(dependsOn)
-	}
-	return b
+	return b.WithDataSource("nuodbaas_project."+name, project, dependsOn...)
+}
+
+func (b *TfConfigBuilder) WithDatabasesDataSource(name string, databases *DatabasesDataSourceModel, dependsOn ...string) *TfConfigBuilder {
+	return b.WithDataSource("nuodbaas_databases."+name, databases, dependsOn...)
+}
+
+func (b *TfConfigBuilder) WithProjectsDataSource(name string, projects *ProjectsDataSourceModel, dependsOn ...string) *TfConfigBuilder {
+	return b.WithDataSource("nuodbaas_projects."+name, projects, dependsOn...)
+}
+
+func (b *TfConfigBuilder) WithoutDatabaseResource(name string) *TfConfigBuilder {
+	return b.WithoutResource("nuodbaas_database." + name)
+}
+
+func (b *TfConfigBuilder) WithoutProjectResource(name string) *TfConfigBuilder {
+	return b.WithoutResource("nuodbaas_project." + name)
+}
+
+func (b *TfConfigBuilder) WithoutDatabaseDataSource(name string) *TfConfigBuilder {
+	return b.WithoutDataSource("nuodbaas_database." + name)
+}
+
+func (b *TfConfigBuilder) WithoutProjectDataSource(name string) *TfConfigBuilder {
+	return b.WithoutDataSource("nuodbaas_project." + name)
+}
+
+func (b *TfConfigBuilder) WithoutDatabasesDataSource(name string) *TfConfigBuilder {
+	return b.WithoutDataSource("nuodbaas_databases." + name)
+}
+
+func (b *TfConfigBuilder) WithoutProjectsDataSource(name string) *TfConfigBuilder {
+	return b.WithoutDataSource("nuodbaas_projects." + name)
 }
 
 func (b *TfConfigBuilder) Build() string {
 	f := hclwrite.NewEmptyFile()
-	for key, value := range b.providers {
+	ForEachInOrder(b.providers, func(key string, value any) {
 		block := f.Body().AppendNewBlock("provider", []string{key}).Body()
 		gohcl.EncodeIntoBody(value, block)
 		f.Body().AppendNewline()
-	}
-	for key, value := range b.resources {
-		block := f.Body().AppendNewBlock("resource", strings.Split(key, " ")).Body()
+	})
+	ForEachInOrder(b.resources, func(key string, value any) {
+		block := f.Body().AppendNewBlock("resource", strings.Split(key, ".")).Body()
 		gohcl.EncodeIntoBody(value, block)
 		// Add depends_on attribute to block
 		if dependsOn, ok := b.resourcesDependsOn[key]; ok {
 			block.SetAttributeRaw("depends_on", tokensForIdentifierList(dependsOn))
 		}
 		f.Body().AppendNewline()
-	}
-	for key, value := range b.dataSources {
-		block := f.Body().AppendNewBlock("data", strings.Split(key, " ")).Body()
+	})
+	ForEachInOrder(b.dataSources, func(key string, value any) {
+		block := f.Body().AppendNewBlock("data", strings.Split(key, ".")).Body()
 		gohcl.EncodeIntoBody(value, block)
 		// Add depends_on attribute to block
 		if dependsOn, ok := b.dataSourcesDependsOn[key]; ok {
 			block.SetAttributeRaw("depends_on", tokensForIdentifierList(dependsOn))
 		}
 		f.Body().AppendNewline()
-	}
+	})
 	return string(f.Bytes())
+}
+
+// ForEachInOrder iterates over entries in map in order and applies supplied function.
+func ForEachInOrder(m map[string]any, fn func(string, any)) {
+	var keys []string
+	for key := range m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		fn(key, m[key])
+	}
 }
 
 func tokensForIdentifierList(args []string) hclwrite.Tokens {
@@ -229,6 +286,53 @@ func (tf *TfHelper) Show() ([]byte, error) {
 	return tf.Run("show")
 }
 
+func (tf *TfHelper) ShowJson() ([]byte, error) {
+	return tf.Run("show", "-json")
+}
+
+func (tf *TfHelper) GetStateResources() ([]any, error) {
+	copy := *tf
+	copy.Silent = true
+	out, err := copy.ShowJson()
+	if err != nil {
+		return nil, err
+	}
+	path := "values.root_module.resources"
+	node, err := GetField(out, path)
+	if err != nil {
+		return nil, err
+	}
+	list, ok := node.([]any)
+	if !ok {
+		return nil, fmt.Errorf("List not found at field path %s", path)
+	}
+	return list, nil
+}
+
+func (tf *TfHelper) GetStateResource(address string) (any, error) {
+	resources, err := tf.GetStateResources()
+	if err != nil {
+		return nil, err
+	}
+	for _, resource := range resources {
+		v, err := FindChildNode(resource, "address")
+		if err != nil {
+			return nil, err
+		}
+		if addr, ok := v.(string); ok && addr == address {
+			return FindChildNode(resource, "values")
+		}
+	}
+	return nil, nil
+}
+
+func (tf *TfHelper) CheckStateResource(t *testing.T, address string) *AttributeChecker {
+	resource, err := tf.GetStateResource(address)
+	require.NoError(t, err)
+	require.NotNil(t, resource)
+	return &AttributeChecker{t, resource}
+}
+
 func (tf *TfHelper) DestroySilently() {
 	copy := *tf
 	copy.Silent = true
@@ -236,16 +340,88 @@ func (tf *TfHelper) DestroySilently() {
 }
 
 func (tf *TfHelper) WriteConfig(tfConfig string) error {
-	tfConfigFile := filepath.Join(tf.WorkingDir, "main.tf")
+	filename := "main.tf"
+	tfConfigFile := filepath.Join(tf.WorkingDir, filename)
 	tfConfig = REQUIRED_PROVIDERS + "\n\n" + tfConfig
+	var orig []byte
+	if _, err := os.Stat(tfConfigFile); err == nil {
+		orig, err = os.ReadFile(tfConfigFile)
+		if err != nil {
+			orig = nil
+		}
+	}
 	fmt.Println()
-	fmt.Printf("> cat <<EOF > %s\n%s\nEOF\n", tfConfigFile, tfConfig)
+	// If there is an existing config, create patch from it to new config
+	// and display it in output
+	if orig != nil {
+		patch := diff.Diff(filename, orig, filename, []byte(tfConfig))
+		fmt.Printf("> patch -p0 <<EOF\n%sEOF\n", patch)
+	} else {
+		// Otherwise, just display the new config
+		fmt.Printf("> cat <<EOF > %s\n%sEOF\n", filename, tfConfig)
+	}
 	return os.WriteFile(tfConfigFile, []byte(tfConfig), 0644)
 }
 
 func (tf *TfHelper) WriteConfigT(t *testing.T, tfConfig string) {
 	err := tf.WriteConfig(tfConfig)
 	require.NoError(t, err)
+}
+
+func GetField(jsonData []byte, path string) (any, error) {
+	// Deserialize JSON to opaque map
+	dest := make(map[string]any)
+	err := json.Unmarshal(jsonData, &dest)
+	if err != nil {
+		return nil, err
+	}
+	return FindChildNode(dest, path)
+}
+
+func FindChildNode(node any, path string) (any, error) {
+	// Traverse field path
+	var ret any
+	for _, field := range strings.Split(path, ".") {
+		// Check that current node is an object
+		object, ok := node.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("Invalid field path: %s", path)
+		}
+		// Get field within current object
+		ret, ok = object[field]
+		if !ok {
+			return nil, nil
+		}
+		// Update node for next iteration
+		node = ret
+	}
+	return ret, nil
+}
+
+type AttributeChecker struct {
+	t        *testing.T
+	resource any
+}
+
+func (ac *AttributeChecker) HasAttributeValue(attributePath string, expected any) *AttributeChecker {
+	actual, err := FindChildNode(ac.resource, attributePath)
+	require.NoError(ac.t, err)
+	require.Equalf(ac.t, expected, actual, "Unexpected value for attribute %s", attributePath)
+	return ac
+}
+
+func (ac *AttributeChecker) HasAttribute(attributePath string) *AttributeChecker {
+	actual, err := FindChildNode(ac.resource, attributePath)
+	require.NoError(ac.t, err)
+	require.NotNil(ac.t, actual, "No attribute %s", attributePath)
+	return ac
+}
+
+func (ac *AttributeChecker) DoesNotHaveAttribute(attributePath string) *AttributeChecker {
+	actual, err := FindChildNode(ac.resource, attributePath)
+	require.NoError(ac.t, err)
+	require.Nil(ac.t, actual, "Unexpected attribute %s", attributePath)
+	return ac
 }
 
 // CreateTerraformWorkspace creates an empty directory to serve as a workspace for Terraform.

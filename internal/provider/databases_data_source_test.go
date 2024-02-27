@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	nuodbaas_client_test "github.com/nuodb/terraform-provider-nuodbaas/internal/client/testclient"
+	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/database"
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"

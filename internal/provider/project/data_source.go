@@ -2,7 +2,7 @@
 All Rights Reserved.
 */
 
-package provider
+package project
 
 import (
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"

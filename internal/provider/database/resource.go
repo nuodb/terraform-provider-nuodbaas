@@ -2,7 +2,7 @@
 All Rights Reserved.
 */
 
-package provider
+package database
 
 import (
 	"context"
