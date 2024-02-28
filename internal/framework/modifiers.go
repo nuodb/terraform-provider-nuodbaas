@@ -218,9 +218,10 @@ const (
 	ALLOW_DESTRUCTIVE_REPLACE_VAR      = "NUODB_CP_ALLOW_DESTRUCTIVE_REPLACE"
 	IMMUTABLE_ATTRIBUTE_CHANGE_ERR_FMT = "A change has been made to the immutable attribute `%s`, which may be rejected by the server or ignored. " +
 		"In order for an immutable attribute change to take effect, it is necessary to delete and re-create the resource, which may result in data loss.\n\n" +
-		"If it is acceptable to destroy all data associated with the resource, then deletion and re-creation can be enabled by setting the environment variable `" +
-		ALLOW_DESTRUCTIVE_REPLACE_VAR + "=true` when running `terraform apply`.\n\n" +
-		"For resources that are marked as dependencies for other resources, it may necessary to destroy and re-create all resources by running `terraform destroy` followed by `terraform apply`.\n\n" +
+		"If it is acceptable to destroy all data associated with the resource, then deletion and re-creation can be enabled by setting the environment variable `" + ALLOW_DESTRUCTIVE_REPLACE_VAR + "=true` when running `terraform apply`:\n\n" +
+		"    " + ALLOW_DESTRUCTIVE_REPLACE_VAR + "=true terraform apply\n\n" +
+		"If the resource has dependent resources, it may be necessary to explicitly destroy and re-create the resource and its dependent resources by running the following:\n\n" +
+		"    terraform destroy -target=<resource>\n    terraform apply\n\n" +
 		"If it is not acceptable to destroy all data associated with the resource, the configured value of the attribute can be reverted to the value in the Terraform state (`%s`)."
 )
 
