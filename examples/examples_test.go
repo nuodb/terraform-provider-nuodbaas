@@ -22,8 +22,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/provider"
-
-	nuodbaas_client_test "github.com/nuodb/terraform-provider-nuodbaas/internal/client/testclient"
 )
 
 func testChart(t *testing.T, plan string, configVariables config.Variables, hasResources bool, noApply bool, checkClean bool) {
@@ -41,7 +39,7 @@ func testChart(t *testing.T, plan string, configVariables config.Variables, hasR
 		},
 		CheckDestroy: func(s *terraform.State) error {
 			if checkClean {
-				return nuodbaas_client_test.CheckClean()
+				return CheckClean()
 			}
 			return nil
 		},
@@ -115,17 +113,17 @@ func TestExamplesDatasources(t *testing.T) {
 	setUp := ``
 
 	ctx := context.TODO()
-	client, err := nuodbaas_client_test.DefaultApiClient()
+	client, err := DefaultApiClient()
 	require.NoError(t, err)
-	require.NoError(t, nuodbaas_client_test.CreateProject(t, ctx, client, "org", "proj", "dev", "n0.nano"))
-	require.NoError(t, nuodbaas_client_test.CreateDatabase(t, ctx, client, "org", "proj", "db", "pass"))
+	require.NoError(t, CreateProject(t, ctx, client, "org", "proj", "dev", "n0.nano"))
+	require.NoError(t, CreateDatabase(t, ctx, client, "org", "proj", "db", "pass"))
 
 	testChartDir(t, path, setUp, configVariables, false, noApplyDefault(t), false)
 
-	require.NoError(t, nuodbaas_client_test.DeleteDatabase(ctx, client, "org", "proj", "db", false))
-	require.NoError(t, nuodbaas_client_test.DeleteProject(ctx, client, "org", "proj", false))
+	require.NoError(t, DeleteDatabase(ctx, client, "org", "proj", "db", false))
+	require.NoError(t, DeleteProject(ctx, client, "org", "proj", false))
 
-	require.NoError(t, nuodbaas_client_test.CheckClean())
+	require.NoError(t, CheckClean())
 }
 
 func TestExamplesProvider(t *testing.T) {
@@ -133,7 +131,7 @@ func TestExamplesProvider(t *testing.T) {
 
 	url := os.Getenv("NUODB_CP_URL_BASE")
 	if url == "" {
-		url = nuodbaas_client_test.DEFAULT_URL
+		url = DEFAULT_URL
 	}
 
 	configVariables := config.Variables{

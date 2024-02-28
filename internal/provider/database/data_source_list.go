@@ -48,7 +48,7 @@ func GetDatabasesDataSourceSchema() *schema.Schema {
 	return sb.Build()
 }
 
-func (state *DatabasesDataSourceModel) Read(ctx context.Context, client *openapi.Client) error {
+func (state *DatabasesDataSourceModel) Read(ctx context.Context, client openapi.ClientInterface) error {
 	var organization, project string
 	var labelFilter *string
 	if state.Filter != nil {

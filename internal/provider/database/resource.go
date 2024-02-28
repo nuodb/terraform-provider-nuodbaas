@@ -26,13 +26,6 @@ func (state *DatabaseResourceModel) Reset() {
 	*state = DatabaseResourceModel{}
 }
 
-func (state *DatabaseResourceModel) GetResourceVersion() string {
-	if state.ResourceVersion != nil {
-		return *state.ResourceVersion
-	}
-	return ""
-}
-
 func (state *DatabaseResourceModel) CheckReady() error {
 	if state.Status == nil || state.Status.State == nil {
 		return fmt.Errorf("Database %s/%s/%s has no status information", state.Organization, state.Project, state.Name)
@@ -48,7 +41,7 @@ func (state *DatabaseResourceModel) CheckReady() error {
 	return nil
 }
 
-func (state *DatabaseResourceModel) Create(ctx context.Context, client *openapi.Client) error {
+func (state *DatabaseResourceModel) Create(ctx context.Context, client openapi.ClientInterface) error {
 	resp, err := client.CreateDatabase(ctx, state.Organization, state.Project, state.Name, openapi.DatabaseCreateUpdateModel(*state))
 	if err != nil {
 		return err
@@ -56,7 +49,7 @@ func (state *DatabaseResourceModel) Create(ctx context.Context, client *openapi.
 	return helper.ParseResponse(resp, nil)
 }
 
-func (state *DatabaseResourceModel) Read(ctx context.Context, client *openapi.Client) error {
+func (state *DatabaseResourceModel) Read(ctx context.Context, client openapi.ClientInterface) error {
 	// If DBA password is set, then this is invoked in the context of create
 	// or update, to refresh the state. Make sure to save the DBA password,
 	// since it is not returned by GET response.
@@ -70,7 +63,7 @@ func (state *DatabaseResourceModel) Read(ctx context.Context, client *openapi.Cl
 	return helper.ParseResponse(resp, state)
 }
 
-func (state *DatabaseResourceModel) Update(ctx context.Context, client *openapi.Client) error {
+func (state *DatabaseResourceModel) Update(ctx context.Context, client openapi.ClientInterface) error {
 	// Fetch database and get resourceVersion
 	latest := &DatabaseResourceModel{
 		Organization: state.Organization,
@@ -110,7 +103,7 @@ func (state *DatabaseResourceModel) Update(ctx context.Context, client *openapi.
 	}
 }
 
-func (state *DatabaseResourceModel) Delete(ctx context.Context, client *openapi.Client) error {
+func (state *DatabaseResourceModel) Delete(ctx context.Context, client openapi.ClientInterface) error {
 	resp, err := client.DeleteDatabase(ctx, state.Organization, state.Project, state.Name, nil)
 	if err != nil {
 		return err
