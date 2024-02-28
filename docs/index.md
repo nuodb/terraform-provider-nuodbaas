@@ -75,7 +75,7 @@ data "nuodbaas_database" "database_details" {
 ### Optional
 
 - `password` (String, Sensitive) The password for the user. If not specified, defaults to the value of the `NUODB_CP_PASSWORD` environment variable.
-- `skip_verify` (Boolean) Whether to skip server certificate verificationIf not specified, defaults to the value of the `NUODB_CP_SKIP_VERIFY` environment variable.
+- `skip_verify` (Boolean) Whether to skip server certificate verification. If not specified, defaults to the value of the `NUODB_CP_SKIP_VERIFY` environment variable.
 - `timeouts` (Attributes Map) Timeouts by resource type and operation. A resource type of `default` is used to supply timeouts for all resources that are not specified explicitly. (see [below for nested schema](#nestedatt--timeouts))
 - `url_base` (String) The base URL for the server, including the protocol. If not specified, defaults to the value of the `NUODB_CP_URL_BASE` environment variable.
 - `user` (String) The name of the user in the format `<organization>/<user>`. If not specified, defaults to the value of the `NUODB_CP_USER` environment variable.
