@@ -7,7 +7,6 @@ package provider
 import (
 	"context"
 	"os"
-	"strings"
 
 	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
@@ -29,9 +28,6 @@ var (
 
 // NuoDbaasProvider defines the provider implementation.
 type NuoDbaasProvider struct {
-	// version is set to the provider version on release, "dev" when the
-	// provider is built and ran locally, and "test" when running acceptance
-	// testing.
 	version string
 }
 
@@ -74,8 +70,7 @@ func (pm *NuoDbaasProviderModel) GetSkipVerify() bool {
 	if pm.SkipVerify != nil {
 		return *pm.SkipVerify
 	}
-	skipVerifyValue := os.Getenv("NUODB_CP_SKIP_VERIFY")
-	return skipVerifyValue == "1" || strings.ToLower(skipVerifyValue) == "true"
+	return os.Getenv("NUODB_CP_SKIP_VERIFY") == "true"
 }
 
 func (pm *NuoDbaasProviderModel) CreateClient() (*openapi.Client, error) {
@@ -93,23 +88,24 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 		Attributes: map[string]schema.Attribute{
 			"user": schema.StringAttribute{
 				Description: "The name of the user in the format `<organization>/<user>`. " +
-					"If not specified, defaults to the `NUODB_CP_USER` environment variable.",
+					"If not specified, defaults to the value of the `NUODB_CP_USER` environment variable.",
 				Optional: true,
 			},
 			"password": schema.StringAttribute{
 				Description: "The password for the user. " +
-					"If not specified, defaults to the `NUODB_CP_PASSWORD` environment variable.",
+					"If not specified, defaults to the value of the `NUODB_CP_PASSWORD` environment variable.",
 				Optional:  true,
 				Sensitive: true,
 			},
 			"url_base": schema.StringAttribute{
 				Description: "The base URL for the server, including the protocol. " +
-					"If not specified, defaults to the `NUODB_CP_URL_BASE` environment variable.",
+					"If not specified, defaults to the value of the `NUODB_CP_URL_BASE` environment variable.",
 				Optional: true,
 			},
 			"skip_verify": schema.BoolAttribute{
-				Description: "Whether to skip server certificate verification",
-				Optional:    true,
+				Description: "Whether to skip server certificate verification. " +
+					"If not specified, defaults to the value of the `NUODB_CP_SKIP_VERIFY` environment variable.",
+				Optional: true,
 			},
 			"timeouts": schema.MapNestedAttribute{
 				Description: "Timeouts by resource type and operation. A resource type of `default` is used to supply timeouts for all resources that are not specified explicitly.",
@@ -154,13 +150,13 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 	// Create client
 	client, err := config.CreateClient()
 	if err != nil {
-		resp.Diagnostics.AddError("Client error", err.Error())
+		resp.Diagnostics.AddError("Unable to create client", err.Error())
 		return
 	}
 
 	// Pass client as opaque data
 	resp.DataSourceData = client
-	resp.ResourceData = framework.NewClientWithTimeouts(client, timeouts)
+	resp.ResourceData = framework.NewClientWithOptions(client, timeouts)
 }
 
 func (p *NuoDbaasProvider) Resources(ctx context.Context) []func() resource.Resource {

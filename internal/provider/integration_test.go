@@ -449,15 +449,6 @@ func TestNegative(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, string(out), "Cannot import non-existent remote object")
 
-	// Omit a required attribute and run `terraform apply`
-	vars.database.DbaPassword = nil
-	tf.WriteConfigT(t, vars.builder.Build())
-	out, err = tf.Apply()
-	require.Error(t, err)
-	require.Contains(t, string(out), "Missing required argument")
-	dbaPassword := "password"
-	vars.database.DbaPassword = &dbaPassword
-
 	// Specify an invalid attribute and run `terraform apply`
 	vars.project.Sla = ""
 	tf.WriteConfigT(t, vars.builder.Build())
@@ -510,7 +501,7 @@ func TestNegative(t *testing.T) {
 		Organization: "org",
 		Project:      "proj",
 		Name:         "nodep",
-		DbaPassword:  &dbaPassword,
+		DbaPassword:  vars.database.DbaPassword,
 	})
 	tf.WriteConfigT(t, vars.builder.Build())
 	out, err = tf.Apply()
@@ -637,7 +628,7 @@ func TestNegative(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestImport(t *testing.T) {
+func TestImmutableAttributeChange(t *testing.T) {
 	vars := newTestVars()
 
 	// Create provider server that runs within test
@@ -653,6 +644,138 @@ func TestImport(t *testing.T) {
 	require.NoError(t, err)
 	defer tf.DestroySilently()
 
+	// Run `terraform apply` to create resources
+	tf.WriteConfigT(t, vars.builder.Build())
+	_, err = tf.Apply()
+	require.NoError(t, err)
+	// Sample some values in state file to validate
+	tf.CheckStateResource(t, "nuodbaas_database.db").
+		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
+		HasAttributeValue("status.ready", true)
+	tf.CheckStateResource(t, "data.nuodbaas_database.db").
+		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
+		HasAttributeValue("status.ready", true)
+	tf.CheckStateResource(t, "nuodbaas_project.proj").
+		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
+		HasAttributeValue("status.ready", true)
+	tf.CheckStateResource(t, "data.nuodbaas_project.proj").
+		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
+		HasAttributeValue("status.ready", true)
+
+	// Change DBA password and verify that a warning is displayed by
+	// Terraform. Since the DBA password is only sent on create, there will
+	// not be an error from the server. TODO(asz6): When password rotation
+	// is supported by the REST service, we will accept updates to the DBA
+	// password and remove the RequiresReplace plan modifier from the
+	// `dba_password` attribute.
+	t.Run("applyDbaPasswordChange", func(t *testing.T) {
+		updatedPassword := "updated"
+		vars.database.DbaPassword = &updatedPassword
+		tf.WriteConfigT(t, vars.builder.Build())
+		out, err := tf.Apply()
+		require.NoError(t, err)
+		require.Contains(t, string(out), "Immutable Attribute Change")
+		require.Contains(t, string(out), "`dba_password`")
+		require.Contains(t, string(out), "(`<redacted>`)")
+	})
+
+	// Change the DBA password again, this time with
+	// NUODB_CP_ALLOW_DESTRUCTIVE_REPLACE=true
+	t.Run("applyDbaPasswordChangeWithReplace", func(t *testing.T) {
+		os.Setenv(framework.ALLOW_DESTRUCTIVE_REPLACE_VAR, "true")
+		defer os.Unsetenv(framework.ALLOW_DESTRUCTIVE_REPLACE_VAR)
+
+		updatedPassword := "updated-again"
+		vars.database.DbaPassword = &updatedPassword
+		tf.WriteConfigT(t, vars.builder.Build())
+		out, err := tf.Apply()
+		require.NoError(t, err)
+		require.Contains(t, string(out), "# forces replacement")
+		require.Contains(t, string(out), "Apply complete! Resources: 1 added, 0 changed, 1 destroyed.")
+	})
+
+	// Change the project SLA and verify that a warning is displayed by
+	// Terraform when running `terraform plan`
+	t.Run("planSlaChange", func(t *testing.T) {
+		vars.project.Sla = "prod"
+		defer func() {
+			vars.project.Sla = "dev"
+		}()
+
+		tf.WriteConfigT(t, vars.builder.Build())
+		out, err := tf.Plan()
+		require.NoError(t, err)
+		require.Contains(t, string(out), "Immutable Attribute Change")
+		require.Contains(t, string(out), "`sla`")
+		require.Contains(t, string(out), "(`\"dev\"`)")
+		require.NotContains(t, string(out), "Unable to update project")
+	})
+
+	// Run `terraform apply` and verify that a warning is displayed by
+	// Terraform and that the request is also rejected by the server
+	t.Run("applySlaChangeRejected", func(t *testing.T) {
+		vars.project.Sla = "prod"
+		defer func() {
+			vars.project.Sla = "dev"
+		}()
+
+		tf.WriteConfigT(t, vars.builder.Build())
+		out, err := tf.Apply()
+		require.Error(t, err)
+		require.Contains(t, string(out), "Immutable Attribute Change")
+		require.Contains(t, string(out), "`sla`")
+		require.Contains(t, string(out), "(`\"dev\"`)")
+		require.Contains(t, string(out), "Unable to update project")
+	})
+
+	// Explicitly replace the project and database by running `terraform
+	// destroy -target=...` followed by `terraform apply`
+	t.Run("applySlaChangeExplicitly", func(t *testing.T) {
+		// Change project SLA
+		vars.project.Sla = "prod"
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Destroy the project and database
+		out, err := tf.Run("destroy", "-target=nuodbaas_project.proj", "-auto-approve")
+		require.NoError(t, err)
+		require.NotContains(t, string(out), "Immutable Attribute Change")
+		require.Contains(t, string(out), "Destroy complete! Resources: 2 destroyed.")
+
+		// Re-create the project and database
+		out, err = tf.Apply()
+		require.NoError(t, err)
+		require.NotContains(t, string(out), "Immutable Attribute Change")
+		require.Contains(t, string(out), "Apply complete! Resources: 2 added, 0 changed, 0 destroyed.")
+
+		// Validate Terraform state and check that project has updated SLA value
+		tf.CheckStateResource(t, "nuodbaas_database.db").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
+			HasAttributeValue("status.ready", true)
+		tf.CheckStateResource(t, "data.nuodbaas_database.db").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
+			HasAttributeValue("status.ready", true)
+		tf.CheckStateResource(t, "nuodbaas_project.proj").
+			HasAttributeValue("sla", "prod").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
+			HasAttributeValue("status.ready", true)
+		tf.CheckStateResource(t, "data.nuodbaas_project.proj").
+			HasAttributeValue("sla", "prod").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
+			HasAttributeValue("status.ready", true)
+	})
+}
+
+func TestImport(t *testing.T) {
+	vars := newTestVars()
+
 	// Create a project and database by directly invoking the REST service
 	client, err := vars.providerCfg.CreateClient()
 	require.NoError(t, err)
@@ -664,6 +787,7 @@ func TestImport(t *testing.T) {
 		Sla:          "dev",
 		Tier:         "n0.nano",
 	}
+	ctx := context.Background()
 	err = project.Create(ctx, client)
 	require.NoError(t, err)
 	defer func() {
@@ -692,6 +816,25 @@ func TestImport(t *testing.T) {
 			ctx, database.Organization, database.Project, database.Name,
 			&openapi.DeleteDatabaseParams{TimeoutSeconds: &timeoutSeconds})
 	}()
+
+	// Create provider server that runs within test
+	reattachCfg, closeFn := CreateProviderServer(t, ctx)
+	defer closeFn()
+
+	// Remove DBA password from configuration, which is not needed because
+	// the database is already created. The presence of the dba_password
+	// attribute would trigger an unnecessary update or replace because it
+	// is not in state after `terraform import`, which is populated by a
+	// `GET /databases` response.
+	vars.database.DbaPassword = nil
+
+	// Create Terraform workspace and initialize it with config
+	tf := CreateTerraformWorkspace(t)
+	tf.SetReattachConfig(reattachCfg)
+	tf.WriteConfigT(t, vars.builder.Build())
+	_, err = tf.Init()
+	require.NoError(t, err)
+	defer tf.DestroySilently()
 
 	// Run `terraform apply` and verify that it fails due to the resources
 	// already existing
@@ -729,10 +872,6 @@ func TestImport(t *testing.T) {
 	// Run `terraform apply` and verify that there is nothing to do
 	out, err = tf.Apply()
 	require.NoError(t, err)
-	// TODO(asz6): On import, we do not have the DBA password in the state
-	// since it is populated by the 'GET /databases' response, and the DBA
-	// password is marked as required, so the configured value always
-	// differs from the state.
-	//require.Contains(t, string(out), "No changes.")
-	//require.Contains(t, string(out), "Your infrastructure matches the configuration.")
+	require.Contains(t, string(out), "No changes.")
+	require.Contains(t, string(out), "Your infrastructure matches the configuration.")
 }

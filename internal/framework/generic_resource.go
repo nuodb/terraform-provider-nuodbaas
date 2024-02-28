@@ -30,20 +30,20 @@ var (
 	_ resource.ResourceWithImportState = &GenericResource{}
 )
 
-type ClientWithTimeouts struct {
+type ClientWithOptions struct {
 	*openapi.Client
 	timeouts map[string]map[string]time.Duration
 }
 
-func NewClientWithTimeouts(client *openapi.Client, timeouts map[string]map[string]time.Duration) *ClientWithTimeouts {
-	return &ClientWithTimeouts{Client: client, timeouts: timeouts}
+func NewClientWithOptions(client *openapi.Client, timeouts map[string]map[string]time.Duration) *ClientWithOptions {
+	return &ClientWithOptions{Client: client, timeouts: timeouts}
 }
 
 // GenericResource is a Resource implementation that handles all interactions
 // with the Terraform API and delegates interaction with the provider API to
 // ResourceState.
 type GenericResource struct {
-	client           *ClientWithTimeouts
+	client           *ClientWithOptions
 	TypeName         string
 	Description      string
 	GetOpenApiSchema func() (*openapi3.Schema, error)
@@ -112,12 +112,12 @@ func (r *GenericResource) Configure(ctx context.Context, req resource.ConfigureR
 	if req.ProviderData == nil {
 		return
 	}
-	client, ok := req.ProviderData.(*ClientWithTimeouts)
+	client, ok := req.ProviderData.(*ClientWithOptions)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
 			fmt.Sprintf("Expected %T, got: %T. Please report this issue to NuoDB.Support@3ds.com",
-				&ClientWithTimeouts{}, req.ProviderData),
+				&ClientWithOptions{}, req.ProviderData),
 		)
 		return
 	}
