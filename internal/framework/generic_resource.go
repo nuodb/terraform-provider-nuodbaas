@@ -31,11 +31,11 @@ var (
 )
 
 type ClientWithOptions struct {
-	*openapi.Client
+	Client   openapi.ClientInterface
 	timeouts map[string]map[string]time.Duration
 }
 
-func NewClientWithOptions(client *openapi.Client, timeouts map[string]map[string]time.Duration) *ClientWithOptions {
+func NewClientWithOptions(client openapi.ClientInterface, timeouts map[string]map[string]time.Duration) *ClientWithOptions {
 	return &ClientWithOptions{Client: client, timeouts: timeouts}
 }
 
@@ -61,28 +61,24 @@ type ResourceState interface {
 	// Reset resets the local state of the resource to the zero value.
 	Reset()
 
-	// GetResourceVersion returns the resource version used to guard against
-	// concurrent updates from the local state.
-	GetResourceVersion() string
-
 	// CheckReady returns an error if the resource is not in the desired
 	// state according to its spec, based on the local state.
 	CheckReady() error
 
 	// Create creates the resource in the backend based on the local state
 	// and waits for it to satisfy IsReady().
-	Create(context.Context, *openapi.Client) error
+	Create(context.Context, openapi.ClientInterface) error
 
 	// Read retrieves the state of the resource from the backend.
-	Read(context.Context, *openapi.Client) error
+	Read(context.Context, openapi.ClientInterface) error
 
 	// Update updates the resource in the backend to match the local state
 	// and waits for it to satisfy IsReady().
-	Update(context.Context, *openapi.Client) error
+	Update(context.Context, openapi.ClientInterface) error
 
 	// Delete deletes the resource from the backend and waits for it to be
 	// cleaned up.
-	Delete(context.Context, *openapi.Client) error
+	Delete(context.Context, openapi.ClientInterface) error
 
 	// Deserialize the resource ID
 	SetId(string) error
@@ -106,22 +102,21 @@ func (r *GenericResource) Schema(ctx context.Context, req resource.SchemaRequest
 	}
 }
 
-func (r *GenericResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// Prevent panic if the provider has not been configured.
-	// TODO(asz6): Not sure if we should report an error in this case.
-	if req.ProviderData == nil {
-		return
+func getClient(diags *diag.Diagnostics, providerData any) *ClientWithOptions {
+	if providerData == nil {
+		return nil
 	}
-	client, ok := req.ProviderData.(*ClientWithOptions)
+	client, ok := providerData.(*ClientWithOptions)
 	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
+		diags.AddError("Unexpected Resource Configure Type",
 			fmt.Sprintf("Expected %T, got: %T. Please report this issue to NuoDB.Support@3ds.com",
-				&ClientWithOptions{}, req.ProviderData),
-		)
-		return
+				&ClientWithOptions{}, providerData))
 	}
-	r.client = client
+	return client
+}
+
+func (r *GenericResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	r.client = getClient(&resp.Diagnostics, req.ProviderData)
 }
 
 func (r *GenericResource) finalizeCreateOrUpdate(ctx context.Context, state ResourceState, operation string, diags *diag.Diagnostics, tfstate *tfsdk.State) {

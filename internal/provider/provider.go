@@ -155,8 +155,9 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 	}
 
 	// Pass client as opaque data
-	resp.DataSourceData = client
-	resp.ResourceData = framework.NewClientWithOptions(client, timeouts)
+	clientWithOptions := framework.NewClientWithOptions(client, timeouts)
+	resp.DataSourceData = clientWithOptions
+	resp.ResourceData = clientWithOptions
 }
 
 func (p *NuoDbaasProvider) Resources(ctx context.Context) []func() resource.Resource {

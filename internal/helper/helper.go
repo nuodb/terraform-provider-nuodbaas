@@ -84,7 +84,7 @@ func ParseResponse(resp *http.Response, dest any) error {
 	}
 	// If an error response with an unexpected Content-Type was returned, return an error
 	if resp.StatusCode >= http.StatusBadRequest {
-		return fmt.Errorf("Unexpectd response: status=[%s], content=[%s]", resp.Status, string(bodyBytes))
+		return fmt.Errorf("Unexpected response: status=[%s], content=[%s]", resp.Status, string(bodyBytes))
 	}
 	return nil
 }
@@ -105,7 +105,7 @@ func DeleteDatabaseByName(ctx context.Context, client *openapi.Client, organizat
 	return ParseResponse(resp, nil)
 }
 
-func GetDatabases(ctx context.Context, client *openapi.Client, organization, project string, labelFilter *string, listAccessible bool) ([]string, error) {
+func GetDatabases(ctx context.Context, client openapi.ClientInterface, organization, project string, labelFilter *string, listAccessible bool) ([]string, error) {
 	var databases []string
 	if len(organization) == 0 {
 		if len(project) != 0 {
@@ -180,7 +180,7 @@ func DeleteProjectByName(ctx context.Context, client *openapi.Client, organizati
 	return ParseResponse(resp, nil)
 }
 
-func GetProjects(ctx context.Context, client *openapi.Client, organization string, labelFilter *string, listAccessible bool) ([]string, error) {
+func GetProjects(ctx context.Context, client openapi.ClientInterface, organization string, labelFilter *string, listAccessible bool) ([]string, error) {
 	var projects []string
 	if len(organization) == 0 {
 		params := openapi.GetAllProjectsParams{

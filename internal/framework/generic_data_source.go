@@ -6,7 +6,6 @@ package framework
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/getkin/kin-openapi/openapi3"
 
@@ -24,7 +23,7 @@ var (
 // interactions with the Terraform API and delegates interaction with the
 // provider API to DataSourceState.
 type GenericDataSource struct {
-	client           *openapi.Client
+	client           *ClientWithOptions
 	TypeName         string
 	Description      string
 	GetOpenApiSchema func() (*openapi3.Schema, error)
@@ -37,7 +36,7 @@ type DataSourceState interface {
 	State
 
 	// Read retrieves the state of the resource from the backend.
-	Read(context.Context, *openapi.Client) error
+	Read(context.Context, openapi.ClientInterface) error
 }
 
 func (d *GenericDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -64,21 +63,7 @@ func (d *GenericDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 }
 
 func (d *GenericDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	// Prevent panic if the provider has not been configured.
-	// TODO(asz6): Not sure if we should report an error in this case.
-	if req.ProviderData == nil {
-		return
-	}
-	client, ok := req.ProviderData.(*openapi.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected %T, got: %T. Please report this issue to NuoDB.Support@3ds.com",
-				&openapi.Client{}, req.ProviderData),
-		)
-		return
-	}
-	d.client = client
+	d.client = getClient(&resp.Diagnostics, req.ProviderData)
 }
 
 func (d *GenericDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -88,7 +73,7 @@ func (d *GenericDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 	// Read actual data from provider
-	err := state.Read(ctx, d.client)
+	err := state.Read(ctx, d.client.Client)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to read "+d.TypeName, err.Error())
 		return

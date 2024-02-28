@@ -27,13 +27,6 @@ func (state *ProjectResourceModel) Reset() {
 	*state = ProjectResourceModel{}
 }
 
-func (state *ProjectResourceModel) GetResourceVersion() string {
-	if state.ResourceVersion != nil {
-		return *state.ResourceVersion
-	}
-	return ""
-}
-
 func (state *ProjectResourceModel) CheckReady() error {
 	if state.Status == nil || state.Status.State == nil {
 		return fmt.Errorf("Project %s/%s has no status information", state.Organization, state.Name)
@@ -49,7 +42,7 @@ func (state *ProjectResourceModel) CheckReady() error {
 	return nil
 }
 
-func (state *ProjectResourceModel) Create(ctx context.Context, client *openapi.Client) error {
+func (state *ProjectResourceModel) Create(ctx context.Context, client openapi.ClientInterface) error {
 	resp, err := client.CreateProject(ctx, state.Organization, state.Name, openapi.ProjectModel(*state))
 	if err != nil {
 		return err
@@ -57,7 +50,7 @@ func (state *ProjectResourceModel) Create(ctx context.Context, client *openapi.C
 	return helper.ParseResponse(resp, nil)
 }
 
-func (state *ProjectResourceModel) Read(ctx context.Context, client *openapi.Client) error {
+func (state *ProjectResourceModel) Read(ctx context.Context, client openapi.ClientInterface) error {
 	resp, err := client.GetProject(ctx, state.Organization, state.Name)
 	if err != nil {
 		return err
@@ -66,7 +59,7 @@ func (state *ProjectResourceModel) Read(ctx context.Context, client *openapi.Cli
 	return helper.ParseResponse(resp, state)
 }
 
-func (state *ProjectResourceModel) Update(ctx context.Context, client *openapi.Client) error {
+func (state *ProjectResourceModel) Update(ctx context.Context, client openapi.ClientInterface) error {
 	// Fetch project and get resourceVersion
 	latest := &ProjectResourceModel{
 		Organization: state.Organization,
@@ -99,7 +92,7 @@ func (state *ProjectResourceModel) Update(ctx context.Context, client *openapi.C
 	}
 }
 
-func (state *ProjectResourceModel) Delete(ctx context.Context, client *openapi.Client) error {
+func (state *ProjectResourceModel) Delete(ctx context.Context, client openapi.ClientInterface) error {
 	resp, err := client.DeleteProject(ctx, state.Organization, state.Name, nil)
 	if err != nil {
 		return err

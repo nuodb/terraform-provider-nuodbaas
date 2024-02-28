@@ -1,4 +1,4 @@
-package provider
+package provider_test
 
 import (
 	"context"
@@ -8,12 +8,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
+	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/database"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/project"
 
@@ -417,10 +419,39 @@ func (ac *AttributeChecker) HasAttribute(attributePath string) *AttributeChecker
 	return ac
 }
 
+func (ac *AttributeChecker) DoesNotHaveAttributeValue(attributePath string, unexpected any) *AttributeChecker {
+	actual, err := FindChildNode(ac.resource, attributePath)
+	require.NoError(ac.t, err)
+	require.NotEqualf(ac.t, unexpected, actual, "Unexpected value for attribute %s", attributePath)
+	return ac
+}
+
 func (ac *AttributeChecker) DoesNotHaveAttribute(attributePath string) *AttributeChecker {
 	actual, err := FindChildNode(ac.resource, attributePath)
 	require.NoError(ac.t, err)
 	require.Nil(ac.t, actual, "Unexpected attribute %s", attributePath)
+	return ac
+}
+
+func (ac *AttributeChecker) ForEach(attributePath string, expectedCount int, assertFn func(*AttributeChecker)) *AttributeChecker {
+	actual, err := FindChildNode(ac.resource, attributePath)
+	require.NoError(ac.t, err)
+	require.NotNil(ac.t, actual)
+
+	// Check that value is a list or slice and has required number of elements
+	v := reflect.ValueOf(actual)
+	switch v.Kind() {
+	case reflect.Array, reflect.Slice:
+		require.Len(ac.t, actual, expectedCount)
+	default:
+		require.FailNow(ac.t, "Unexpected type: %T", actual)
+	}
+
+	// Iterate over elements and apply assert function
+	for i := 0; i != v.Len(); i += 1 {
+		elem := v.Index(i)
+		assertFn(&AttributeChecker{ac.t, elem.Interface()})
+	}
 	return ac
 }
 
