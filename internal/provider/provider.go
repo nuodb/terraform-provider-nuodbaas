@@ -103,7 +103,7 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 				Optional: true,
 			},
 			"skip_verify": schema.BoolAttribute{
-				Description: "Whether to skip server certificate verification" +
+				Description: "Whether to skip server certificate verification. " +
 					"If not specified, defaults to the value of the `NUODB_CP_SKIP_VERIFY` environment variable.",
 				Optional: true,
 			},
