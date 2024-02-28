@@ -547,45 +547,6 @@ func TestNegative(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, string(out), "Resource already managed by Terraform")
 
-	// Change the project SLA and verify that a warning is displayed by
-	// Terraform and that the request is also rejected by the server.
-	vars.project.Sla = "prod"
-	tf.WriteConfigT(t, vars.builder.Build())
-	out, err = tf.Apply()
-	require.Error(t, err)
-	require.Contains(t, string(out), "Immutable Attribute Change")
-	require.Contains(t, string(out), "`sla`")
-	require.Contains(t, string(out), "(`\"dev\"`)")
-	require.Contains(t, string(out), "Unable to update project")
-	vars.project.Sla = "dev"
-
-	// Change DBA password and verify that a warning is displayed by
-	// Terraform. Since the DBA password is only sent on create, there will
-	// not be an error from the server.
-	updatedPassword := "updated"
-	vars.database.DbaPassword = &updatedPassword
-	tf.WriteConfigT(t, vars.builder.Build())
-	out, err = tf.Apply()
-	require.NoError(t, err)
-	require.Contains(t, string(out), "Immutable Attribute Change")
-	require.Contains(t, string(out), "`dba_password`")
-	require.Contains(t, string(out), "(`<redacted>`)")
-
-	// Change the DBA password again, this time with
-	// NUODB_CP_ALLOW_DESTRUCTIVE_REPLACE=true
-	t.Run("allowDestructiveReplace", func(t *testing.T) {
-		os.Setenv(framework.ALLOW_DESTRUCTIVE_REPLACE_VAR, "true")
-		defer os.Unsetenv(framework.ALLOW_DESTRUCTIVE_REPLACE_VAR)
-
-		updatedPassword = "updated-again"
-		vars.database.DbaPassword = &updatedPassword
-		tf.WriteConfigT(t, vars.builder.Build())
-		out, err = tf.Apply()
-		require.NoError(t, err)
-		require.Contains(t, string(out), "# forces replacement")
-		require.Contains(t, string(out), "Apply complete! Resources: 1 added, 0 changed, 1 destroyed.")
-	})
-
 	t.Run("invalidProviderConfiguration", func(t *testing.T) {
 		defer func() {
 			vars.providerCfg = NuoDbaasProviderModel{}
@@ -665,6 +626,151 @@ func TestNegative(t *testing.T) {
 	// unmanaged database has been deleted
 	out, err = tf.Destroy()
 	require.NoError(t, err)
+}
+
+func TestImmutableAttributeChange(t *testing.T) {
+	vars := newTestVars()
+
+	// Create provider server that runs within test
+	ctx := context.Background()
+	reattachCfg, closeFn := CreateProviderServer(t, ctx)
+	defer closeFn()
+
+	// Create Terraform workspace and initialize it with config
+	tf := CreateTerraformWorkspace(t)
+	tf.SetReattachConfig(reattachCfg)
+	tf.WriteConfigT(t, vars.builder.Build())
+	_, err := tf.Init()
+	require.NoError(t, err)
+	defer tf.DestroySilently()
+
+	// Run `terraform apply` to create resources
+	tf.WriteConfigT(t, vars.builder.Build())
+	_, err = tf.Apply()
+	require.NoError(t, err)
+	// Sample some values in state file to validate
+	tf.CheckStateResource(t, "nuodbaas_database.db").
+		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
+		HasAttributeValue("status.ready", true)
+	tf.CheckStateResource(t, "data.nuodbaas_database.db").
+		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
+		HasAttributeValue("status.ready", true)
+	tf.CheckStateResource(t, "nuodbaas_project.proj").
+		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
+		HasAttributeValue("status.ready", true)
+	tf.CheckStateResource(t, "data.nuodbaas_project.proj").
+		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
+		HasAttributeValue("status.ready", true)
+
+	// Change DBA password and verify that a warning is displayed by
+	// Terraform. Since the DBA password is only sent on create, there will
+	// not be an error from the server. TODO(asz6): When password rotation
+	// is supported by the REST service, we will accept updates to the DBA
+	// password and remove the RequiresReplace plan modifier from the
+	// `dba_password` attribute.
+	t.Run("applyDbaPasswordChange", func(t *testing.T) {
+		updatedPassword := "updated"
+		vars.database.DbaPassword = &updatedPassword
+		tf.WriteConfigT(t, vars.builder.Build())
+		out, err := tf.Apply()
+		require.NoError(t, err)
+		require.Contains(t, string(out), "Immutable Attribute Change")
+		require.Contains(t, string(out), "`dba_password`")
+		require.Contains(t, string(out), "(`<redacted>`)")
+	})
+
+	// Change the DBA password again, this time with
+	// NUODB_CP_ALLOW_DESTRUCTIVE_REPLACE=true
+	t.Run("applyDbaPasswordChangeWithReplace", func(t *testing.T) {
+		os.Setenv(framework.ALLOW_DESTRUCTIVE_REPLACE_VAR, "true")
+		defer os.Unsetenv(framework.ALLOW_DESTRUCTIVE_REPLACE_VAR)
+
+		updatedPassword := "updated-again"
+		vars.database.DbaPassword = &updatedPassword
+		tf.WriteConfigT(t, vars.builder.Build())
+		out, err := tf.Apply()
+		require.NoError(t, err)
+		require.Contains(t, string(out), "# forces replacement")
+		require.Contains(t, string(out), "Apply complete! Resources: 1 added, 0 changed, 1 destroyed.")
+	})
+
+	// Change the project SLA and verify that a warning is displayed by
+	// Terraform when running `terraform plan`
+	t.Run("planSlaChange", func(t *testing.T) {
+		vars.project.Sla = "prod"
+		defer func() {
+			vars.project.Sla = "dev"
+		}()
+
+		tf.WriteConfigT(t, vars.builder.Build())
+		out, err := tf.Plan()
+		require.NoError(t, err)
+		require.Contains(t, string(out), "Immutable Attribute Change")
+		require.Contains(t, string(out), "`sla`")
+		require.Contains(t, string(out), "(`\"dev\"`)")
+		require.NotContains(t, string(out), "Unable to update project")
+	})
+
+	// Run `terraform apply` and verify that a warning is displayed by
+	// Terraform and that the request is also rejected by the server
+	t.Run("applySlaChangeRejected", func(t *testing.T) {
+		vars.project.Sla = "prod"
+		defer func() {
+			vars.project.Sla = "dev"
+		}()
+
+		tf.WriteConfigT(t, vars.builder.Build())
+		out, err := tf.Apply()
+		require.Error(t, err)
+		require.Contains(t, string(out), "Immutable Attribute Change")
+		require.Contains(t, string(out), "`sla`")
+		require.Contains(t, string(out), "(`\"dev\"`)")
+		require.Contains(t, string(out), "Unable to update project")
+	})
+
+	// Explicitly replace the project and database by running `terraform
+	// destroy -target=...` followed by `terraform apply`
+	t.Run("applySlaChangeExplicitly", func(t *testing.T) {
+		// Change project SLA
+		vars.project.Sla = "prod"
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Destroy the project and database
+		out, err := tf.Run("destroy", "-target=nuodbaas_project.proj", "-auto-approve")
+		require.NoError(t, err)
+		require.NotContains(t, string(out), "Immutable Attribute Change")
+		require.Contains(t, string(out), "Destroy complete! Resources: 2 destroyed.")
+
+		// Re-create the project and database
+		out, err = tf.Apply()
+		require.NoError(t, err)
+		require.NotContains(t, string(out), "Immutable Attribute Change")
+		require.Contains(t, string(out), "Apply complete! Resources: 2 added, 0 changed, 0 destroyed.")
+
+		// Validate Terraform state and check that project has updated SLA value
+		tf.CheckStateResource(t, "nuodbaas_database.db").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
+			HasAttributeValue("status.ready", true)
+		tf.CheckStateResource(t, "data.nuodbaas_database.db").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
+			HasAttributeValue("status.ready", true)
+		tf.CheckStateResource(t, "nuodbaas_project.proj").
+			HasAttributeValue("sla", "prod").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
+			HasAttributeValue("status.ready", true)
+		tf.CheckStateResource(t, "data.nuodbaas_project.proj").
+			HasAttributeValue("sla", "prod").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
+			HasAttributeValue("status.ready", true)
+	})
 }
 
 func TestImport(t *testing.T) {
