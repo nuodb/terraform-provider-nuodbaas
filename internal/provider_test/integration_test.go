@@ -185,7 +185,7 @@ func TestFullLifecycle(t *testing.T) {
 	vars.database.Labels = &map[string]string{
 		"priority": "high",
 	}
-	productVersion := "6.0"
+	productVersion := "5.1"
 	vars.database.Properties = &openapi.DatabasePropertiesModel{
 		ProductVersion:  &productVersion,
 		ArchiveDiskSize: ptr("10Gi"),
