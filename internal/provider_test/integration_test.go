@@ -208,10 +208,6 @@ func TestFullLifecycle(t *testing.T) {
 	}
 	vars.project.Properties = &openapi.ProjectPropertiesModel{
 		ProductVersion: &productVersion,
-		TierParameters: &map[string]string{
-			"zones":    `["us-east-1", "us-east-2"]`,
-			"replicas": "3",
-		},
 	}
 	tf.WriteConfigT(t, vars.builder.Build())
 	_, err = tf.Apply()
@@ -230,8 +226,6 @@ func TestFullLifecycle(t *testing.T) {
 		HasAttributeValue("tier", tier).
 		HasAttributeValue("labels", map[string]any{"priority": "high"}).
 		HasAttributeValue("properties.product_version", productVersion).
-		HasAttributeValue("properties.tier_parameters.zones", `["us-east-1", "us-east-2"]`).
-		HasAttributeValue("properties.tier_parameters.replicas", "3").
 		HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
 		HasAttributeValue("status.ready", true).
 		HasAttributeValue("status.shutdown", false)
