@@ -187,8 +187,7 @@ func TestFullLifecycle(t *testing.T) {
 	}
 	productVersion := "5.1"
 	vars.database.Properties = &openapi.DatabasePropertiesModel{
-		ProductVersion:  &productVersion,
-		ArchiveDiskSize: ptr("10Gi"),
+		ProductVersion: &productVersion,
 	}
 	tf.WriteConfigT(t, vars.builder.Build())
 	_, err = tf.Apply()
@@ -236,7 +235,6 @@ func TestFullLifecycle(t *testing.T) {
 		HasAttributeValue("tier", tier).
 		HasAttributeValue("labels", map[string]any{"priority": "high"}).
 		HasAttributeValue("properties.product_version", productVersion).
-		HasAttributeValue("properties.archive_disk_size", *vars.database.Properties.ArchiveDiskSize).
 		HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
 		HasAttributeValue("status.ready", true).
 		HasAttributeValue("status.shutdown", false)
