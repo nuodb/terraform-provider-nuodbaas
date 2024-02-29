@@ -60,7 +60,7 @@ help: ## Display this help.
 ##@ Development
 
 .PHONY: deploy-cp
-deploy-cp: ## Deploy a local Control Plane to test with
+deploy-cp: check-k8s ## Deploy a local Control Plane to test with
 	helm upgrade --install $(HELM_JETSTACK_RELEASE) $(JETSTACK_CHART) \
 		--namespace cert-manager \
 		--set installCRDs=true \
@@ -95,7 +95,7 @@ deploy-cp: ## Deploy a local Control Plane to test with
 	kubectl wait pod -l app.kubernetes.io/instance="$(HELM_CP_REST_RELEASE)" --for=condition=ready --timeout=120s
 
 .PHONY: undeploy-cp
-undeploy-cp: ## Uninstall a local Control Plane previously installed by this script
+undeploy-cp: check-k8s ## Uninstall a local Control Plane previously installed by this script
 	@echo "Cleaning up any left over DBaaS resources..."
 	kubectl get databases.cp.nuodb.com -o name | xargs -r kubectl delete || $(IGNORE_NOT_FOUND)
 	kubectl get domains.cp.nuodb.com -o name | xargs -r kubectl delete || $(IGNORE_NOT_FOUND)
@@ -112,6 +112,17 @@ undeploy-cp: ## Uninstall a local Control Plane previously installed by this scr
 	@echo "Deleting lease resources so that next time Cert Manager is deployed it does not have to wait for them to expire..."
 	kubectl -n kube-system delete leases.coordination.k8s.io cert-manager-cainjector-leader-election --ignore-not-found=$(IGNORE_NOT_FOUND)
 	kubectl -n kube-system delete leases.coordination.k8s.io cert-manager-controller --ignore-not-found=$(IGNORE_NOT_FOUND)
+
+.PHONY: check-k8s
+check-k8s:
+	@set -e ;\
+		context="$$(kubectl config current-context)" ;\
+		cluster="$$(kubectl config view -o jsonpath="{.contexts[?(@.name == \"$$context\")].context.cluster}")" ;\
+		server="$$(kubectl config view -o jsonpath="{.clusters[?(@.name == \"$$cluster\")].cluster.server}")" ;\
+		if echo "$$server" | grep -qE "^https://[^/]*[.]com(:[0-9]+)?/?$$"; then \
+			echo "ERROR: Cannot execute make targets on Kubernetes server $$server" >&2 ;\
+			exit 1 ;\
+		fi
 
 bin/%:
 	$(MAKE) install-tools
