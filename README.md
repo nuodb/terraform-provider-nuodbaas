@@ -6,8 +6,8 @@ The NuoDB DBaaS Provider for Terraform allows NuoDB databases to be managed usin
 
 ## Usage requirements
 
-* Terraform v1.5.x
-* Access to NuoDB Control Plane v2.3.x
+* Terraform v1.5.x or greater
+* Access to NuoDB Control Plane v2.3.x or greater
 
 ## Installation
 
@@ -167,7 +167,7 @@ resource "nuodbaas_database" "db" {
 
 ### Destroying resources
 
-Once you are done using your database and project, you can delete by running `terraform destroy`.
+Once you are done using your database and project, you can delete them by running `terraform destroy`.
 
 ## Build requirements
 
