@@ -55,7 +55,13 @@ jobs:
           command: .circleci/setup.sh
       - run:
           name: "Run tests"
-          command: "make testacc"
+          command: |
+            make testacc
+      - run:
+          name: "Dump Kubernetes logs"
+          command: |
+            bin/kubectl cluster-info dump --output-directory="$OUTPUT_DIR"
+          when: on_fail
       - upload_results
 
   integration_tests:

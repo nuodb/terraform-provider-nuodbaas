@@ -1,18 +1,24 @@
-package provider
+package provider_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/helper"
+	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/database"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/project"
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
 	"github.com/stretchr/testify/require"
 )
+
+func IsE2E() bool {
+	return os.Getenv("E2E_TEST") == "true"
+}
 
 type testVars struct {
 	providerCfg NuoDbaasProviderModel
@@ -52,14 +58,28 @@ func (vars *testVars) resetVars() {
 		WithDatabasesDataSource("db_list", &DatabasesDataSourceModel{})
 }
 
-func newTestVars() *testVars {
+func newTestVars(overrideTimeouts bool) *testVars {
 	var ret testVars
 	ret.resetVars()
+	// If overrideTimeouts=true and this is an end-to-end test, accelerate
+	// test by skipping readiness checks.
+	if overrideTimeouts && IsE2E() {
+		ret.providerCfg.Timeouts = map[string]framework.OperationTimeouts{
+			"default": {
+				Create: ptr("0"),
+				Update: ptr("0"),
+			},
+		}
+	}
 	return &ret
 }
 
+func ptr[T any](v T) *T {
+	return &v
+}
+
 func TestFullLifecycle(t *testing.T) {
-	vars := newTestVars()
+	vars := newTestVars(false)
 
 	// Create provider server that runs within test
 	ctx := context.Background()
@@ -155,7 +175,7 @@ func TestFullLifecycle(t *testing.T) {
 	// Update database config attributes (tier, labels, and product_version)
 	// and execute `terraform apply`
 	tier := "n1.small"
-	if val, ok := os.LookupEnv("E2E_TEST"); ok && val == "true" {
+	if IsE2E() {
 		// Avoid setting an unavailable service tier or increasing the
 		// replica count in end-to-end tests, which could be time
 		// consuming
@@ -165,7 +185,7 @@ func TestFullLifecycle(t *testing.T) {
 	vars.database.Labels = &map[string]string{
 		"priority": "high",
 	}
-	productVersion := "6.0"
+	productVersion := "5.1"
 	vars.database.Properties = &openapi.DatabasePropertiesModel{
 		ProductVersion: &productVersion,
 	}
@@ -220,15 +240,14 @@ func TestFullLifecycle(t *testing.T) {
 		HasAttributeValue("status.shutdown", false)
 
 	// Set project and database as disabled and also update labels
-	disabled := true
 	vars.project.Maintenance = &openapi.MaintenanceModel{
-		IsDisabled: &disabled,
+		IsDisabled: ptr(true),
 	}
 	// Omit labels from project, which should not cause them to be removed
 	// because unknown values are resolved from state
 	vars.project.Labels = nil
 	vars.database.Maintenance = &openapi.MaintenanceModel{
-		IsDisabled: &disabled,
+		IsDisabled: ptr(true),
 	}
 	// Explicitly set labels to empty for database, which should cause
 	// labels to be removed
@@ -284,8 +303,237 @@ func TestFullLifecycle(t *testing.T) {
 	require.True(t, helper.IsNotFound(err), "Unexpected error: "+err.Error())
 }
 
+func TestAttributeSerialization(t *testing.T) {
+	if IsE2E() {
+		t.Skip("Do not test attributes exhaustively in end-to-end configuration, which may reject some settings")
+	}
+
+	vars := newTestVars(false)
+
+	// Create provider server that runs within test
+	ctx := context.Background()
+	reattachCfg, closeFn := CreateProviderServer(t, ctx)
+	defer closeFn()
+
+	// Create Terraform workspace and initialize it with config
+	tf := CreateTerraformWorkspace(t)
+	tf.SetReattachConfig(reattachCfg)
+	tf.WriteConfigT(t, vars.builder.Build())
+	_, err := tf.Init()
+	require.NoError(t, err)
+	defer tf.DestroySilently()
+
+	// Run `terraform apply` to create resources
+	tf.WriteConfigT(t, vars.builder.Build())
+	_, err = tf.Apply()
+	require.NoError(t, err)
+
+	// Check attributes in project resource and data source
+	checkResourceAndDataSource(t, "nuodbaas_project.proj", tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("organization", "org").
+			HasAttributeValue("name", "proj").
+			HasAttributeValue("sla", "dev").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("labels", map[string]any{}).
+			HasAttribute("properties.product_version").
+			DoesNotHaveAttribute("maintenance").
+			HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
+			HasAttribute("status.message").
+			HasAttributeValue("status.ready", true).
+			HasAttributeValue("status.shutdown", false)
+	})
+	// Check attributes in database resource and data source
+	checkResourceAndDataSource(t, "nuodbaas_database.db", tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("organization", "org").
+			HasAttributeValue("project", "proj").
+			HasAttributeValue("name", "db").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("labels", map[string]any{}).
+			HasAttribute("properties.product_version").
+			DoesNotHaveAttribute("maintenance").
+			HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
+			HasAttribute("status.message").
+			HasAttributeValue("status.ready", true).
+			HasAttributeValue("status.shutdown", false)
+	})
+
+	// Save original database and project structs
+	var (
+		originalDatabase = vars.database
+		originalProject  = vars.project
+	)
+
+	// Populate optional fields of database
+	vars.database.Labels = &map[string]string{
+		"one": "1",
+		"two": "2",
+	}
+	vars.database.Maintenance = &openapi.MaintenanceModel{
+		ExpiresAtTime: ptr("2030-01-01T00:00:00Z"),
+		IsDisabled:    ptr(true),
+	}
+	vars.database.Properties = &openapi.DatabasePropertiesModel{
+		ArchiveDiskSize: ptr("100Gi"),
+		JournalDiskSize: ptr("10Gi"),
+		TierParameters: &map[string]string{
+			"zones":      `["us-east-1", "us-east-2"]`,
+			"smReplicas": "2",
+			"teReplicas": "5",
+		},
+		ProductVersion: ptr("6.0"),
+	}
+
+	// Populate optional fields fo project
+	vars.project.Labels = vars.database.Labels
+	// Do not populate sub-attributes of maintenance to exercise values
+	// being computed by the server
+	vars.project.Maintenance = &openapi.MaintenanceModel{}
+	vars.project.Properties = &openapi.ProjectPropertiesModel{
+		TierParameters: &map[string]string{
+			"zones":         `["us-east-1", "us-east-2"]`,
+			"adminReplicas": "3",
+		},
+		ProductVersion: vars.database.Properties.ProductVersion,
+	}
+
+	// Run `terraform apply` to update resources
+	tf.WriteConfigT(t, vars.builder.Build())
+	_, err = tf.Apply()
+	require.NoError(t, err)
+
+	// Check attributes in project resource and data source
+	checkResourceAndDataSource(t, "nuodbaas_project.proj", tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("organization", "org").
+			HasAttributeValue("name", "proj").
+			HasAttributeValue("sla", "dev").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("labels", map[string]any{"one": "1", "two": "2"}).
+			HasAttributeValue("properties.tier_parameters.zones", `["us-east-1", "us-east-2"]`).
+			HasAttributeValue("properties.tier_parameters.adminReplicas", "3").
+			HasAttributeValue("properties.product_version", "6.0").
+			HasAttributeValue("maintenance.is_disabled", false).
+			HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
+			HasAttribute("status.message").
+			HasAttributeValue("status.ready", true).
+			HasAttributeValue("status.shutdown", false)
+	})
+	// Check attributes in database resource and data source
+	checkResourceAndDataSource(t, "nuodbaas_database.db", tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("organization", "org").
+			HasAttributeValue("project", "proj").
+			HasAttributeValue("name", "db").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("labels", map[string]any{"one": "1", "two": "2"}).
+			HasAttributeValue("properties.archive_disk_size", "100Gi").
+			HasAttributeValue("properties.journal_disk_size", "10Gi").
+			HasAttributeValue("properties.tier_parameters.zones", `["us-east-1", "us-east-2"]`).
+			HasAttributeValue("properties.tier_parameters.smReplicas", "2").
+			HasAttributeValue("properties.tier_parameters.teReplicas", "5").
+			HasAttributeValue("properties.product_version", "6.0").
+			HasAttributeValue("maintenance.is_disabled", true).
+			HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateStopped)).
+			HasAttribute("status.message").
+			HasAttributeValue("status.ready", false).
+			HasAttributeValue("status.shutdown", true)
+	})
+
+	// Revert project and database to original, sparsely-populated settings
+	// and `terraform apply` to update resources. This should not change the
+	// resources because these are optional, computed attributes that are
+	// resolved from Terraform state when unconfigured.
+	vars.project = originalProject
+	vars.database = originalDatabase
+	tf.WriteConfigT(t, vars.builder.Build())
+	_, err = tf.Apply()
+	require.NoError(t, err)
+
+	// Check attributes in project resource and data source
+	checkResourceAndDataSource(t, "nuodbaas_project.proj", tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("organization", "org").
+			HasAttributeValue("name", "proj").
+			HasAttributeValue("sla", "dev").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("labels", map[string]any{"one": "1", "two": "2"}).
+			HasAttributeValue("properties.tier_parameters.zones", `["us-east-1", "us-east-2"]`).
+			HasAttributeValue("properties.tier_parameters.adminReplicas", "3").
+			HasAttributeValue("properties.product_version", "6.0").
+			HasAttributeValue("maintenance.is_disabled", false).
+			HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
+			HasAttribute("status.message").
+			HasAttributeValue("status.ready", true).
+			HasAttributeValue("status.shutdown", false)
+	})
+	// Check attributes in database resource and data source
+	checkResourceAndDataSource(t, "nuodbaas_database.db", tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("organization", "org").
+			HasAttributeValue("project", "proj").
+			HasAttributeValue("name", "db").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("labels", map[string]any{"one": "1", "two": "2"}).
+			HasAttributeValue("properties.archive_disk_size", "100Gi").
+			HasAttributeValue("properties.journal_disk_size", "10Gi").
+			HasAttributeValue("properties.tier_parameters.zones", `["us-east-1", "us-east-2"]`).
+			HasAttributeValue("properties.tier_parameters.smReplicas", "2").
+			HasAttributeValue("properties.tier_parameters.teReplicas", "5").
+			HasAttributeValue("properties.product_version", "6.0").
+			HasAttributeValue("maintenance.is_disabled", true).
+			HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateStopped)).
+			HasAttribute("status.message").
+			HasAttributeValue("status.ready", false).
+			HasAttributeValue("status.shutdown", true)
+	})
+
+	// Explicitly set labels and tier_parameters to empty maps so that they
+	// get cleared
+	vars.project.Labels = &map[string]string{}
+	vars.database.Labels = &map[string]string{}
+	vars.project.Properties = &openapi.ProjectPropertiesModel{TierParameters: &map[string]string{}}
+	vars.database.Properties = &openapi.DatabasePropertiesModel{TierParameters: &map[string]string{}}
+	tf.WriteConfigT(t, vars.builder.Build())
+	_, err = tf.Apply()
+	require.NoError(t, err)
+
+	// Check attributes in project resource and data source
+	checkResourceAndDataSource(t, "nuodbaas_project.proj", tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("organization", "org").
+			HasAttributeValue("name", "proj").
+			HasAttributeValue("sla", "dev").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("labels", map[string]any{}).
+			HasAttributeValue("properties.tier_parameters", map[string]any{}).
+			HasAttributeValue("properties.product_version", "6.0").
+			HasAttributeValue("maintenance.is_disabled", false).
+			HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
+			HasAttribute("status.message").
+			HasAttributeValue("status.ready", true).
+			HasAttributeValue("status.shutdown", false)
+	})
+	// Check attributes in database resource and data source
+	checkResourceAndDataSource(t, "nuodbaas_database.db", tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("organization", "org").
+			HasAttributeValue("project", "proj").
+			HasAttributeValue("name", "db").
+			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("labels", map[string]any{}).
+			HasAttributeValue("properties.archive_disk_size", "100Gi").
+			HasAttributeValue("properties.journal_disk_size", "10Gi").
+			HasAttributeValue("properties.tier_parameters", map[string]any{}).
+			HasAttributeValue("properties.product_version", "6.0").
+			HasAttributeValue("maintenance.is_disabled", true).
+			HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateStopped)).
+			HasAttribute("status.message").
+			HasAttributeValue("status.ready", false).
+			HasAttributeValue("status.shutdown", true)
+	})
+}
+
+func checkResourceAndDataSource(t *testing.T, address string, tf *TfHelper, assertFn func(*AttributeChecker)) {
+	assertFn(tf.CheckStateResource(t, address))
+	assertFn(tf.CheckStateResource(t, "data."+address))
+}
+
 func TestTimeouts(t *testing.T) {
-	vars := newTestVars()
+	vars := newTestVars(false)
 
 	// Disable reconciliation
 	reset := SetMockReconcilePolicy(t, MockReconcilePolicy{MarkAsReady: "false"})
@@ -398,8 +646,7 @@ func TestTimeouts(t *testing.T) {
 			Update: &timeout,
 		},
 	}
-	disabled := true
-	vars.project.Maintenance = &openapi.MaintenanceModel{IsDisabled: &disabled}
+	vars.project.Maintenance = &openapi.MaintenanceModel{IsDisabled: ptr(true)}
 	tf.WriteConfigT(t, vars.builder.Build())
 
 	// Run `terraform apply` and check that update fails with timeout
@@ -412,7 +659,7 @@ func TestTimeouts(t *testing.T) {
 }
 
 func TestNegative(t *testing.T) {
-	vars := newTestVars()
+	vars := newTestVars(true)
 
 	// Create provider server that runs within test
 	ctx := context.Background()
@@ -459,8 +706,7 @@ func TestNegative(t *testing.T) {
 	vars.project.Sla = "dev"
 
 	// Specify a read-only attribute
-	caPem := "..."
-	vars.project.Status = &openapi.ProjectStatusModel{CaPem: &caPem}
+	vars.project.Status = &openapi.ProjectStatusModel{CaPem: ptr("...")}
 	tf.WriteConfigT(t, vars.builder.Build())
 	out, err = tf.Apply()
 	require.Error(t, err)
@@ -495,6 +741,19 @@ func TestNegative(t *testing.T) {
 	require.Contains(t, string(out), "Invalid Configuration for Read-Only Attribute")
 	vars.builder.WithoutProjectsDataSource("project_list")
 
+	// Specify an invalid database filter
+	vars.builder.WithDatabasesDataSource("database_list", &DatabasesDataSourceModel{
+		Filter: &DatabaseFilterModel{
+			Project: ptr("proj"),
+		},
+	})
+	tf.WriteConfigT(t, vars.builder.Build())
+	out, err = tf.Apply()
+	require.Error(t, err)
+	require.Contains(t, string(out), "Unable to read databases")
+	require.Contains(t, string(out), "Cannot specify project filter (proj) without organization")
+	vars.builder.WithoutDatabasesDataSource("database_list")
+
 	// Specify a database resource without a project dependency and run
 	// `terraform apply`. This should fail with 404 Not Found.
 	vars.builder.WithDatabaseResource("nodep", &DatabaseResourceModel{
@@ -527,20 +786,24 @@ func TestNegative(t *testing.T) {
 	// Sample some values in state file to validate
 	tf.CheckStateResource(t, "nuodbaas_database.db").
 		HasAttributeValue("tier", "n0.nano").
-		HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
-		HasAttributeValue("status.ready", true)
+		HasAttribute("status.ca_pem").
+		HasAttribute("status.state").
+		HasAttribute("status.ready")
 	tf.CheckStateResource(t, "data.nuodbaas_database.db").
 		HasAttributeValue("tier", "n0.nano").
-		HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
-		HasAttributeValue("status.ready", true)
+		HasAttribute("status.ca_pem").
+		HasAttribute("status.state").
+		HasAttribute("status.ready")
 	tf.CheckStateResource(t, "nuodbaas_project.proj").
+		HasAttributeValue("sla", "dev").
 		HasAttributeValue("tier", "n0.nano").
-		HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
-		HasAttributeValue("status.ready", true)
+		HasAttribute("status.state").
+		HasAttribute("status.ready")
 	tf.CheckStateResource(t, "data.nuodbaas_project.proj").
+		HasAttributeValue("sla", "dev").
 		HasAttributeValue("tier", "n0.nano").
-		HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
-		HasAttributeValue("status.ready", true)
+		HasAttribute("status.state").
+		HasAttribute("status.ready")
 
 	// Try to import resource already being managed
 	out, err = tf.Run("import", "nuodbaas_database.db", "org/proj/db")
@@ -551,6 +814,16 @@ func TestNegative(t *testing.T) {
 		defer func() {
 			vars.providerCfg = NuoDbaasProviderModel{}
 		}()
+
+		// Configure invalid credentials and verify that read fail
+		vars.providerCfg.User = ptr("org/user")
+		vars.providerCfg.Password = ptr("badpassword")
+		tf.WriteConfigT(t, vars.builder.Build())
+		out, err = tf.Apply()
+		require.Error(t, err)
+		require.Contains(t, string(out), "Unable to read project")
+		require.Contains(t, string(out), "Unable to read projects")
+		require.Contains(t, string(out), "Unable to read databases")
 
 		// Configure invalid URL and verify that reads fail
 		badUrl := "http://badhost/"
@@ -629,7 +902,7 @@ func TestNegative(t *testing.T) {
 }
 
 func TestImmutableAttributeChange(t *testing.T) {
-	vars := newTestVars()
+	vars := newTestVars(true)
 
 	// Create provider server that runs within test
 	ctx := context.Background()
@@ -651,20 +924,24 @@ func TestImmutableAttributeChange(t *testing.T) {
 	// Sample some values in state file to validate
 	tf.CheckStateResource(t, "nuodbaas_database.db").
 		HasAttributeValue("tier", "n0.nano").
-		HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
-		HasAttributeValue("status.ready", true)
+		HasAttribute("status.ca_pem").
+		HasAttribute("status.state").
+		HasAttribute("status.ready")
 	tf.CheckStateResource(t, "data.nuodbaas_database.db").
 		HasAttributeValue("tier", "n0.nano").
-		HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
-		HasAttributeValue("status.ready", true)
+		HasAttribute("status.ca_pem").
+		HasAttribute("status.state").
+		HasAttribute("status.ready")
 	tf.CheckStateResource(t, "nuodbaas_project.proj").
+		HasAttributeValue("sla", "dev").
 		HasAttributeValue("tier", "n0.nano").
-		HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
-		HasAttributeValue("status.ready", true)
+		HasAttribute("status.state").
+		HasAttribute("status.ready")
 	tf.CheckStateResource(t, "data.nuodbaas_project.proj").
+		HasAttributeValue("sla", "dev").
 		HasAttributeValue("tier", "n0.nano").
-		HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
-		HasAttributeValue("status.ready", true)
+		HasAttribute("status.state").
+		HasAttribute("status.ready")
 
 	// Change DBA password and verify that a warning is displayed by
 	// Terraform. Since the DBA password is only sent on create, there will
@@ -754,27 +1031,27 @@ func TestImmutableAttributeChange(t *testing.T) {
 		// Validate Terraform state and check that project has updated SLA value
 		tf.CheckStateResource(t, "nuodbaas_database.db").
 			HasAttributeValue("tier", "n0.nano").
-			HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
-			HasAttributeValue("status.ready", true)
+			HasAttribute("status.state").
+			HasAttribute("status.ready")
 		tf.CheckStateResource(t, "data.nuodbaas_database.db").
 			HasAttributeValue("tier", "n0.nano").
-			HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
-			HasAttributeValue("status.ready", true)
+			HasAttribute("status.state").
+			HasAttribute("status.ready")
 		tf.CheckStateResource(t, "nuodbaas_project.proj").
 			HasAttributeValue("sla", "prod").
 			HasAttributeValue("tier", "n0.nano").
-			HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
-			HasAttributeValue("status.ready", true)
+			HasAttribute("status.state").
+			HasAttribute("status.ready")
 		tf.CheckStateResource(t, "data.nuodbaas_project.proj").
 			HasAttributeValue("sla", "prod").
 			HasAttributeValue("tier", "n0.nano").
-			HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
-			HasAttributeValue("status.ready", true)
+			HasAttribute("status.state").
+			HasAttribute("status.ready")
 	})
 }
 
 func TestImport(t *testing.T) {
-	vars := newTestVars()
+	vars := newTestVars(true)
 
 	// Create a project and database by directly invoking the REST service
 	client, err := vars.providerCfg.CreateClient()
@@ -874,4 +1151,156 @@ func TestImport(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, string(out), "No changes.")
 	require.Contains(t, string(out), "Your infrastructure matches the configuration.")
+}
+
+func TestDataSourceFiltering(t *testing.T) {
+	vars := newTestVars(true)
+
+	// Create a projects and databases by directly invoking the REST service
+	client, err := vars.providerCfg.CreateClient()
+	require.NoError(t, err)
+	ctx := context.Background()
+
+	numProjects := 5
+	numDatabases := 5
+	if IsE2E() {
+		numProjects = 2
+		numDatabases = 2
+	}
+
+	// Create projects and databases
+	for i := 0; i != numProjects; i += 1 {
+		projectName := fmt.Sprintf("proj%d", i)
+		project := ProjectResourceModel{
+			Organization: "unmanaged",
+			Name:         projectName,
+			Sla:          "dev",
+			Tier:         "n0.nano",
+			Labels: &map[string]string{
+				"type": "unmanaged",
+				"name": projectName,
+			},
+		}
+		err = project.Create(ctx, client)
+		require.NoError(t, err)
+		defer func() {
+			var timeoutSeconds int32 = 10
+			_, _ = client.DeleteProject(
+				ctx, project.Organization, project.Name,
+				&openapi.DeleteProjectParams{TimeoutSeconds: &timeoutSeconds})
+		}()
+
+		// Create databases
+		for j := 0; j != numDatabases; j += 1 {
+			dbName := fmt.Sprintf("db%d", j)
+			database := DatabaseResourceModel{
+				Organization: "unmanaged",
+				Project:      projectName,
+				Name:         dbName,
+				DbaPassword:  ptr("password"),
+				Labels: &map[string]string{
+					"type": "unmanaged",
+					"name": dbName,
+				},
+			}
+			err = database.Create(ctx, client)
+			require.NoError(t, err)
+			defer func() {
+				var timeoutSeconds int32 = 10
+				_, _ = client.DeleteDatabase(
+					ctx, database.Organization, database.Project, database.Name,
+					&openapi.DeleteDatabaseParams{TimeoutSeconds: &timeoutSeconds})
+			}()
+		}
+	}
+
+	// Add data sources that list projects and databases using various filters
+	vars.builder = vars.builder.
+		WithDatabasesDataSource("all", &DatabasesDataSourceModel{}).
+		WithDatabasesDataSource("unmanaged", &DatabasesDataSourceModel{Filter: &DatabaseFilterModel{Organization: ptr("unmanaged")}}).
+		WithDatabasesDataSource("proj0", &DatabasesDataSourceModel{Filter: &DatabaseFilterModel{Organization: ptr("unmanaged"), Project: ptr("proj0")}}).
+		WithDatabasesDataSource("name_label", &DatabasesDataSourceModel{Filter: &DatabaseFilterModel{Labels: []string{"name"}}}).
+		WithDatabasesDataSource("name_label_db0", &DatabasesDataSourceModel{Filter: &DatabaseFilterModel{Labels: []string{"name=db0"}}}).
+		WithDatabasesDataSource("name_label_negative", &DatabasesDataSourceModel{Filter: &DatabaseFilterModel{Labels: []string{"!name"}}}).
+		WithDatabasesDataSource("multiple_labels", &DatabasesDataSourceModel{Filter: &DatabaseFilterModel{Labels: []string{"name!=db0", "type"}}}).
+		WithProjectsDataSource("all", &ProjectsDataSourceModel{}).
+		WithProjectsDataSource("unmanaged", &ProjectsDataSourceModel{Filter: &ProjectFilterModel{Organization: ptr("unmanaged")}}).
+		WithProjectsDataSource("name_label", &ProjectsDataSourceModel{Filter: &ProjectFilterModel{Labels: []string{"name"}}}).
+		WithProjectsDataSource("name_label_proj0", &ProjectsDataSourceModel{Filter: &ProjectFilterModel{Labels: []string{"name=proj0"}}}).
+		WithProjectsDataSource("name_label_negative", &ProjectsDataSourceModel{Filter: &ProjectFilterModel{Labels: []string{"!name"}}}).
+		WithProjectsDataSource("multiple_labels", &ProjectsDataSourceModel{Filter: &ProjectFilterModel{Labels: []string{"name!=proj0", "type"}}})
+
+	// Create provider server that runs within test
+	reattachCfg, closeFn := CreateProviderServer(t, ctx)
+	defer closeFn()
+
+	// Create Terraform workspace and initialize it with config
+	tf := CreateTerraformWorkspace(t)
+	tf.SetReattachConfig(reattachCfg)
+	tf.WriteConfigT(t, vars.builder.Build())
+	_, err = tf.Init()
+	require.NoError(t, err)
+	defer tf.DestroySilently()
+
+	// Apply Terraform config
+	_, err = tf.Apply()
+	require.NoError(t, err)
+	// Refresh Terraform state so that the project and database managed by
+	// Terraform is also populated in the data sources.
+	_, err = tf.Run("refresh")
+	require.NoError(t, err)
+
+	// Check each database list data source
+	managedDatabases := 1
+	unmanagedDatabases := numProjects * numDatabases
+	totalDatabases := unmanagedDatabases + managedDatabases
+	checkDataSourceList(t, "databases", "all", totalDatabases, tf, func(ac *AttributeChecker) {})
+	checkDataSourceList(t, "databases", "unmanaged", unmanagedDatabases, tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("organization", "unmanaged")
+	})
+	checkDataSourceList(t, "databases", "proj0", numDatabases, tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("organization", "unmanaged").HasAttributeValue("project", "proj0")
+	})
+	checkDataSourceList(t, "databases", "name_label", unmanagedDatabases, tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("organization", "unmanaged")
+	})
+	checkDataSourceList(t, "databases", "name_label_db0", numProjects, tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("name", "db0")
+	})
+	checkDataSourceList(t, "databases", "name_label_negative", managedDatabases, tf, func(ac *AttributeChecker) {
+		ac.DoesNotHaveAttributeValue("organization", "unmanaged")
+	})
+	checkDataSourceList(t, "databases", "multiple_labels", unmanagedDatabases-numProjects, tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("organization", "unmanaged").
+			DoesNotHaveAttributeValue("name", "db0")
+	})
+
+	// Check each project list data source
+	managedProjects := 1
+	unmanagedProjects := numProjects
+	totalProjects := unmanagedProjects + managedProjects
+	checkDataSourceList(t, "projects", "all", totalProjects, tf, func(ac *AttributeChecker) {})
+	checkDataSourceList(t, "projects", "unmanaged", unmanagedProjects, tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("organization", "unmanaged")
+	})
+	checkDataSourceList(t, "projects", "name_label", unmanagedProjects, tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("organization", "unmanaged")
+	})
+	checkDataSourceList(t, "projects", "name_label_proj0", 1, tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("name", "proj0")
+	})
+	checkDataSourceList(t, "projects", "name_label_negative", managedProjects, tf, func(ac *AttributeChecker) {
+		ac.DoesNotHaveAttributeValue("organization", "unmanaged")
+	})
+	checkDataSourceList(t, "projects", "multiple_labels", unmanagedProjects-1, tf, func(ac *AttributeChecker) {
+		ac.HasAttributeValue("organization", "unmanaged").
+			DoesNotHaveAttributeValue("name", "proj0")
+	})
+}
+
+func checkDataSourceList(t *testing.T, dataSourceType, dataSource string, expectedCount int, tf *TfHelper, assertFn func(*AttributeChecker)) {
+	address := fmt.Sprintf("data.nuodbaas_%s.%s", dataSourceType, dataSource)
+	t.Run(address, func(t *testing.T) {
+		tf.CheckStateResource(t, address).ForEach(dataSourceType, expectedCount, assertFn)
+	})
 }

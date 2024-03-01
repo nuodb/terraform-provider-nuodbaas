@@ -20,7 +20,7 @@ var (
 
 type DatabaseDataSourceModel openapi.DatabaseModel
 
-func (state *DatabaseDataSourceModel) Read(ctx context.Context, client *openapi.Client) error {
+func (state *DatabaseDataSourceModel) Read(ctx context.Context, client openapi.ClientInterface) error {
 	resp, err := client.GetDatabase(ctx, state.Organization, state.Project, state.Name)
 	if err != nil {
 		return err

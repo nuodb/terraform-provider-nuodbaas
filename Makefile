@@ -2,7 +2,7 @@ HELM_JETSTACK_RELEASE ?= cert-manager
 JETSTACK_CHARTS_VERSION ?= 1.13.3
 JETSTACK_CHART := https://charts.jetstack.io/charts/cert-manager-v$(JETSTACK_CHARTS_VERSION).tgz
 
-CP_CHARTS_VERSION ?= 2.3.1
+CP_CHARTS_VERSION ?= 2.3.2
 
 HELM_CP_CRD_RELEASE ?= nuodb-cp-crd
 CP_CRD_CHART ?= https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(CP_CHARTS_VERSION)/nuodb-cp-crd-$(CP_CHARTS_VERSION).tgz
@@ -166,12 +166,13 @@ extract-creds: ## Extract and print environment variables for use with running C
 	@echo "export NUODB_CP_PASSWORD=\"$(shell kubectl get secret dbaas-user-system-admin -o jsonpath='{.data.password}' | base64 -d)\""
 	@echo "export NUODB_CP_URL_BASE=\"http://$(HOST):$(PORT)/nuodb-cp\""
 
-.PHONY: deploy-test-helper
-deploy-test-helper: $(KUBECTL_BIN) ## Download and run integration test helper consisting of envtest Kubernetes cluster and Control Plane REST service
+tmp/test-helper:
 	mkdir -p tmp
 	curl -L -s https://github.com/nuodb/nuodb-cp-releases/releases/download/test-helper/test-helper.tgz -o tmp/test-helper.tgz
 	cd tmp/ && tar -xf test-helper.tgz
 
+.PHONY: deploy-test-helper
+deploy-test-helper: $(KUBECTL_BIN) tmp/test-helper ## Download and run integration test helper consisting of envtest Kubernetes cluster and Control Plane REST service
 	@echo "Starting K8s, mock operators, and REST service..."
 	mkdir -p $(OUTPUT_DIR)
 	OUTPUT_DIR=$(OUTPUT_DIR) MARK_AS_READY=true ./tmp/test-helper/setup-rest.sh

@@ -2,7 +2,7 @@
 (C) Copyright 2016-2023 Dassault Systemes SE.
 All Rights Reserved.
 */
-package nuodbaas_test_client
+package examples
 
 import (
 	"context"

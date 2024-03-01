@@ -47,7 +47,7 @@ func GetProjectsDataSourceSchema() *schema.Schema {
 }
 
 // Read implements datasource.DataSource.
-func (state *ProjectsDataSourceModel) Read(ctx context.Context, client *openapi.Client) error {
+func (state *ProjectsDataSourceModel) Read(ctx context.Context, client openapi.ClientInterface) error {
 	var organization string
 	var labelFilter *string
 	if state.Filter != nil {

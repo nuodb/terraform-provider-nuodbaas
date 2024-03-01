@@ -193,14 +193,8 @@ func (m GenericPlanModifier) PlanModifyObject(_ context.Context, req planmodifie
 }
 
 func useStateForUnknown(req GenericRequest, resp *GenericResponse) {
-	// Do nothing if there is no state. NOTE: This condition is different
-	// from the one used by the standard UseStateForUnknown modifiers in the
-	// Terraform library, which check whether the value of the specific
-	// attribute is null. That check triggers unnecessary updates where the
-	// optional/computed attribute had no default value generated for it by
-	// the system, because the fact that an empty/null value was generated
-	// by the system is not detected.
-	if req.State.Raw.IsNull() {
+	// Do nothing if there is no state value.
+	if req.StateValue.IsNull() {
 		return
 	}
 	// Do nothing if there is a known planned value.
