@@ -172,95 +172,56 @@ Once you are done using your database and project, you can delete them by runnin
 ## Build requirements
 
 * GNU Make 4.4
-* Golang 1.21
+* Golang 1.19
 * Java 11 (for integration testing)
 * Minikube / Docker Desktop and Kubernetes 1.28.x (for end-to-end testing)
 
-### Installing development build
+### Installing development builds
 
-You can also build the provider locally and install it into your terraform config.
-
-1. Build the provider:
-    ```sh
-    make package
-    ```
-
-2. Add the provider package as a [`filesystem_mirror`](https://developer.hashicorp.com/terraform/cli/config/config-file#filesystem_mirror) in your terraform configuration. Either edit `~/.terraformrc` or create a new terraform configuration.
-    ```hcl
-    provider_installation {
-        filesystem_mirror {
-            path    = "<REPO PATH>/dist/pkg_mirror"
-            include = ["registry.terraform.io/nuodb/nuodbaas"]
-        }
-        direct {
-            exclude = ["registry.terraform.io/nuodb/nuodbaas"]
-        }
-    }
-    ```
-    Where `<REPO PATH>` is the absolute path of this git repository.
-
-3. In your terraform workspace, delete the `.terraform` dirrectory, which contains cached versions of providers. This needs to be done any time you rebuild the package.
-    ```sh
-    rm -r .terraform
-    ```
-
-4. Use the provider as you normally would.
-    ```hcl
-    terraform {
-        required_providers {
-            nuodbaas = {
-                source = "registry.terraform.io/nuodb/nuodbaas"
-                version = "0.2.0"
-            }
-        }
-    }
-    ```
-
-5. If you did not edit your `~/.terraformrc` and instead created a custom configuration, don't forget to set `TF_CLI_CONFIG_FILE` to that file.
-
-    ```sh
-    TF_CLI_CONFIG_FILE="config.tfrc" terraform init
-    ```
-For more details about terraform cli configuration, see the [documentation](https://developer.hashicorp.com/terraform/cli/config/config-file).
+You can also build the provider locally and configure Terraform to use it.
+The `make package` command builds and stages the provider in the `dist/pkg_mirror` directory so that it can be used as a filesystem mirror, as described in [Installation](#installation).
 
 ## Local testing
 
-1. Setup Kubernetes and have it accessible via kubectl.
-Ensure that you have a CSI driver configured.
+There are two configurations that are used by the tests that are run as part of continuous integration.
+The integration tests use a stripped-down CRUD-only Kubernetes environment consisting of a Kubernetes API server backed by `etcd`, along with the NuoDB Control Plane REST service.
+The end-to-end tests use a real Kubernetes environment to run a full instance of the NuoDB Control Plane as described in [DBaaS Quick Start Guide](https://github.com/nuodb/nuodb-cp-releases/blob/main/docs/QuickStart.md).
 
-2. Clone this repository.
+### Integration testing
 
-    ```sh
-    git clone git@github.com:nuodb/terraform-provider-nuodbaas.git
-    cd terraform-provider-nuodbaas
-    ```
+To run integration tests:
 
-3. Install an instance of the control plane to test against.
-   
-    ```sh
+```bash
+make integration-tests
+```
+
+This downloads and deploys the CRUD-only Kubernetes environment and NuoDB Control Plane REST service, runs the tests, and shuts down the test environment when finished.
+
+### End-to-end testing
+
+To run end-to-end tests:
+
+1. Deploy the NuoDB Control Plane into the Kubernetes cluster that `kubectl` is configured to use.
+    ```bash
     make deploy-cp
     ```
-
-4. Run acceptance tests.
-
-    ```sh
+2. Configure the credentials needed to access the NuoDB Control Plane.
+    ```bash
     eval "$(make extract-creds)"
+    ```
+3. Run the tests:
+    ```bash
     make testacc
     ```
-
-    The `extract-creds` target extracts the credentials for the `system/admin` user from the Kubernetes cluster and prints them to standard output. If you want to manually configure the Control Plane instance, set  `NUODB_CP_URL_BASE`, `NUODB_CP_USER`, and `NUODB_CP_PASSWORD` environment variables and run:
-
-    ```sh
-    make testacc
+4. Clean up all resources created for the NuoDB Control Plane when finished:
+    ```bash
+    make undeploy-cp
     ```
+
+### Running a single test
 
 To run a single test:
 
 ```sh
-TESTARGS="-run='TestFullLifecycle'" make testacc
-```
-
-Certain tests respect the `-test.short` flag to skip non-critical scenarios. When testing against a real control plane, this option can significantly speed up test execution.
-```sh
-TESTARGS="-test.short" make testacc
+TESTARGS="-run=TestFullLifecycle" make testacc
 ```
