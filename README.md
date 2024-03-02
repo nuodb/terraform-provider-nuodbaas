@@ -99,7 +99,8 @@ The example above provides the minimum configuration attributes needed in order 
 A project belongs to an `organization` and has a `name`, `sla`, and `tier`, which define management policies and configuration attributes that are inherited by databases.
 A database belongs to `project` and has a `name` and `dba_password`, which is the password of the DBA user that can be used to create less-privileged database users.
 
-> **NOTE**: The `organization` and `project` attributes of the database are resolved from the project resource.
+> [!IMPORTANT]
+> The `organization` and `project` attributes of the database are resolved from the project resource.
 This is important because it defines an [implicit dependency](https://developer.hashicorp.com/terraform/tutorials/configuration-language/dependencies#manage-implicit-dependencies) on the project, which forces the project to be created before the database.
 
 For a complete list of project and database attributes, see the [Project](docs/resources/project.md) and [Database](docs/resources/database.md) resource documentation.
@@ -209,11 +210,11 @@ To run end-to-end tests:
     ```bash
     eval "$(make extract-creds)"
     ```
-3. Run the tests:
+3. Run the tests.
     ```bash
     make testacc
     ```
-4. Clean up all resources created for the NuoDB Control Plane when finished:
+4. Clean up all resources created for the NuoDB Control Plane when finished.
     ```bash
     make undeploy-cp
     ```
