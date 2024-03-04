@@ -31,10 +31,11 @@ def connect(db: str, user: str, password: str, url: str, cert: str):
         print("Connected, testing a basic query.")
         cursor = connection.cursor()
         try:
-            cursor.execute("SELECT 1 FROM DUAL")
+            cursor.execute("select * from system.nodes")
             rows = cursor.fetchall()
-            assert len(rows) == 1
-            assert rows[0] == (1,)
+            assert len(rows) >= 1
+            for row in rows:
+                print(row)
         finally:
             cursor.close()
             connection.close()
