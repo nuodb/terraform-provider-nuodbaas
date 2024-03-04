@@ -98,8 +98,6 @@ jobs:
     docker:
       - image: cimg/base:2024.02
     environment:
-      NUODB_CP_USER: $DBAAS_TEST_USER
-      NUODB_CP_PASSWORD: $DBAAS_TEST_PASSWORD
       NUODB_CP_URL_BASE: "https://dev.us-east-1.dbaas.nuodb.io/api"
     steps:
      - checkout
@@ -107,7 +105,10 @@ jobs:
      - go/install:
         version: "1.20"
      - run:
-        command: test/app/run.sh
+        command: |
+          NUODB_CP_USER=$DBAAS_TEST_USER
+          NUODB_CP_PASSWORD=$DBAAS_TEST_PASSWORD
+          test/app/run.sh
 
 workflows:
   test:
