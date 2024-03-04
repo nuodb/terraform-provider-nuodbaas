@@ -96,7 +96,7 @@ jobs:
 
   deploy_test:
     docker:
-      - image: cimg/base:2022.05
+      - image: cimg/base:2024.02
     environment:
       NUODB_CP_USER: $DBAAS_TEST_USER
       NUODB_CP_PASSWORD: $DBAAS_TEST_PASSWORD
@@ -104,6 +104,8 @@ jobs:
     steps:
      - checkout
      - setup_remote_docker
+     - go/install:
+        version: "1.20"
      - run:
         command: test/app/run.sh
 
