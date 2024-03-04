@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -306,8 +307,8 @@ func (r *GenericResource) GetTimeout(operation string, defaultTimeout time.Durat
 
 func (r *GenericResource) AwaitReady(ctx context.Context, state ResourceState, operation string) error {
 	timeout := r.GetTimeout(operation, READINESS_TIMEOUT)
-	if timeout <= 0 {
-		// TODO(asz6): Log message saying that we are not waiting
+	if timeout == 0 {
+		tflog.Info(ctx, "Not waiting for "+r.TypeName+" to achieve desired state because "+operation+" timeout is 0")
 		return nil
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -334,8 +335,8 @@ func (r *GenericResource) AwaitReady(ctx context.Context, state ResourceState, o
 
 func (r *GenericResource) AwaitDeleted(ctx context.Context, state ResourceState) error {
 	timeout := r.GetTimeout(DELETE_OPERATION, DELETION_TIMEOUT)
-	if timeout <= 0 {
-		// TODO(asz6): Log message saying that we are not waiting
+	if timeout == 0 {
+		tflog.Info(ctx, "Not waiting for deletion of "+r.TypeName+" to be finalized because delete timeout is 0")
 		return nil
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)

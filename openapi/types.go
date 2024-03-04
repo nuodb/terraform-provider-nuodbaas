@@ -5,6 +5,7 @@ package openapi
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/oapi-codegen/runtime"
 )
@@ -223,10 +224,10 @@ type JsonPatchOperationOp string
 // MaintenanceModel defines model for MaintenanceModel.
 type MaintenanceModel struct {
 	// ExpiresAtTime The time at which the project or database will be disabled
-	ExpiresAtTime *string `cty:"expires_at_time" hcl:"expires_at_time" json:"expiresAtTime,omitempty" tfsdk:"expires_at_time"`
+	ExpiresAtTime *time.Time `json:"expiresAtTime,omitempty" tfsdk:"-"`
 
 	// ExpiresIn The time until the project or database is disabled, e.g. `1d`
-	ExpiresIn *string `cty:"expires_in" hcl:"expires_in" json:"expiresIn,omitempty" tfsdk:"expires_in"`
+	ExpiresIn *string `json:"expiresIn,omitempty" tfsdk:"-"`
 
 	// IsDisabled Whether the project or database should be shutdown
 	IsDisabled *bool `cty:"is_disabled" hcl:"is_disabled" json:"isDisabled,omitempty" tfsdk:"is_disabled"`

@@ -44,8 +44,6 @@ data "nuodbaas_database" "database_details" {
 
 Read-Only:
 
-- `expires_at_time` (String) The time at which the project or database will be disabled
-- `expires_in` (String) The time until the project or database is disabled, e.g. `1d`
 - `is_disabled` (Boolean) Whether the project or database should be shutdown
 
 
