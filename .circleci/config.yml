@@ -102,6 +102,7 @@ jobs:
      - checkout
      - run:
         command: |
+          # CircleCI does not like setting variables from variables in the environment section
           export NUODB_CP_USER=$DBAAS_TEST_USER
           export NUODB_CP_PASSWORD=$DBAAS_TEST_PASSWORD
           test/app/run.sh
