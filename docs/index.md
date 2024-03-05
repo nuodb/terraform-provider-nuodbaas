@@ -3,12 +3,12 @@
 page_title: "nuodbaas Provider"
 subcategory: ""
 description: |-
-  The NuoDB DBaaS provider provides the ability to manage the projects and databases running under the NuoDB Control Plane.
+  The NuoDB DBaaS Provider manages NuoDB databases using the NuoDB Control Plane.
 ---
 
 # nuodbaas Provider
 
-The NuoDB DBaaS provider provides the ability to manage the projects and databases running under the NuoDB Control Plane.
+The NuoDB DBaaS Provider manages NuoDB databases using the NuoDB Control Plane.
 
 ## Example Usage
 
