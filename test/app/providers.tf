@@ -13,4 +13,12 @@ terraform {
 
 provider "docker" { }
 
-provider "nuodbaas" { }
+provider "nuodbaas" {
+  # Don't wait for the project to be created to proceed with creating other resources.
+  # DBaaS will block the database startup until project is ready.
+  timeouts = {
+    project = {
+      create = "0"
+    }
+  }
+ }
