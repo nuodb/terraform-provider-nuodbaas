@@ -7,6 +7,7 @@ package provider
 
 import (
 	"context"
+	"net/url"
 	"os"
 
 	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
@@ -41,37 +42,39 @@ type NuoDbaasProviderModel struct {
 	Timeouts   map[string]framework.OperationTimeouts `tfsdk:"timeouts" hcl:"timeouts" cty:"timeouts"`
 }
 
+const (
+	NUODB_CP_USER        = "NUODB_CP_USER"
+	NUODB_CP_PASSWORD    = "NUODB_CP_PASSWORD"
+	NUODB_CP_URL_BASE    = "NUODB_CP_URL_BASE"
+	NUODB_CP_SKIP_VERIFY = "NUODB_CP_SKIP_VERIFY"
+)
+
 func (pm *NuoDbaasProviderModel) GetUser() string {
 	if pm.User != nil {
 		return *pm.User
 	}
-	return os.Getenv("NUODB_CP_USER")
+	return os.Getenv(NUODB_CP_USER)
 }
 
 func (pm *NuoDbaasProviderModel) GetPassword() string {
 	if pm.Password != nil {
 		return *pm.Password
 	}
-	return os.Getenv("NUODB_CP_PASSWORD")
+	return os.Getenv(NUODB_CP_PASSWORD)
 }
 
 func (pm *NuoDbaasProviderModel) GetUrlBase() string {
 	if pm.UrlBase != nil {
 		return *pm.UrlBase
 	}
-	if ret := os.Getenv("NUODB_CP_URL_BASE"); ret != "" {
-		return ret
-	}
-	// TODO(asz6): Consider removing this hardcoded default, which is
-	// unlikely to be useful in a non-test environment
-	return "http://localhost:8080"
+	return os.Getenv(NUODB_CP_URL_BASE)
 }
 
 func (pm *NuoDbaasProviderModel) GetSkipVerify() bool {
 	if pm.SkipVerify != nil {
 		return *pm.SkipVerify
 	}
-	return os.Getenv("NUODB_CP_SKIP_VERIFY") == "true"
+	return os.Getenv(NUODB_CP_SKIP_VERIFY) == "true"
 }
 
 func (pm *NuoDbaasProviderModel) CreateClient() (*openapi.Client, error) {
@@ -85,27 +88,27 @@ func (p *NuoDbaasProvider) Metadata(ctx context.Context, req provider.MetadataRe
 
 func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "The NuoDB DBaaS provider provides the ability to manage the projects and databases running under the NuoDB Control Plane.",
+		Description: "The NuoDB DBaaS Provider manages NuoDB databases using the NuoDB Control Plane.",
 		Attributes: map[string]schema.Attribute{
 			"user": schema.StringAttribute{
 				Description: "The name of the user in the format `<organization>/<user>`. " +
-					"If not specified, defaults to the value of the `NUODB_CP_USER` environment variable.",
+					"If not specified, defaults to the value of the `" + NUODB_CP_USER + "` environment variable.",
 				Optional: true,
 			},
 			"password": schema.StringAttribute{
 				Description: "The password for the user. " +
-					"If not specified, defaults to the value of the `NUODB_CP_PASSWORD` environment variable.",
+					"If not specified, defaults to the value of the `" + NUODB_CP_PASSWORD + "` environment variable.",
 				Optional:  true,
 				Sensitive: true,
 			},
 			"url_base": schema.StringAttribute{
 				Description: "The base URL for the server, including the protocol. " +
-					"If not specified, defaults to the value of the `NUODB_CP_URL_BASE` environment variable.",
+					"If not specified, defaults to the value of the `" + NUODB_CP_URL_BASE + "` environment variable.",
 				Optional: true,
 			},
 			"skip_verify": schema.BoolAttribute{
 				Description: "Whether to skip server certificate verification. " +
-					"If not specified, defaults to the value of the `NUODB_CP_SKIP_VERIFY` environment variable.",
+					"If not specified, defaults to the value of the `" + NUODB_CP_SKIP_VERIFY + "` environment variable.",
 				Optional: true,
 			},
 			"timeouts": schema.MapNestedAttribute{
@@ -141,10 +144,28 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 		return
 	}
 
+	// Validate server URL
+	if config.GetUrlBase() == "" {
+		resp.Diagnostics.AddError("Invalid provider configuration", "Must specify url_base or the environment variable "+NUODB_CP_URL_BASE)
+	} else {
+		url, err := url.Parse(config.GetUrlBase())
+		// url.Parse() does not return error if scheme is missing, so
+		// check that explicitly
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(path.Empty().AtName("url_base"), "Invalid provider configuration", err.Error())
+		} else if url.Scheme == "" {
+			resp.Diagnostics.AddAttributeError(path.Empty().AtName("url_base"), "Invalid provider configuration", "No scheme found in URL")
+		}
+	}
+
 	// Validate timeout configuration
 	timeouts, err := framework.ParseTimeouts(config.Timeouts, resourceTypes())
 	if err != nil {
 		resp.Diagnostics.AddAttributeError(path.Empty().AtName("timeouts"), "Invalid provider configuration", err.Error())
+	}
+
+	// Check that no errors occurred
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
