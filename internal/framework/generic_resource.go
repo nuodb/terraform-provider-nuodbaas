@@ -308,7 +308,8 @@ func (r *GenericResource) GetTimeout(operation string, defaultTimeout time.Durat
 func (r *GenericResource) AwaitReady(ctx context.Context, state ResourceState, operation string) error {
 	timeout := r.GetTimeout(operation, READINESS_TIMEOUT)
 	if timeout == 0 {
-		tflog.Info(ctx, "Not waiting for "+r.TypeName+" to achieve desired state because "+operation+" timeout is 0")
+		tflog.Info(ctx, "Not waiting for resource to achieve desired state because timeout is 0",
+			map[string]any{"resourceType": r.TypeName, "operation": operation})
 		return nil
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -336,7 +337,8 @@ func (r *GenericResource) AwaitReady(ctx context.Context, state ResourceState, o
 func (r *GenericResource) AwaitDeleted(ctx context.Context, state ResourceState) error {
 	timeout := r.GetTimeout(DELETE_OPERATION, DELETION_TIMEOUT)
 	if timeout == 0 {
-		tflog.Info(ctx, "Not waiting for deletion of "+r.TypeName+" to be finalized because delete timeout is 0")
+		tflog.Info(ctx, "Not waiting for deletion to be finalized because timeout is 0",
+			map[string]any{"resourceType": r.TypeName})
 		return nil
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
