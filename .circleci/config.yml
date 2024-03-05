@@ -94,9 +94,23 @@ jobs:
           name: "Check that there are no generated changes"
           command: make check-no-changes
 
+  deploy_test:
+    executor: ubuntu_vm
+    steps:
+     - checkout
+     - run:
+        name: "Run end to end deplyment test"
+        command: |
+          # CircleCI does not like setting variables from variables in the environment section
+          export NUODB_CP_USER=$DBAAS_TEST_USER
+          export NUODB_CP_PASSWORD=$DBAAS_TEST_PASSWORD
+          export NUODB_CP_URL_BASE=$DBAAS_API_ENDPOINT
+          test/app/run.sh
+
 workflows:
   test:
     jobs:
       - e2e_tests
       - integration_tests
       - check_generated
+      - deploy_test
