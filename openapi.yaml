@@ -3738,24 +3738,17 @@ components:
           description: The time at which the project or database will be disabled
           format: date-time
           example: 2024-01-01T00:00:00Z
-          x-tf-name: expires_at_time
-          x-oapi-codegen-extra-tags:
-            cty: expires_at_time
-            hcl: expires_at_time
-            tfsdk: expires_at_time
-          x-go-type: string
           x-order: 0
+          x-oapi-codegen-extra-tags:
+            tfsdk: "-"
         expiresIn:
           pattern: "(\\d+)\\s*([A-Za-zµ]+)"
           type: string
           description: "The time until the project or database is disabled, e.g. `1d`"
           example: 1d
-          x-tf-name: expires_in
-          x-oapi-codegen-extra-tags:
-            cty: expires_in
-            hcl: expires_in
-            tfsdk: expires_in
           x-order: 1
+          x-oapi-codegen-extra-tags:
+            tfsdk: "-"
         isDisabled:
           type: boolean
           description: Whether the project or database should be shutdown
@@ -4283,8 +4276,9 @@ components:
             type: object
             additionalProperties:
               $ref: '#/components/schemas/IntOrString'
-          description: The current observed total usage of the named resources per
-            scoped group.
+          description: |-
+            The current observed total usage of the named resources per scoped
+            group.
           x-order: 0
       readOnly: true
     FieldSelector:
@@ -4301,9 +4295,10 @@ components:
           type: object
           additionalProperties:
             type: string
-          description: The field selector requirements as a map where each key-value
-            pair is equivalent to an element of `matchExpressions` with `operator`
-            set to `==`. The requirements are composed with `AND`.
+          description: |-
+            The field selector requirements as a map where each key-value pair is
+            equivalent to an element of `matchExpressions` with `operator` set to
+            `==`. The requirements are composed with `AND`.
           x-order: 1
     IntOrString:
       type: object
@@ -4325,10 +4320,10 @@ components:
           type: object
           additionalProperties:
             type: string
-          description: "matchLabels is a map of {key,value} pairs. A single {key,value}\
-            \ in the matchLabels map is equivalent to an element of matchExpressions,\
-            \ whose key field is \"key\", the operator is \"In\", and the values array\
-            \ contains only \"value\". The requirements are ANDed."
+          description: |-
+            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+            map is equivalent to an element of matchExpressions, whose key field is "key", the
+            operator is "In", and the values array contains only "value". The requirements are ANDed.
           x-order: 1
     Scope:
       type: object
@@ -4337,8 +4332,9 @@ components:
           $ref: '#/components/schemas/FieldSelector'
         groupByLabels:
           type: array
-          description: The label keys on which the selected databases are divided
-            into groups.
+          description: |-
+            The label keys on which the selected databases are divided into
+            groups.
           items:
             type: string
           x-order: 1
@@ -4375,15 +4371,17 @@ components:
           x-order: 0
         operator:
           type: string
-          description: "operator represents a key's relationship to a set of values.\
-            \ Valid operators are In, NotIn, Exists and DoesNotExist."
+          description: |-
+            operator represents a key's relationship to a set of values.
+            Valid operators are In, NotIn, Exists and DoesNotExist.
           x-order: 1
         values:
           type: array
-          description: "values is an array of string values. If the operator is In\
-            \ or NotIn, the values array must be non-empty. If the operator is Exists\
-            \ or DoesNotExist, the values array must be empty. This array is replaced\
-            \ during a strategic merge patch."
+          description: |-
+            values is an array of string values. If the operator is In or NotIn,
+            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+            the values array must be empty. This array is replaced during a strategic
+            merge patch.
           items:
             type: string
           x-order: 2
@@ -4429,19 +4427,22 @@ components:
           x-order: 0
         optional:
           type: boolean
-          description: Whether the Helm feature is optional and does not emit an error
+          description: |-
+            Whether the Helm feature is optional and does not emit an error
             if the Helm chart or product version is incompatible.
           x-order: 1
         parameters:
           type: object
           additionalProperties:
             $ref: '#/components/schemas/Parameters'
-          description: "The parameter definitions referenced in values. For example,\
-            \ parameter named `foo` is referenced using `<< .meta.params.foo >>` template."
+          description: |-
+            The parameter definitions referenced in values. For example, parameter
+            named `foo` is referenced using `<< .meta.params.foo >>` template.
           x-order: 2
         productCompatibility:
           type: string
-          description: The NuoDB product version compatibility constraint for the
+          description: |-
+            The NuoDB product version compatibility constraint for the
             Helm feature.
           x-order: 3
         values:
@@ -4470,8 +4471,9 @@ components:
           x-order: 0
         namespace:
           type: string
-          description: "The namespace of the resource. When not specified, the current\
-            \ namespace is assumed."
+          description: |-
+            The namespace of the resource. When not specified, the current
+            namespace is assumed.
           x-order: 1
     ServiceTierModel:
       required:

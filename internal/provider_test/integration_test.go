@@ -374,8 +374,7 @@ func TestAttributeSerialization(t *testing.T) {
 		"two": "2",
 	}
 	vars.database.Maintenance = &openapi.MaintenanceModel{
-		ExpiresAtTime: ptr("2030-01-01T00:00:00Z"),
-		IsDisabled:    ptr(true),
+		IsDisabled: ptr(true),
 	}
 	vars.database.Properties = &openapi.DatabasePropertiesModel{
 		ArchiveDiskSize: ptr("100Gi"),
