@@ -198,7 +198,7 @@ coverage-report:
 .PHONY: integration-tests
 integration-tests: $(TERRAFORM_BIN) $(KUBECTL_BIN) ## Start test environment, run acceptance tests, generate coverage report, and teardown test environment
 	$(MAKE) deploy-test-helper
-	KUBECONFIG=$(OUTPUT_DIR)/kubeconfig.yml $(MAKE) testacc
+	KUBECONFIG=$(OUTPUT_DIR)/kubeconfig.yml NUODB_CP_URL_BASE=http://localhost:8080 $(MAKE) testacc
 	$(MAKE) coverage-report
 	$(MAKE) undeploy-test-helper
 

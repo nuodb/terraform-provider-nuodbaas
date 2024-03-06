@@ -819,7 +819,7 @@ func TestNegative(t *testing.T) {
 			vars.providerCfg = NuoDbaasProviderModel{}
 		}()
 
-		// Configure invalid credentials and verify that read fail
+		// Configure invalid credentials and verify that reads fail
 		vars.providerCfg.User = ptr("org/user")
 		vars.providerCfg.Password = ptr("badpassword")
 		tf.WriteConfigT(t, vars.builder.Build())
@@ -829,20 +829,19 @@ func TestNegative(t *testing.T) {
 		require.Contains(t, string(out), "Unable to read projects")
 		require.Contains(t, string(out), "Unable to read databases")
 
-		// Configure invalid URL and verify that reads fail
-		badUrl := "http://badhost/"
-		vars.providerCfg.UrlBase = &badUrl
+		// Configure unreachable URL and verify that reads fail
+		vars.providerCfg.UrlBase = ptr("http://unreachable/")
 		tf.WriteConfigT(t, vars.builder.Build())
 		out, err = tf.Apply()
 		require.Error(t, err)
 		require.Contains(t, string(out), "Unable to read project")
 		require.Contains(t, string(out), "Unable to read projects")
 		require.Contains(t, string(out), "Unable to read databases")
+		vars.providerCfg.UrlBase = nil
 
 		// Specify bad timeout values
 		noSuffix := "999"
 		negative := "-1s"
-		vars.providerCfg.UrlBase = nil
 		vars.providerCfg.Timeouts = map[string]framework.OperationTimeouts{
 			"badresource": {},
 			"database":    {Create: &noSuffix, Update: &negative},
@@ -854,6 +853,30 @@ func TestNegative(t *testing.T) {
 		require.Contains(t, string(out), `missing unit in duration "999"`)
 		require.Contains(t, string(out), "Timeout for database update is negative: -1s")
 		require.Contains(t, string(out), "Invalid resource type: badresource")
+		vars.providerCfg.Timeouts = nil
+
+		// Temporarily override environment variable NUODB_CP_URL_BASE
+		// so that URL is not specified at all
+		urlBase := os.Getenv(NUODB_CP_URL_BASE)
+		defer os.Setenv(NUODB_CP_URL_BASE, urlBase)
+		os.Unsetenv(NUODB_CP_URL_BASE)
+		out, err = tf.Apply()
+		require.Error(t, err)
+		require.Contains(t, string(out), "Must specify url_base or the environment variable "+NUODB_CP_URL_BASE)
+
+		// Specify an invalid URL (bad port)
+		vars.providerCfg.UrlBase = ptr("http://host:-80")
+		tf.WriteConfigT(t, vars.builder.Build())
+		out, err = tf.Apply()
+		require.Error(t, err)
+		require.Contains(t, string(out), "invalid port")
+
+		// Specify an invalid URL (no scheme)
+		vars.providerCfg.UrlBase = ptr("badurl")
+		tf.WriteConfigT(t, vars.builder.Build())
+		out, err = tf.Apply()
+		require.Error(t, err)
+		require.Contains(t, string(out), "No scheme found in URL")
 	})
 
 	// Specify an invalid attribute and run `terraform apply`. This should
