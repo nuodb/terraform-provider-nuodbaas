@@ -34,7 +34,7 @@ OAPI_CODEGEN_BIN := bin/oapi-codegen
 TERRAFORM_BIN := bin/terraform
 KUBECTL_BIN := bin/kubectl
 
-PUBLISH_VERSION ?= 0.2.0
+PUBLISH_VERSION ?= 1.0.0
 PUBLISH_DIR ?= $(PROJECT_DIR)/dist
 
 IGNORE_NOT_FOUND ?= true
