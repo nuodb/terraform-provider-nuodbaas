@@ -861,11 +861,7 @@ func TestNegative(t *testing.T) {
 		require.Contains(t, string(out), "Invalid resource type: badresource")
 		vars.providerCfg.Timeouts = nil
 
-		// Temporarily override environment variable NUODB_CP_URL_BASE
-		// so that URL is not specified at all
-		urlBase := os.Getenv(NUODB_CP_URL_BASE)
-		defer os.Setenv(NUODB_CP_URL_BASE, urlBase)
-		os.Unsetenv(NUODB_CP_URL_BASE)
+		t.Setenv(NUODB_CP_URL_BASE, "")
 		out, err = tf.Apply()
 		require.Error(t, err)
 		require.Contains(t, string(out), "Must specify url_base or the environment variable "+NUODB_CP_URL_BASE)
@@ -998,7 +994,6 @@ func TestImmutableAttributeChange(t *testing.T) {
 	// NUODB_CP_ALLOW_DESTRUCTIVE_REPLACE=true
 	t.Run("applyDbaPasswordChangeWithReplace", func(t *testing.T) {
 		t.Setenv(framework.ALLOW_DESTRUCTIVE_REPLACE_VAR, "true")
-		defer os.Unsetenv(framework.ALLOW_DESTRUCTIVE_REPLACE_VAR)
 
 		updatedPassword := "updated-again"
 		vars.database.DbaPassword = &updatedPassword
