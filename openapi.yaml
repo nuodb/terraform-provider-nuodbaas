@@ -9,7 +9,7 @@ info:
     email: NuoDB.Support@3ds.com
   version: 2.4.0
 servers:
-- url: "{{ .Values.cpDoc.serverUrl }}"
+- url: https://example.nuodb.com
 paths:
   /backups:
     get:
