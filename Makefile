@@ -2,16 +2,16 @@ HELM_JETSTACK_RELEASE ?= cert-manager
 JETSTACK_CHARTS_VERSION ?= 1.13.3
 JETSTACK_CHART := https://charts.jetstack.io/charts/cert-manager-v$(JETSTACK_CHARTS_VERSION).tgz
 
-CP_CHARTS_VERSION ?= 2.3.2
+CP_VERSION ?= 2.4.0
 
 HELM_CP_CRD_RELEASE ?= nuodb-cp-crd
-CP_CRD_CHART ?= https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(CP_CHARTS_VERSION)/nuodb-cp-crd-$(CP_CHARTS_VERSION).tgz
+CP_CRD_CHART ?= https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(CP_VERSION)/nuodb-cp-crd-$(CP_VERSION).tgz
 
 HELM_CP_OPERATOR_RELEASE ?= nuodb-cp-operator
-CP_OPERATOR_CHART ?= https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(CP_CHARTS_VERSION)/nuodb-cp-operator-$(CP_CHARTS_VERSION).tgz
+CP_OPERATOR_CHART ?= https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(CP_VERSION)/nuodb-cp-operator-$(CP_VERSION).tgz
 
 HELM_CP_REST_RELEASE ?= nuodb-cp-rest
-CP_REST_CHART ?= https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(CP_CHARTS_VERSION)/nuodb-cp-rest-$(CP_CHARTS_VERSION).tgz
+CP_REST_CHART ?= https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(CP_VERSION)/nuodb-cp-rest-$(CP_VERSION).tgz
 
 HELM_NGINX_RELEASE ?= ingress-nginx
 NGINX_CHARTS_VERSION ?= 4.7.1
@@ -154,6 +154,7 @@ check-no-changes: ## Check that there are no uncommitted changes
 
 .PHONY: generate
 generate: $(TFPLUGINDOCS_BIN) $(OAPI_CODEGEN_BIN) $(TERRAFORM_BIN) ## Generate Golang client for the NuoDB REST API and Terraform provider documentation
+	curl -s https://raw.githubusercontent.com/nuodb/nuodb-cp-releases/v$(CP_VERSION)/openapi.yaml -o openapi.yaml
 	go generate
 
 .PHONY: extract-creds
