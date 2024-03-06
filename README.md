@@ -4,44 +4,12 @@
 
 The NuoDB DBaaS Provider for Terraform allows NuoDB databases to be managed using Terraform within the [NuoDB Control Plane](https://github.com/nuodb/nuodb-cp-releases).
 
+For more information, see the [NuoDB DBaaS Provider](https://registry.terraform.io/providers/nuodb/nuodbaas) page in the Terraform Registry.
+
 ## Usage requirements
 
 * Terraform v1.5.x or greater
 * Access to NuoDB Control Plane v2.3.x or greater
-
-## Installation
-
-The initial release of NuoDB DBaaS provider is in development and has not yet been published to the [Terraform Registry](https://registry.terraform.io/).
-
-In order to use the NuoDB DBaaS provider, download the version of the provider for your platform from the [Releases](https://github.com/nuodb/terraform-provider-nuodbaas/releases) page and set up a local [`filesystem_mirror`](https://developer.hashicorp.com/terraform/cli/config/config-file#filesystem_mirror).
-For example, on Linux x86:
-
-```bash
-# Create directory for filesystem mirror
-mkdir -p pkg_mirror/registry.terraform.io/nuodb/nuodbaas
-
-# Download NuoDB DBaaS provider
-curl -L https://github.com/nuodb/terraform-provider-nuodbaas/releases/download/v0.2.0/terraform-provider-nuodbaas_0.2.0_linux_amd64.zip \
-    --output-dir pkg_mirror/registry.terraform.io/nuodb/nuodbaas
-
-# Create Terraform configuration
-cat <<EOF > terraform.rc
-provider_installation {
-    filesystem_mirror {
-        path    = "$(pwd)/pkg_mirror"
-        include = ["registry.terraform.io/nuodb/nuodbaas"]
-    }
-    direct {
-        exclude = ["registry.terraform.io/nuodb/nuodbaas"]
-    }
-}
-EOF
-
-# Use Terraform configuration
-export TF_CLI_CONFIG_FILE="$(pwd)/terraform.rc"
-```
-
-Alternatively, the Terraform configuration file can be placed in `~/.terraformrc` so that it gets picked up automatically without `TF_CLI_CONFIG_FILE` being set.
 
 ## Configuring DBaaS access
 
@@ -61,7 +29,7 @@ See the [Documentation](docs/index.md) for information on provider configuration
 
 ## Getting started
 
-Once the Terraform provider and DBaaS access have been configured, you can use Terraform to manage NuoDB projects and databases.
+Once DBaaS access has been configured, you can use Terraform to manage NuoDB projects and databases.
 
 The following Terraform configuration defines a NuoDB project (`nuodbaas_project`) and database (`nuodbaas_database`).
 
@@ -70,6 +38,7 @@ terraform {
   required_providers {
     nuodbaas = {
       source  = "registry.terraform.io/nuodb/nuodbaas"
+      version = "1.0.0"
     }
   }
 }
@@ -180,7 +149,32 @@ Once you are done using your database and project, you can delete them by runnin
 ### Installing development builds
 
 You can also build the provider locally and configure Terraform to use it.
-The `make package` command builds and stages the provider in the `dist/pkg_mirror` directory so that it can be used as a filesystem mirror, as described in [Installation](#installation).
+The `make package` command builds and stages the provider in the `dist/pkg_mirror` directory so that it can be used as a local [`filesystem_mirror`](https://developer.hashicorp.com/terraform/cli/config/config-file#filesystem_mirror).
+
+A locally built provider can be used as follows:
+
+```bash
+# Build provider, which is staged in dist/pkg_mirror
+make package
+
+# Create Terraform configuration
+cat <<EOF > terraform.rc
+provider_installation {
+    filesystem_mirror {
+        path    = "$(pwd)/dist/pkg_mirror"
+        include = ["registry.terraform.io/nuodb/nuodbaas"]
+    }
+    direct {
+        exclude = ["registry.terraform.io/nuodb/nuodbaas"]
+    }
+}
+EOF
+
+# Use Terraform configuration
+export TF_CLI_CONFIG_FILE="$(pwd)/terraform.rc"
+```
+
+Alternatively, the Terraform configuration file can be placed in `~/.terraformrc` so that it gets picked up automatically without `TF_CLI_CONFIG_FILE` being set.
 
 ## Local testing
 
