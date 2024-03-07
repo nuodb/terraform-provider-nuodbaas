@@ -861,6 +861,8 @@ func TestNegative(t *testing.T) {
 		require.Contains(t, string(out), "Invalid resource type: badresource")
 		vars.providerCfg.Timeouts = nil
 
+		// Temporarily override environment variable NUODB_CP_URL_BASE
+		// so that URL is not specified at all
 		t.Setenv(NUODB_CP_URL_BASE, "")
 		out, err = tf.Apply()
 		require.Error(t, err)
