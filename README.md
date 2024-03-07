@@ -62,6 +62,17 @@ resource "nuodbaas_database" "db" {
   name         = "db"
   dba_password = "secret"
 }
+
+# Expose nuosql arguments to connect to database
+output "nuosql_args" {
+  value = <<-EOT
+  ${nuodbaas_database.db.name}@${nuodbaas_database.db.status.sql_endpoint}:443 \
+      --user dba --password ${nuodbaas_database.db.dba_password} \
+      --connection-property trustedCertificates='${nuodbaas_database.db.status.ca_pem}' \
+      --connection-property verifyHostname=true
+  EOT
+  sensitive = true
+}
 ```
 
 The example above provides the minimum configuration attributes needed in order to create a NuoDB project and database.
@@ -80,7 +91,6 @@ Now that we understand what the configuration defines, we can use Terraform to c
 
 1. Create a file named `example.tf` from the content above.
 2. Run `terraform init` to initialize your Terraform workspace.
-Since the local filesystem mirror is being used, this command will display a warning about missing checksums that can be ignored.
 3. Run `terraform apply` to create the project and database.
 In this step, you will be prompted to confirm that you want to create the resources.
 Resource creation will be aborted unless you enter `yes`.
@@ -134,6 +144,20 @@ resource "nuodbaas_database" "db" {
     tier         = "n0.nano"
 }
 ```
+
+### Connecting to the database
+
+The example configuration above also exposes an [`output`](https://developer.hashicorp.com/terraform/language/values/outputs) named `nuosql_args`, which makes available the arguments to supply to the `nuosql` tool in order to establish a client connection to the database.
+The `nuosql` tool can be found in the [NuoDB Client Package](https://github.com/nuodb/nuodb-client).
+
+Once `nuosql` is installed and available on the system path, you can connect to the database by running the command:
+
+```bash
+eval "nuosql $(terraform output -raw nuosql_args)"
+```
+
+> [!NOTE]
+> If you are running a local instance of the NuoDB Control Plane, then you may have to omit the `--connection-property verifyHostname=true` argument from the `nuosql_args` output, because DNS may not resolve the `sql_endpoint`.
 
 ### Destroying resources
 
