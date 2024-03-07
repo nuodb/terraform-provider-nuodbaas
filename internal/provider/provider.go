@@ -44,7 +44,7 @@ type NuoDbaasProviderModel struct {
 
 const (
 	NUODB_CP_USER        = "NUODB_CP_USER"
-	NUODB_CP_PASSWORD    = "NUODB_CP_PASSWORD"
+	NUODB_CP_PASSWORD    = "NUODB_CP_PASSWORD" //nolint:gosec // This is not a hardcoded password
 	NUODB_CP_URL_BASE    = "NUODB_CP_URL_BASE"
 	NUODB_CP_SKIP_VERIFY = "NUODB_CP_SKIP_VERIFY"
 )

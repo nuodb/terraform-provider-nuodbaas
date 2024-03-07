@@ -32,7 +32,7 @@ func NewApiClient(urlBase string, user string, password string, skipVerify bool)
 		client.Client = &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
+					InsecureSkipVerify: true, //nolint:gosec // Reduced security at the demand of the user.
 				},
 			},
 		}

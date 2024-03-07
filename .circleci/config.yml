@@ -83,7 +83,7 @@ jobs:
             make integration-tests
       - upload_results
 
-  check_generated:
+  check_quality:
     executor: go
     steps:
       - checkout
@@ -93,6 +93,9 @@ jobs:
       - run:
           name: "Check that there are no generated changes"
           command: make check-no-changes
+      - run:
+          name: "Run code linters"
+          command: make lint
 
   deploy_test:
     executor: ubuntu_vm
@@ -112,5 +115,5 @@ workflows:
     jobs:
       - e2e_tests
       - integration_tests
-      - check_generated
+      - check_quality
       - deploy_test
