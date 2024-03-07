@@ -3,7 +3,6 @@
 // This software is licensed under a BSD 3-Clause License.
 // See the LICENSE file provided with this software.
 
-//nolint:forcetypeassert // Type checker cannot track type guarantees in comments
 package framework
 
 import (
@@ -132,7 +131,7 @@ func (m GenericPlanModifier) PlanModifyBool(_ context.Context, req planmodifier.
 	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
-	resp.PlanValue = genericResponse.PlanValue.(types.Bool)
+	resp.PlanValue, _ = genericResponse.PlanValue.(types.Bool)
 }
 
 // PlanModifyInt64 implements the plan modification logic.
@@ -141,7 +140,7 @@ func (m GenericPlanModifier) PlanModifyInt64(_ context.Context, req planmodifier
 	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
-	resp.PlanValue = genericResponse.PlanValue.(types.Int64)
+	resp.PlanValue, _ = genericResponse.PlanValue.(types.Int64)
 }
 
 // PlanModifyFloat64 implements the plan modification logic.
@@ -150,7 +149,7 @@ func (m GenericPlanModifier) PlanModifyFloat64(_ context.Context, req planmodifi
 	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
-	resp.PlanValue = genericResponse.PlanValue.(types.Float64)
+	resp.PlanValue, _ = genericResponse.PlanValue.(types.Float64)
 }
 
 // PlanModifyNumber implements the plan modification logic.
@@ -159,7 +158,7 @@ func (m GenericPlanModifier) PlanModifyNumber(_ context.Context, req planmodifie
 	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
-	resp.PlanValue = genericResponse.PlanValue.(types.Number)
+	resp.PlanValue, _ = genericResponse.PlanValue.(types.Number)
 }
 
 // PlanModifyString implements the plan modification logic.
@@ -168,7 +167,7 @@ func (m GenericPlanModifier) PlanModifyString(_ context.Context, req planmodifie
 	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
-	resp.PlanValue = genericResponse.PlanValue.(types.String)
+	resp.PlanValue, _ = genericResponse.PlanValue.(types.String)
 }
 
 // PlanModifyList implements the plan modification logic.
@@ -177,7 +176,7 @@ func (m GenericPlanModifier) PlanModifyList(_ context.Context, req planmodifier.
 	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
-	resp.PlanValue = genericResponse.PlanValue.(types.List)
+	resp.PlanValue, _ = genericResponse.PlanValue.(types.List)
 }
 
 // PlanModifyMap implements the plan modification logic.
@@ -186,7 +185,7 @@ func (m GenericPlanModifier) PlanModifyMap(_ context.Context, req planmodifier.M
 	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
-	resp.PlanValue = genericResponse.PlanValue.(types.Map)
+	resp.PlanValue, _ = genericResponse.PlanValue.(types.Map)
 }
 
 // PlanModifyObject implements the plan modification logic.
@@ -195,7 +194,7 @@ func (m GenericPlanModifier) PlanModifyObject(_ context.Context, req planmodifie
 	genericResponse := m.createResponse(resp.PlanValue, resp.RequiresReplace, &resp.Diagnostics)
 	m.execute(genericRequest, &genericResponse)
 	resp.RequiresReplace = genericResponse.RequiresReplace
-	resp.PlanValue = genericResponse.PlanValue.(types.Object)
+	resp.PlanValue, _ = genericResponse.PlanValue.(types.Object)
 }
 
 func useStateForUnknown(req GenericRequest, resp *GenericResponse) {

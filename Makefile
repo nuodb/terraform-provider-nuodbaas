@@ -155,9 +155,15 @@ check-no-changes: ## Check that there are no uncommitted changes
 	@[ "$(GIT_STATUS)" = "" ] || ( echo "There are uncommitted changes:\n$(GIT_STATUS)"; exit 1; )
 
 .PHONY: generate
-generate: $(TFPLUGINDOCS_BIN) $(OAPI_CODEGEN_BIN) $(TERRAFORM_BIN) ## Generate Golang client for the NuoDB REST API and Terraform provider documentation
-	curl -s https://raw.githubusercontent.com/nuodb/nuodb-cp-releases/v$(CP_VERSION)/openapi.yaml -o openapi.yaml
+generate: $(TFPLUGINDOCS_BIN) $(OAPI_CODEGEN_BIN) $(TERRAFORM_BIN) update-spec ## Generate Golang client for the NuoDB REST API and Terraform provider documentation
 	go generate
+
+.PHONY: update-spec
+update-spec: ## Update spec to released Control Plane version
+	@if git tag --points-at HEAD | grep -q "^v"; then \
+		echo "Updating openapi.yaml because commit has version tag..." ;\
+		curl -s https://raw.githubusercontent.com/nuodb/nuodb-cp-releases/v$(CP_VERSION)/openapi.yaml -o openapi.yaml ;\
+	fi
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT_BIN) ## Run linters to check code quality and find for common errors
