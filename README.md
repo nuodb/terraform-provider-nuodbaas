@@ -68,8 +68,7 @@ output "nuosql_args" {
   value = <<-EOT
   ${nuodbaas_database.db.name}@${nuodbaas_database.db.status.sql_endpoint}:443 \
       --user dba --password ${nuodbaas_database.db.dba_password} \
-      --connection-property trustedCertificates='${nuodbaas_database.db.status.ca_pem}' \
-      --connection-property verifyHostname=true
+      --connection-property trustedCertificates='${nuodbaas_database.db.status.ca_pem}'
   EOT
   sensitive = true
 }
@@ -148,16 +147,13 @@ resource "nuodbaas_database" "db" {
 ### Connecting to the database
 
 The example configuration above also exposes an [`output`](https://developer.hashicorp.com/terraform/language/values/outputs) named `nuosql_args`, which makes available the arguments to supply to the `nuosql` tool in order to establish a client connection to the database.
-The `nuosql` tool can be found in the [NuoDB Client Package](https://github.com/nuodb/nuodb-client).
+The `nuosql` tool can be found in the [NuoDB Client Package](https://github.com/nuodb/nuodb-client) ([v20230228](https://github.com/nuodb/nuodb-client/releases/tag/v20230228) or greater is required in order to connect to DBaaS databases).
 
 Once `nuosql` is installed and available on the system path, you can connect to the database by running the command:
 
 ```bash
 eval "nuosql $(terraform output -raw nuosql_args)"
 ```
-
-> [!NOTE]
-> If you are running a local instance of the NuoDB Control Plane, then you may have to omit the `--connection-property verifyHostname=true` argument from the `nuosql_args` output, because DNS may not resolve the `sql_endpoint`.
 
 ### Destroying resources
 
