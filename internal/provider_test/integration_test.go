@@ -765,10 +765,12 @@ func TestNegative(t *testing.T) {
 	vars.builder.WithoutDatabasesDataSource("database_list")
 
 	// Specify a database resource without a project dependency and run
-	// `terraform apply`. This should fail with 404 Not Found.
+	// `terraform apply`. This should fail with 404 Not Found. Give project
+	// non-existent name because there is small chance that org/proj gets
+	// created in time
 	vars.builder.WithDatabaseResource("nodep", &DatabaseResourceModel{
 		Organization: "org",
-		Project:      "proj",
+		Project:      "nonexistent",
 		Name:         "nodep",
 		DbaPassword:  vars.database.DbaPassword,
 	})
