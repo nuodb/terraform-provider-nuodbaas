@@ -32,6 +32,8 @@ check_err() {
     fi
 }
 
+errors=""
+
 # Get organization from user name
 USER_ORG="${NUODB_CP_USER%/*}"
 
