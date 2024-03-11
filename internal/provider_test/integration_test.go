@@ -1337,3 +1337,87 @@ func checkDataSourceList(t *testing.T, dataSourceType, dataSource string, expect
 		tf.CheckStateResource(t, address).ForEach(dataSourceType, expectedCount, assertFn)
 	})
 }
+
+func TestValidation(t *testing.T) {
+	// Create provider server that runs within test
+	ctx := context.Background()
+	reattachCfg, closeFn := CreateProviderServer(t, ctx)
+	defer closeFn()
+
+	// Create Terraform workspace and initialize it with config
+	tf := CreateTerraformWorkspace(t)
+	err := tf.SetReattachConfig(reattachCfg)
+	require.NoError(t, err)
+
+	t.Run("invalid project name", func(t *testing.T) {
+		vars := newTestVars(false)
+		projName := "this is not a valid project name"
+
+		vars.project.Name = projName
+
+		tf.WriteConfigT(t, vars.builder.Build())
+		_, err = tf.Init()
+		require.NoError(t, err)
+
+		// Run `terraform validate`
+		out, err := tf.Validate()
+		require.Error(t, err)
+
+		require.Contains(t, string(out), "must match pattern: ^[a-z][a-z0-9]*$")
+		require.Contains(t, string(out), projName)
+	})
+
+	t.Run("invalid database product version", func(t *testing.T) {
+		vars := newTestVars(false)
+		productVersion := "six"
+
+		vars.database.Properties = &openapi.DatabasePropertiesModel{
+			ProductVersion: &productVersion,
+		}
+
+		tf.WriteConfigT(t, vars.builder.Build())
+		_, err = tf.Init()
+		require.NoError(t, err)
+
+		// Run `terraform validate`
+		out, err := tf.Validate()
+		require.Error(t, err)
+
+		require.Contains(t, string(out), "must match pattern:")
+		require.Contains(t, string(out), "^([1-9][0-9]*|[1-9][0-9]*\\.[0-9]+|[1-9][0-9]*\\.[0-9]+\\.[0-9]+)([._-][a-z0-9._-]+)?$")
+		require.Contains(t, string(out), productVersion)
+	})
+
+	t.Run("partial credentials", func(t *testing.T) {
+		vars := newTestVars(false)
+
+		errorString := "These attributes must be configured together: [user,password]"
+
+		// Test user without a password
+		vars.providerCfg.User = ptr("org/user")
+
+		tf.WriteConfigT(t, vars.builder.Build())
+		_, err = tf.Init()
+		require.NoError(t, err)
+
+		// Run `terraform validate`
+		out, err := tf.Validate()
+		require.Error(t, err)
+
+		require.Contains(t, string(out), errorString)
+
+		// Test password without a user name
+		vars.providerCfg.User = nil
+		vars.providerCfg.Password = ptr("password")
+
+		tf.WriteConfigT(t, vars.builder.Build())
+		_, err = tf.Init()
+		require.NoError(t, err)
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.Error(t, err)
+
+		require.Contains(t, string(out), errorString)
+	})
+}

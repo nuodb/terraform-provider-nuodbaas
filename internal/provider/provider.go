@@ -16,6 +16,7 @@ import (
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/project"
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/providervalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -25,7 +26,8 @@ import (
 
 // Ensure NuoDbaasProvider satisfies various provider interfaces.
 var (
-	_ provider.Provider = &NuoDbaasProvider{}
+	_ provider.Provider                     = &NuoDbaasProvider{}
+	_ provider.ProviderWithConfigValidators = &NuoDbaasProvider{}
 )
 
 // NuoDbaasProvider defines the provider implementation.
@@ -219,5 +221,12 @@ func New(version string) func() provider.Provider {
 		return &NuoDbaasProvider{
 			version: version,
 		}
+	}
+}
+
+func (p *NuoDbaasProvider) ConfigValidators(context.Context) []provider.ConfigValidator {
+	return []provider.ConfigValidator{
+		providervalidator.RequiredTogether(path.MatchRoot("user"),
+			path.MatchRoot("password")),
 	}
 }
