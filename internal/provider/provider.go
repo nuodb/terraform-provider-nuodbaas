@@ -226,7 +226,9 @@ func New(version string) func() provider.Provider {
 
 func (p *NuoDbaasProvider) ConfigValidators(context.Context) []provider.ConfigValidator {
 	return []provider.ConfigValidator{
-		providervalidator.RequiredTogether(path.MatchRoot("user"),
-			path.MatchRoot("password")),
+		providervalidator.RequiredTogether(
+			path.MatchRoot("user"),
+			path.MatchRoot("password"),
+		),
 	}
 }

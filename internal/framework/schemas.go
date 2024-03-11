@@ -106,7 +106,7 @@ func GetStringValidators(oas *openapi3.Schema) []validator.String {
 
 	format := oas.Format
 	if format == "date-time" {
-		timestampPattern := "([0-9]+)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(([Zz])|([\\+|\\-]([01][0-9]|2[0-3]):[0-5][0-9]))"
+		timestampPattern := "^([0-9]+)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(([Zz])|([\\+|\\-]([01][0-9]|2[0-3]):[0-5][0-9]))$"
 		validators = append(validators, stringvalidator.RegexMatches(regexp.MustCompile(timestampPattern), "must be a RFC 3339 date-time without fractional seconds"))
 	}
 
