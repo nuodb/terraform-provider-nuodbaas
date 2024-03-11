@@ -102,7 +102,7 @@ jobs:
     steps:
      - checkout
      - run:
-        name: "Run end to end deplyment test"
+        name: "Run end to end deployment test"
         command: |
           # CircleCI does not like setting variables from variables in the environment section
           export NUODB_CP_USER=$DBAAS_TEST_USER
