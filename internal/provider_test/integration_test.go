@@ -1385,6 +1385,10 @@ func TestValidation(t *testing.T) {
 	})
 
 	t.Run("partial credentials", func(t *testing.T) {
+		// Clear any credentials that might exist in the enviroment, for example when running as an e2e test
+		t.Setenv(NUODB_CP_USER, "")
+		t.Setenv(NUODB_CP_PASSWORD, "")
+
 		vars := newTestVars(false)
 
 		errorString := "Partial credentials"
@@ -1443,12 +1447,13 @@ func TestValidation(t *testing.T) {
 
 		require.Contains(t, string(out), errorString)
 		require.Contains(t, string(out), errorDescription)
-
-		t.Setenv(NUODB_CP_PASSWORD, "")
 	})
 
 	t.Run("malformed user", func(t *testing.T) {
 		vars := newTestVars(false)
+		// Clear any credentials that might exist in the enviroment, for example when running as an e2e test
+		t.Setenv(NUODB_CP_USER, "")
+
 		t.Setenv(NUODB_CP_PASSWORD, "somePassword")
 
 		errorString := "Malformed user name"
