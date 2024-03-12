@@ -1356,8 +1356,6 @@ func TestValidation(t *testing.T) {
 		vars.project.Name = projName
 
 		tf.WriteConfigT(t, vars.builder.Build())
-		_, err = tf.Init()
-		require.NoError(t, err)
 
 		// Run `terraform validate`
 		out, err := tf.Validate()
@@ -1376,8 +1374,6 @@ func TestValidation(t *testing.T) {
 		}
 
 		tf.WriteConfigT(t, vars.builder.Build())
-		_, err = tf.Init()
-		require.NoError(t, err)
 
 		// Run `terraform validate`
 		out, err := tf.Validate()
@@ -1397,8 +1393,6 @@ func TestValidation(t *testing.T) {
 		vars.providerCfg.User = ptr("org/user")
 
 		tf.WriteConfigT(t, vars.builder.Build())
-		_, err = tf.Init()
-		require.NoError(t, err)
 
 		// Run `terraform validate`
 		out, err := tf.Validate()
@@ -1411,8 +1405,6 @@ func TestValidation(t *testing.T) {
 		vars.providerCfg.Password = ptr("password")
 
 		tf.WriteConfigT(t, vars.builder.Build())
-		_, err = tf.Init()
-		require.NoError(t, err)
 
 		// Run `terraform validate`
 		out, err = tf.Validate()
