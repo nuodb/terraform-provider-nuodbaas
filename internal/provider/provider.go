@@ -9,6 +9,7 @@ import (
 	"context"
 	"net/url"
 	"os"
+	"strings"
 
 	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
@@ -16,7 +17,6 @@ import (
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/project"
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/providervalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -26,8 +26,8 @@ import (
 
 // Ensure NuoDbaasProvider satisfies various provider interfaces.
 var (
-	_ provider.Provider                     = &NuoDbaasProvider{}
-	_ provider.ProviderWithConfigValidators = &NuoDbaasProvider{}
+	_ provider.Provider                   = &NuoDbaasProvider{}
+	_ provider.ProviderWithValidateConfig = &NuoDbaasProvider{}
 )
 
 // NuoDbaasProvider defines the provider implementation.
@@ -224,11 +224,23 @@ func New(version string) func() provider.Provider {
 	}
 }
 
-func (p *NuoDbaasProvider) ConfigValidators(context.Context) []provider.ConfigValidator {
-	return []provider.ConfigValidator{
-		providervalidator.RequiredTogether(
-			path.MatchRoot("user"),
-			path.MatchRoot("password"),
-		),
+func (p *NuoDbaasProvider) ValidateConfig(ctx context.Context, req provider.ValidateConfigRequest, resp *provider.ValidateConfigResponse) {
+	var config NuoDbaasProviderModel
+	if !framework.ReadResource(ctx, &resp.Diagnostics, req.Config.Get, &config) {
+		return
+	}
+
+	hasUser := config.GetUser() != ""
+	hasPassword := config.GetPassword() != ""
+
+	if (hasUser && !hasPassword) || (hasPassword && !hasUser) { // user xnor password
+		resp.Diagnostics.AddError("Partial credentials", "To use authenticantion, both user name and password should be provided.")
+	}
+
+	if hasUser {
+		userParts := strings.Split(config.GetUser(), "/")
+		if len(userParts) != 2 || len(userParts[0]) < 1 || len(userParts[1]) < 1 {
+			resp.Diagnostics.AddAttributeError(path.Root("user"), "Malformed user name", "User name should be in the format \"<organization>/<user>\".")
+		}
 	}
 }

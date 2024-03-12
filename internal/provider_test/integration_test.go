@@ -1387,7 +1387,8 @@ func TestValidation(t *testing.T) {
 	t.Run("partial credentials", func(t *testing.T) {
 		vars := newTestVars(false)
 
-		errorString := "These attributes must be configured together: [user,password]"
+		errorString := "Partial credentials"
+		errorDescription := "To use authenticantion, both user name and password should be provided."
 
 		// Test user without a password
 		vars.providerCfg.User = ptr("org/user")
@@ -1399,9 +1400,25 @@ func TestValidation(t *testing.T) {
 		require.Error(t, err)
 
 		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+
+		vars.providerCfg.User = nil
+
+		// And passing user via the environment
+		t.Setenv(NUODB_CP_USER, "org/user")
+
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.Error(t, err)
+
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+
+		t.Setenv(NUODB_CP_USER, "")
 
 		// Test password without a user name
-		vars.providerCfg.User = nil
 		vars.providerCfg.Password = ptr("password")
 
 		tf.WriteConfigT(t, vars.builder.Build())
@@ -1411,5 +1428,74 @@ func TestValidation(t *testing.T) {
 		require.Error(t, err)
 
 		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+
+		vars.providerCfg.Password = nil
+
+		// And passing password via the environment
+		t.Setenv(NUODB_CP_PASSWORD, "password")
+
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.Error(t, err)
+
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+
+		t.Setenv(NUODB_CP_PASSWORD, "")
+	})
+
+	t.Run("malformed user", func(t *testing.T) {
+		vars := newTestVars(false)
+		t.Setenv(NUODB_CP_PASSWORD, "somePassword")
+
+		errorString := "Malformed user name"
+		errorDescription := "User name should be in the format \"<organization>/<user>\"."
+
+		// Test user without a password
+		vars.providerCfg.User = ptr("org.user")
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err := tf.Validate()
+		require.Error(t, err)
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+
+		// Test user without a password
+		vars.providerCfg.User = ptr("/user")
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.Error(t, err)
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+
+		// Test user without a password
+		vars.providerCfg.User = ptr("org/")
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.Error(t, err)
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+
+		vars.providerCfg.User = nil
+
+		// And passing user via the environment
+		t.Setenv(NUODB_CP_USER, "orguser")
+
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.Error(t, err)
+
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
 	})
 }
