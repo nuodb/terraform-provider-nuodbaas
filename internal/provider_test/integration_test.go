@@ -1385,7 +1385,7 @@ func TestValidation(t *testing.T) {
 	})
 
 	t.Run("partial credentials", func(t *testing.T) {
-		// Clear any credentials that might exist in the enviroment, for example when running as an e2e test
+		// Clear any credentials that might exist in the environment, for example when running as an e2e test
 		t.Setenv(NUODB_CP_USER, "")
 		t.Setenv(NUODB_CP_PASSWORD, "")
 
@@ -1451,7 +1451,7 @@ func TestValidation(t *testing.T) {
 
 	t.Run("malformed user", func(t *testing.T) {
 		vars := newTestVars(false)
-		// Clear any credentials that might exist in the enviroment, for example when running as an e2e test
+		// Clear any credentials that might exist in the environment, for example when running as an e2e test
 		t.Setenv(NUODB_CP_USER, "")
 
 		t.Setenv(NUODB_CP_PASSWORD, "somePassword")
@@ -1459,7 +1459,7 @@ func TestValidation(t *testing.T) {
 		errorString := "Malformed user name"
 		errorDescription := "User name should be in the format \"<organization>/<user>\"."
 
-		// Test user without a password
+		// Test user name without an org
 		vars.providerCfg.User = ptr("org.user")
 		tf.WriteConfigT(t, vars.builder.Build())
 
@@ -1469,7 +1469,7 @@ func TestValidation(t *testing.T) {
 		require.Contains(t, string(out), errorString)
 		require.Contains(t, string(out), errorDescription)
 
-		// Test user without a password
+		// Test user with an empty org
 		vars.providerCfg.User = ptr("/user")
 		tf.WriteConfigT(t, vars.builder.Build())
 
@@ -1479,7 +1479,7 @@ func TestValidation(t *testing.T) {
 		require.Contains(t, string(out), errorString)
 		require.Contains(t, string(out), errorDescription)
 
-		// Test user without a password
+		// Test user with only an org
 		vars.providerCfg.User = ptr("org/")
 		tf.WriteConfigT(t, vars.builder.Build())
 
@@ -1502,5 +1502,32 @@ func TestValidation(t *testing.T) {
 
 		require.Contains(t, string(out), errorString)
 		require.Contains(t, string(out), errorDescription)
+	})
+
+	t.Run("Validate url and timeout", func(t *testing.T) {
+		// There is more extensive testing in TestNegative so only test that
+		// they are checked by `terraform validate`
+		vars := newTestVars(false)
+
+		// Try an invalid timeout
+		vars.providerCfg.Timeouts = map[string]framework.OperationTimeouts{
+			"database": {Update: ptr("-1s")},
+		}
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err := tf.Validate()
+		require.Error(t, err)
+		require.Contains(t, string(out), "Timeout for database update is negative: -1s")
+		vars.providerCfg.Timeouts = nil
+
+		// Try an invalid url
+		vars.providerCfg.UrlBase = ptr("hostname.com")
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.Error(t, err)
+		require.Contains(t, string(out), "No scheme found in URL")
 	})
 }
