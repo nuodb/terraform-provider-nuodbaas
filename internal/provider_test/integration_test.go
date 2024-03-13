@@ -1339,3 +1339,197 @@ func checkDataSourceList(t *testing.T, dataSourceType, dataSource string, expect
 		tf.CheckStateResource(t, address).ForEach(dataSourceType, expectedCount, assertFn)
 	})
 }
+
+func TestValidation(t *testing.T) {
+	// Create provider server that runs within test
+	ctx := context.Background()
+	reattachCfg, closeFn := CreateProviderServer(t, ctx)
+	defer closeFn()
+
+	// Create Terraform workspace and initialize it with config
+	tf := CreateTerraformWorkspace(t)
+	err := tf.SetReattachConfig(reattachCfg)
+	require.NoError(t, err)
+
+	t.Run("invalid project name", func(t *testing.T) {
+		vars := newTestVars(false)
+		projName := "this is not a valid project name"
+
+		vars.project.Name = projName
+
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err := tf.Validate()
+		require.Error(t, err)
+
+		require.Contains(t, string(out), "must match pattern: ^[a-z][a-z0-9]*$")
+		require.Contains(t, string(out), projName)
+	})
+
+	t.Run("invalid database product version", func(t *testing.T) {
+		vars := newTestVars(false)
+		productVersion := "six"
+
+		vars.database.Properties = &openapi.DatabasePropertiesModel{
+			ProductVersion: &productVersion,
+		}
+
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err := tf.Validate()
+		require.Error(t, err)
+
+		require.Contains(t, string(out), "must match pattern:")
+		require.Contains(t, string(out), "^([1-9][0-9]*|[1-9][0-9]*\\.[0-9]+|[1-9][0-9]*\\.[0-9]+\\.[0-9]+)([._-][a-z0-9._-]+)?$")
+		require.Contains(t, string(out), productVersion)
+	})
+
+	t.Run("partial credentials", func(t *testing.T) {
+		// Clear any credentials that might exist in the environment, for example when running as an e2e test
+		t.Setenv(NUODB_CP_USER, "")
+		t.Setenv(NUODB_CP_PASSWORD, "")
+
+		vars := newTestVars(false)
+
+		errorString := "Partial credentials"
+		errorDescription := "To use authenticantion, both user name and password should be provided."
+
+		// Test user without a password
+		vars.providerCfg.User = ptr("org/user")
+
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err := tf.Validate()
+		require.Error(t, err)
+
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+
+		vars.providerCfg.User = nil
+
+		// And passing user via the environment
+		t.Setenv(NUODB_CP_USER, "org/user")
+
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.Error(t, err)
+
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+
+		t.Setenv(NUODB_CP_USER, "")
+
+		// Test password without a user name
+		vars.providerCfg.Password = ptr("password")
+
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.Error(t, err)
+
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+
+		vars.providerCfg.Password = nil
+
+		// And passing password via the environment
+		t.Setenv(NUODB_CP_PASSWORD, "password")
+
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.Error(t, err)
+
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+	})
+
+	t.Run("malformed user", func(t *testing.T) {
+		vars := newTestVars(false)
+		// Clear any credentials that might exist in the environment, for example when running as an e2e test
+		t.Setenv(NUODB_CP_USER, "")
+
+		t.Setenv(NUODB_CP_PASSWORD, "somePassword")
+
+		errorString := "Malformed user name"
+		errorDescription := "User name should be in the format \"<organization>/<user>\"."
+
+		// Test user name without an org
+		vars.providerCfg.User = ptr("org.user")
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err := tf.Validate()
+		require.Error(t, err)
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+
+		// Test user with an empty org
+		vars.providerCfg.User = ptr("/user")
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.Error(t, err)
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+
+		// Test user with only an org
+		vars.providerCfg.User = ptr("org/")
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.Error(t, err)
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+
+		vars.providerCfg.User = nil
+
+		// And passing user via the environment
+		t.Setenv(NUODB_CP_USER, "orguser")
+
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.Error(t, err)
+
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+	})
+
+	t.Run("Validate url and timeout", func(t *testing.T) {
+		// There is more extensive testing in TestNegative so only test that
+		// they are checked by `terraform validate`
+		vars := newTestVars(false)
+
+		// Try an invalid timeout
+		vars.providerCfg.Timeouts = map[string]framework.OperationTimeouts{
+			"database": {Update: ptr("-1s")},
+		}
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err := tf.Validate()
+		require.Error(t, err)
+		require.Contains(t, string(out), "Timeout for database update is negative: -1s")
+		vars.providerCfg.Timeouts = nil
+
+		// Try an invalid url
+		vars.providerCfg.UrlBase = ptr("hostname.com")
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.Error(t, err)
+		require.Contains(t, string(out), "No scheme found in URL")
+	})
+}

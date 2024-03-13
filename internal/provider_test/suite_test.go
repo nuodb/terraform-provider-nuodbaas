@@ -297,6 +297,10 @@ func (tf *TfHelper) ShowJson() ([]byte, error) {
 	return tf.Run("show", "-json")
 }
 
+func (tf *TfHelper) Validate() ([]byte, error) {
+	return tf.Run("validate")
+}
+
 func (tf *TfHelper) GetStateResources() ([]any, error) {
 	tfCopy := *tf
 	tfCopy.Silent = true

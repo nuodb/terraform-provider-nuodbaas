@@ -8,12 +8,16 @@ package framework
 import (
 	"fmt"
 	"reflect"
+	"regexp"
+	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	datasource "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	resource "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
@@ -95,6 +99,28 @@ func IsSensitiveAttribute(oas *openapi3.Schema) bool {
 
 func IsImmutableAttribute(oas *openapi3.Schema) bool {
 	return IsExtensionSet(oas, "x-immutable")
+}
+
+func GetStringValidators(oas *openapi3.Schema) []validator.String {
+	var validators []validator.String
+
+	format := oas.Format
+	if format == "date-time" {
+		timestampPattern := "^([0-9]+)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(([Zz])|([\\+|\\-]([01][0-9]|2[0-3]):[0-5][0-9]))$"
+		validators = append(validators, stringvalidator.RegexMatches(regexp.MustCompile(timestampPattern), "must be a RFC 3339 date-time without fractional seconds"))
+	}
+
+	pattern := oas.Pattern
+	if pattern != "" {
+		if !strings.HasPrefix(pattern, "^") {
+			pattern = "^" + pattern
+		}
+		if !strings.HasSuffix(pattern, "$") {
+			pattern = pattern + "$"
+		}
+		validators = append(validators, stringvalidator.RegexMatches(regexp.MustCompile(pattern), "must match pattern: "+pattern))
+	}
+	return validators
 }
 
 func GetTerraformType(schemaRef *openapi3.SchemaRef) attr.Type {
@@ -253,6 +279,7 @@ func ToResourceAttribute(oas *openapi3.Schema, required, readOnly bool) (string,
 			Optional:            optional,
 			Computed:            computed,
 			Sensitive:           sensitive,
+			Validators:          GetStringValidators(oas),
 			PlanModifiers:       appendNonNil([]planmodifier.String{}, planmodifier.String(useStateForUnknown), planmodifier.String(requiresReplace)),
 		}
 	default:

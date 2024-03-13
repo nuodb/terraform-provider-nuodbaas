@@ -9,6 +9,8 @@ import (
 	"context"
 	"net/url"
 	"os"
+	"strings"
+	"time"
 
 	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
@@ -17,15 +19,18 @@ import (
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 )
 
 // Ensure NuoDbaasProvider satisfies various provider interfaces.
 var (
-	_ provider.Provider = &NuoDbaasProvider{}
+	_ provider.Provider                   = &NuoDbaasProvider{}
+	_ provider.ProviderWithValidateConfig = &NuoDbaasProvider{}
 )
 
 // NuoDbaasProvider defines the provider implementation.
@@ -139,30 +144,7 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 }
 
 func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var config NuoDbaasProviderModel
-	if !framework.ReadResource(ctx, &resp.Diagnostics, req.Config.Get, &config) {
-		return
-	}
-
-	// Validate server URL
-	if config.GetUrlBase() == "" {
-		resp.Diagnostics.AddError("Invalid provider configuration", "Must specify url_base or the environment variable "+NUODB_CP_URL_BASE)
-	} else {
-		url, err := url.Parse(config.GetUrlBase())
-		// url.Parse() does not return error if scheme is missing, so
-		// check that explicitly
-		if err != nil {
-			resp.Diagnostics.AddAttributeError(path.Empty().AtName("url_base"), "Invalid provider configuration", err.Error())
-		} else if url.Scheme == "" {
-			resp.Diagnostics.AddAttributeError(path.Empty().AtName("url_base"), "Invalid provider configuration", "No scheme found in URL")
-		}
-	}
-
-	// Validate timeout configuration
-	timeouts, err := framework.ParseTimeouts(config.Timeouts, resourceTypes())
-	if err != nil {
-		resp.Diagnostics.AddAttributeError(path.Empty().AtName("timeouts"), "Invalid provider configuration", err.Error())
-	}
+	config, timeouts := parseAndValidate(ctx, req.Config, &resp.Diagnostics)
 
 	// Check that no errors occurred
 	if resp.Diagnostics.HasError() {
@@ -180,6 +162,50 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 	clientWithOptions := framework.NewClientWithOptions(client, timeouts)
 	resp.DataSourceData = clientWithOptions
 	resp.ResourceData = clientWithOptions
+}
+
+func parseAndValidate(ctx context.Context, rawConfig tfsdk.Config, diags *diag.Diagnostics) (NuoDbaasProviderModel, map[string]map[string]time.Duration) {
+	var config NuoDbaasProviderModel
+	if !framework.ReadResource(ctx, diags, rawConfig.Get, &config) {
+		return config, nil
+	}
+
+	// Validate server URL
+	if config.GetUrlBase() == "" {
+		diags.AddError("Invalid provider configuration", "Must specify url_base or the environment variable "+NUODB_CP_URL_BASE)
+	} else {
+		url, err := url.Parse(config.GetUrlBase())
+		// url.Parse() does not return error if scheme is missing, so
+		// check that explicitly
+		if err != nil {
+			diags.AddAttributeError(path.Empty().AtName("url_base"), "Invalid provider configuration", err.Error())
+		} else if url.Scheme == "" {
+			diags.AddAttributeError(path.Empty().AtName("url_base"), "Invalid provider configuration", "No scheme found in URL")
+		}
+	}
+
+	// Validate timeout configuration
+	timeouts, err := framework.ParseTimeouts(config.Timeouts, resourceTypes())
+	if err != nil {
+		diags.AddAttributeError(path.Empty().AtName("timeouts"), "Invalid provider configuration", err.Error())
+	}
+
+	// Validate credentials
+	hasUser := config.GetUser() != ""
+	hasPassword := config.GetPassword() != ""
+
+	if (hasUser && !hasPassword) || (hasPassword && !hasUser) { // user xnor password
+		diags.AddError("Partial credentials", "To use authenticantion, both user name and password should be provided.")
+	}
+
+	if hasUser {
+		userParts := strings.Split(config.GetUser(), "/")
+		if len(userParts) != 2 || len(userParts[0]) < 1 || len(userParts[1]) < 1 {
+			diags.AddAttributeError(path.Root("user"), "Malformed user name", "User name should be in the format \"<organization>/<user>\".")
+		}
+	}
+
+	return config, timeouts
 }
 
 func (p *NuoDbaasProvider) Resources(ctx context.Context) []func() resource.Resource {
@@ -220,4 +246,8 @@ func New(version string) func() provider.Provider {
 			version: version,
 		}
 	}
+}
+
+func (p *NuoDbaasProvider) ValidateConfig(ctx context.Context, req provider.ValidateConfigRequest, resp *provider.ValidateConfigResponse) {
+	parseAndValidate(ctx, req.Config, &resp.Diagnostics)
 }
