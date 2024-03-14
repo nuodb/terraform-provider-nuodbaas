@@ -12,16 +12,16 @@ Terraform manages the dependency of the application on the database based on the
 # Usage
 
 1. Download the contents of this repository and navigate to this directory:
-```
-git clone https://github.com/nuodb/terraform-provider-nuodbaas.git
-cd terraform-provider-nuodbaas-main/examples/demo
-```
-Alternatively, you can download and unpack the contents of this directory specifically as follows:
-```
-curl -s -L https://github.com/nuodb/terraform-provider-nuodbaas/archive/refs/heads/main.tar.gz | \
-    tar -xv --strip-components=2 terraform-provider-nuodbaas-main/examples/demo
-cd demo
-```
+   ```
+   git clone https://github.com/nuodb/terraform-provider-nuodbaas.git
+   cd terraform-provider-nuodbaas-main/examples/demo
+   ```
+   Alternatively, you can download and unpack the contents of this directory specifically as follows:
+   ```
+   curl -s -L https://github.com/nuodb/terraform-provider-nuodbaas/archive/refs/heads/main.tar.gz | \
+       tar -xv --strip-components=2 terraform-provider-nuodbaas-main/examples/demo
+   cd demo
+   ```
 2. Configure DBaaS credentials as described in [Configuring DBaaS access](/README.md#configuring-dbaas-access).
 3. Run `terraform apply` to create the NuoDB project, database, and the application.
 The application runs within a local Docker container.
