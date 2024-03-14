@@ -14,7 +14,7 @@ Terraform manages the dependency of the application on the database based on the
 1. Download the contents of this repository and navigate to this directory:
    ```
    git clone https://github.com/nuodb/terraform-provider-nuodbaas.git
-   cd terraform-provider-nuodbaas-main/examples/demo
+   cd terraform-provider-nuodbaas/examples/demo
    ```
    Alternatively, you can download and unpack the contents of this directory specifically as follows:
    ```
