@@ -1011,7 +1011,7 @@ func TestImmutableAttributeChange(t *testing.T) {
 	// Change the project SLA and verify that a warning is displayed by
 	// Terraform when running `terraform plan`
 	t.Run("planSlaChange", func(t *testing.T) {
-		vars.project.Sla = "prod"
+		vars.project.Sla = "qa"
 		defer func() {
 			vars.project.Sla = "dev"
 		}()
@@ -1028,7 +1028,7 @@ func TestImmutableAttributeChange(t *testing.T) {
 	// Run `terraform apply` and verify that a warning is displayed by
 	// Terraform and that the request is also rejected by the server
 	t.Run("applySlaChangeRejected", func(t *testing.T) {
-		vars.project.Sla = "prod"
+		vars.project.Sla = "qa"
 		defer func() {
 			vars.project.Sla = "dev"
 		}()
@@ -1046,7 +1046,7 @@ func TestImmutableAttributeChange(t *testing.T) {
 	// destroy -target=...` followed by `terraform apply`
 	t.Run("applySlaChangeExplicitly", func(t *testing.T) {
 		// Change project SLA
-		vars.project.Sla = "prod"
+		vars.project.Sla = "qa"
 		tf.WriteConfigT(t, vars.builder.Build())
 
 		// Destroy the project and database
@@ -1071,12 +1071,12 @@ func TestImmutableAttributeChange(t *testing.T) {
 			HasAttribute("status.state").
 			HasAttribute("status.ready")
 		tf.CheckStateResource(t, "nuodbaas_project.proj").
-			HasAttributeValue("sla", "prod").
+			HasAttributeValue("sla", "qa").
 			HasAttributeValue("tier", "n0.nano").
 			HasAttribute("status.state").
 			HasAttribute("status.ready")
 		tf.CheckStateResource(t, "data.nuodbaas_project.proj").
-			HasAttributeValue("sla", "prod").
+			HasAttributeValue("sla", "qa").
 			HasAttributeValue("tier", "n0.nano").
 			HasAttribute("status.state").
 			HasAttribute("status.ready")
