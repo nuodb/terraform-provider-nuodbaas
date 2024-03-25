@@ -605,8 +605,8 @@ type MockReconcilePolicy struct {
 // GetMockReconcilePolicy returns the current policy being used by the mock reconcilier for domain and database resources.
 func GetMockReconcilePolicy(t *testing.T) *MockReconcilePolicy {
 	cmd := exec.Command("kubectl", "get", "configmap", MOCK_OPERATOR_POLICY_CM, "-o", "jsonpath={.data}", "--ignore-not-found")
-	out, err := cmd.Output()
-	require.NoError(t, err)
+	out, err := cmd.CombinedOutput()
+	require.NoError(t, err, "OUT ===\n%s\n===", out)
 
 	// If configmap does not exist, return nil
 	if strings.TrimSpace(string(out)) == "" {
@@ -633,8 +633,8 @@ func SetMockReconcilePolicy(t *testing.T, newPolicy MockReconcilePolicy) func() 
 	// Configmap exists, so patch it to have the supplied values
 	patch := fmt.Sprintf(PATCH_FMT, newPolicy.MarkAsReady, newPolicy.ReadinessDelaySeconds)
 	cmd := exec.Command("kubectl", "patch", "configmap", MOCK_OPERATOR_POLICY_CM, "--type=json", "-p", patch)
-	_, err := cmd.Output()
-	require.NoError(t, err)
+	out, err := cmd.CombinedOutput()
+	require.NoError(t, err, "OUT ===\n%s\n===", out)
 	return func() { SetMockReconcilePolicy(t, *currentPolicy) }
 }
 
