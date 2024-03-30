@@ -13,8 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getkin/kin-openapi/openapi3"
-
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/helper"
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
@@ -45,11 +43,11 @@ func NewClientWithOptions(client openapi.ClientInterface, timeouts map[string]ma
 // with the Terraform API and delegates interaction with the provider API to
 // ResourceState.
 type GenericResource struct {
-	client           *ClientWithOptions
-	TypeName         string
-	Description      string
-	GetOpenApiSchema func() (*openapi3.Schema, error)
-	Build            func() ResourceState
+	client                *ClientWithOptions
+	TypeName              string
+	Description           string
+	GetResourceAttributes func() (map[string]schema.Attribute, error)
+	Build                 func() ResourceState
 }
 
 // State is a marker interface for all structs that model Terraform resources
@@ -69,21 +67,21 @@ type ResourceState interface {
 
 	// Create creates the resource in the backend based on the local state
 	// and waits for it to satisfy IsReady().
-	Create(context.Context, openapi.ClientInterface) error
+	Create(ctx context.Context, client openapi.ClientInterface) error
 
 	// Read retrieves the state of the resource from the backend.
-	Read(context.Context, openapi.ClientInterface) error
+	Read(ctx context.Context, client openapi.ClientInterface) error
 
 	// Update updates the resource in the backend to match the local state
 	// and waits for it to satisfy IsReady().
-	Update(context.Context, openapi.ClientInterface) error
+	Update(ctx context.Context, client openapi.ClientInterface, currentState ResourceState) error
 
 	// Delete deletes the resource from the backend and waits for it to be
 	// cleaned up.
-	Delete(context.Context, openapi.ClientInterface) error
+	Delete(ctx context.Context, client openapi.ClientInterface) error
 
 	// Deserialize the resource ID
-	SetId(string) error
+	SetId(id string) error
 }
 
 func (r *GenericResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -92,7 +90,7 @@ func (r *GenericResource) Metadata(ctx context.Context, req resource.MetadataReq
 
 func (r *GenericResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	// Get OpenAPI spec and convert it to Terraform schema
-	oas, err := r.GetOpenApiSchema()
+	attributes, err := r.GetResourceAttributes()
 	if err != nil {
 		resp.Diagnostics.AddError("Schema Creation Error", err.Error())
 		return
@@ -100,7 +98,7 @@ func (r *GenericResource) Schema(ctx context.Context, req resource.SchemaRequest
 	resp.Schema = schema.Schema{
 		Description:         r.Description,
 		MarkdownDescription: r.Description,
-		Attributes:          ToResourceSchema(oas, false),
+		Attributes:          attributes,
 	}
 }
 
@@ -182,17 +180,22 @@ func (r *GenericResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 func (r *GenericResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Read desired resource state from Terraform
+	plan := r.Build()
+	if !ReadResource(ctx, &resp.Diagnostics, req.Plan.Get, plan) {
+		return
+	}
+	// Read current resource state from Terraform
 	state := r.Build()
-	if !ReadResource(ctx, &resp.Diagnostics, req.Plan.Get, state) {
+	if !ReadResource(ctx, &resp.Diagnostics, req.State.Get, state) {
 		return
 	}
 	// Update the resource
-	err := state.Update(ctx, r.client.Client)
+	err := plan.Update(ctx, r.client.Client, state)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to update "+r.TypeName, err.Error())
 		return
 	}
-	r.finalizeCreateOrUpdate(ctx, state, UPDATE_OPERATION, &resp.Diagnostics, &resp.State)
+	r.finalizeCreateOrUpdate(ctx, plan, UPDATE_OPERATION, &resp.Diagnostics, &resp.State)
 }
 
 func (r *GenericResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

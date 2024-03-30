@@ -23,12 +23,6 @@ import (
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 )
 
-const (
-	DatabaseResourceSchemaName   = "DatabaseCreateUpdateModel"
-	DatabaseDataSourceSchemaName = "DatabaseModel"
-	ProjectSchemaName            = "ProjectModel"
-)
-
 func getSchemas() (openapi3.Schemas, error) {
 	swagger, err := openapi.GetSwagger()
 	if err != nil {
@@ -55,16 +49,20 @@ func GetSchema(name string) (*openapi3.Schema, error) {
 	return nil, fmt.Errorf("Schema %s not found", name)
 }
 
-func GetDatabaseResourceSchema() (*openapi3.Schema, error) {
-	return GetSchema(DatabaseResourceSchemaName)
+func GetResourceAttributes(name string) (map[string]resource.Attribute, error) {
+	oas, err := GetSchema(name)
+	if err != nil {
+		return nil, err
+	}
+	return ToResourceSchema(oas, false), nil
 }
 
-func GetDatabaseDataSourceSchema() (*openapi3.Schema, error) {
-	return GetSchema(DatabaseDataSourceSchemaName)
-}
-
-func GetProjectSchema() (*openapi3.Schema, error) {
-	return GetSchema(ProjectSchemaName)
+func GetDataSourceAttributes(name string) (map[string]datasource.Attribute, error) {
+	oas, err := GetSchema(name)
+	if err != nil {
+		return nil, err
+	}
+	return ToDataSourceSchema(oas), nil
 }
 
 func GetAttributeName(oas *openapi3.Schema) string {

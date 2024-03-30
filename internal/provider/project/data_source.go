@@ -9,7 +9,12 @@ import (
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 )
+
+func GetProjectDataSourceAttributes() (map[string]schema.Attribute, error) {
+	return framework.GetDataSourceAttributes("ProjectModel")
+}
 
 func NewProjectDataSourceState() framework.DataSourceState {
 	return &ProjectResourceModel{}
@@ -17,9 +22,9 @@ func NewProjectDataSourceState() framework.DataSourceState {
 
 func NewProjectDataSource() datasource.DataSource {
 	return &framework.GenericDataSource{
-		TypeName:         "project",
-		Description:      "Data source for exposing information about NuoDB projects created using the DBaaS Control Plane",
-		GetOpenApiSchema: framework.GetProjectSchema,
-		Build:            NewProjectDataSourceState,
+		TypeName:                "project",
+		Description:             "Data source for exposing information about NuoDB projects created using the DBaaS Control Plane",
+		GetDataSourceAttributes: GetProjectDataSourceAttributes,
+		Build:                   NewProjectDataSourceState,
 	}
 }

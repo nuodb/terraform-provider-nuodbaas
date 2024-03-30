@@ -309,6 +309,18 @@ type RestoreFromModel struct {
 	Backup *string `cty:"backup" hcl:"backup" json:"backup,omitempty" tfsdk:"backup"`
 }
 
+// UpdateDbaPasswordModel defines model for UpdateDbaPasswordModel.
+type UpdateDbaPasswordModel struct {
+	// Current The current DBA password, which must be supplied for verification purposes
+	Current string `json:"current"`
+
+	// Target The target DBA password
+	Target *string `json:"target,omitempty"`
+
+	// Resync Whether to update configured DBA password so that it matches actual DBA password. If `true`, `current` is verified by connecting to the database directly before updating configured DBA password.
+	Resync *bool `json:"resync,omitempty"`
+}
+
 // GetAllDatabasesParams defines parameters for GetAllDatabases.
 type GetAllDatabasesParams struct {
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
@@ -350,12 +362,18 @@ type GetDatabasesParams struct {
 
 // DeleteDatabaseParams defines parameters for DeleteDatabase.
 type DeleteDatabaseParams struct {
-	// TimeoutSeconds The number of seconds to wait for the deletion to be finalized, unless 0 is specified which indicates not to wait
+	// TimeoutSeconds The number of seconds to wait for the operation to be finalized, unless 0 is specified which indicates not to wait
 	TimeoutSeconds *int32 `form:"timeoutSeconds,omitempty" json:"timeoutSeconds,omitempty"`
 }
 
 // PatchDatabaseApplicationJSONPatchPlusJSONBody defines parameters for PatchDatabase.
 type PatchDatabaseApplicationJSONPatchPlusJSONBody = []JsonPatchOperation
+
+// UpdateDbaPasswordParams defines parameters for UpdateDbaPassword.
+type UpdateDbaPasswordParams struct {
+	// TimeoutSeconds The number of seconds to wait for the operation to be finalized, unless 0 is specified which indicates not to wait
+	TimeoutSeconds *int32 `form:"timeoutSeconds,omitempty" json:"timeoutSeconds,omitempty"`
+}
 
 // GetAllProjectsParams defines parameters for GetAllProjects.
 type GetAllProjectsParams struct {
@@ -385,7 +403,7 @@ type GetProjectsParams struct {
 
 // DeleteProjectParams defines parameters for DeleteProject.
 type DeleteProjectParams struct {
-	// TimeoutSeconds The number of seconds to wait for the deletion to be finalized, unless 0 is specified which indicates not to wait
+	// TimeoutSeconds The number of seconds to wait for the operation to be finalized, unless 0 is specified which indicates not to wait
 	TimeoutSeconds *int32 `form:"timeoutSeconds,omitempty" json:"timeoutSeconds,omitempty"`
 }
 
@@ -397,6 +415,9 @@ type PatchDatabaseApplicationJSONPatchPlusJSONRequestBody = PatchDatabaseApplica
 
 // CreateDatabaseJSONRequestBody defines body for CreateDatabase for application/json ContentType.
 type CreateDatabaseJSONRequestBody = DatabaseCreateUpdateModel
+
+// UpdateDbaPasswordJSONRequestBody defines body for UpdateDbaPassword for application/json ContentType.
+type UpdateDbaPasswordJSONRequestBody = UpdateDbaPasswordModel
 
 // PatchProjectApplicationJSONPatchPlusJSONRequestBody defines body for PatchProject for application/json-patch+json ContentType.
 type PatchProjectApplicationJSONPatchPlusJSONRequestBody = PatchProjectApplicationJSONPatchPlusJSONBody

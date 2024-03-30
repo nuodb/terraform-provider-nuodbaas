@@ -8,8 +8,6 @@ package framework
 import (
 	"context"
 
-	"github.com/getkin/kin-openapi/openapi3"
-
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -24,12 +22,12 @@ var (
 // interactions with the Terraform API and delegates interaction with the
 // provider API to DataSourceState.
 type GenericDataSource struct {
-	client           *ClientWithOptions
-	TypeName         string
-	Description      string
-	GetOpenApiSchema func() (*openapi3.Schema, error)
-	SchemaOverride   *schema.Schema
-	Build            func() DataSourceState
+	client                  *ClientWithOptions
+	TypeName                string
+	Description             string
+	GetDataSourceAttributes func() (map[string]schema.Attribute, error)
+	SchemaOverride          *schema.Schema
+	Build                   func() DataSourceState
 }
 
 // DataSourceState handles interactions with the provider API.
@@ -37,7 +35,7 @@ type DataSourceState interface {
 	State
 
 	// Read retrieves the state of the resource from the backend.
-	Read(context.Context, openapi.ClientInterface) error
+	Read(ctx context.Context, client openapi.ClientInterface) error
 }
 
 func (d *GenericDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -51,7 +49,7 @@ func (d *GenericDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 		return
 	}
 	// Otherwise, build schema from OpenAPI specification
-	oas, err := d.GetOpenApiSchema()
+	attributes, err := d.GetDataSourceAttributes()
 	if err != nil {
 		resp.Diagnostics.AddError("Schema Creation Error", err.Error())
 		return
@@ -59,7 +57,7 @@ func (d *GenericDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 	resp.Schema = schema.Schema{
 		Description:         d.Description,
 		MarkdownDescription: d.Description,
-		Attributes:          ToDataSourceSchema(oas),
+		Attributes:          attributes,
 	}
 }
 

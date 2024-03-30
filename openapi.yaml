@@ -7,9 +7,9 @@ info:
   contact:
     url: https://nuodb.com
     email: NuoDB.Support@3ds.com
-  version: 2.4.0
+  version: 2.5.0
 servers:
-- url: https://example.nuodb.com
+- url: "{{ .Values.cpDoc.serverUrl }}"
 paths:
   /backups:
     get:
@@ -487,8 +487,16 @@ paths:
       responses:
         "200":
           description: The backup was updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupModel'
         "201":
           description: The backup was created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupModel'
         "400":
           description: The user request was invalid
           content:
@@ -564,7 +572,7 @@ paths:
           type: string
       - name: timeoutSeconds
         in: query
-        description: "The number of seconds to wait for the deletion to be finalized,\
+        description: "The number of seconds to wait for the operation to be finalized,\
           \ unless 0 is specified which indicates not to wait"
         schema:
           minimum: 0
@@ -670,6 +678,10 @@ paths:
       responses:
         "200":
           description: The patch was applied to the backup
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupModel'
         "400":
           description: The user request was invalid
           content:
@@ -1034,8 +1046,16 @@ paths:
       responses:
         "200":
           description: The database was updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseModel'
         "201":
           description: The database was created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseModel'
         "400":
           description: The user request was invalid
           content:
@@ -1113,7 +1133,7 @@ paths:
           type: string
       - name: timeoutSeconds
         in: query
-        description: "The number of seconds to wait for the deletion to be finalized,\
+        description: "The number of seconds to wait for the operation to be finalized,\
           \ unless 0 is specified which indicates not to wait"
         schema:
           minimum: 0
@@ -1248,6 +1268,10 @@ paths:
       responses:
         "200":
           description: The patch was applied to the database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseModel'
         "400":
           description: The user request was invalid
           content:
@@ -1287,6 +1311,120 @@ paths:
         "422":
           description: The database could not be updated because it would exceed a
             resource quota
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContent'
+        "500":
+          description: A server error occurred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContent'
+      security:
+      - basicAuth: []
+        bearerAuth: []
+  /databases/{organization}/{project}/{database}/dbaPassword:
+    post:
+      tags:
+      - databases
+      summary: Update the DBA password for a database
+      operationId: updateDbaPassword
+      parameters:
+      - name: organization
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: project
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: database
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: timeoutSeconds
+        in: query
+        description: "The number of seconds to wait for the operation to be finalized,\
+          \ unless 0 is specified which indicates not to wait"
+        schema:
+          minimum: 0
+          type: integer
+          format: int32
+          default: 0
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDbaPasswordModel'
+            examples:
+              "0":
+                summary: Initiate DBA password update
+                value: |-
+                  {
+                    "current": "currentDbaPassword",
+                    "target": "targetDbaPassword"
+                  }
+              "1":
+                summary: Resync configured DBA password
+                value: |-
+                  {
+                    "current": "actualDbaPassword",
+                    "resync": true
+                  }
+              "2":
+                summary: Verify current DBA password
+                value: |-
+                  {
+                    "current": "currentDbaPassword"
+                  }
+        required: true
+      responses:
+        "200":
+          description: The DBA password was updated successfully
+        "202":
+          description: The DBA password is in the process of being updated
+        "400":
+          description: The user request was invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContent'
+        "401":
+          description: The user did not provide correct authentication credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContent'
+        "403":
+          description: The user was not authorized to access the requested resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContent'
+        "404":
+          description: The database does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContent'
+        "408":
+          description: The DBA password was not updated within the specified timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContent'
+        "409":
+          description: An unexpected state was encountered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorContent'
+        "415":
+          description: A media type other than `application/json` was supplied
           content:
             application/json:
               schema:
@@ -1626,8 +1764,16 @@ paths:
       responses:
         "200":
           description: The project was updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectModel'
         "201":
           description: The project was created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectModel'
         "400":
           description: The user request was invalid
           content:
@@ -1692,7 +1838,7 @@ paths:
           type: string
       - name: timeoutSeconds
         in: query
-        description: "The number of seconds to wait for the deletion to be finalized,\
+        description: "The number of seconds to wait for the operation to be finalized,\
           \ unless 0 is specified which indicates not to wait"
         schema:
           minimum: 0
@@ -1818,6 +1964,10 @@ paths:
       responses:
         "200":
           description: The patch was applied to the project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectModel'
         "400":
           description: The user request was invalid
           content:
@@ -2098,8 +2248,16 @@ paths:
       responses:
         "200":
           description: The user was updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DbaasUserModel'
         "201":
           description: The user was created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DbaasUserModel'
         "400":
           description: The user request was invalid
           content:
@@ -2164,7 +2322,7 @@ paths:
           type: string
       - name: timeoutSeconds
         in: query
-        description: "The number of seconds to wait for the deletion to be finalized,\
+        description: "The number of seconds to wait for the operation to be finalized,\
           \ unless 0 is specified which indicates not to wait"
         schema:
           minimum: 0
@@ -2292,6 +2450,10 @@ paths:
       responses:
         "200":
           description: The patch was applied to the user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DbaasUserModel'
         "400":
           description: The user request was invalid
           content:
@@ -2449,8 +2611,16 @@ paths:
       responses:
         "200":
           description: The database quota was updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseQuotaModel'
         "201":
           description: The database quota was created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseQuotaModel'
         "400":
           description: The user request was invalid
           content:
@@ -2511,7 +2681,7 @@ paths:
           type: string
       - name: timeoutSeconds
         in: query
-        description: "The number of seconds to wait for the deletion to be finalized,\
+        description: "The number of seconds to wait for the operation to be finalized,\
           \ unless 0 is specified which indicates not to wait"
         schema:
           minimum: 0
@@ -2739,8 +2909,16 @@ paths:
       responses:
         "200":
           description: The Helm feature was updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HelmFeatureModel'
         "201":
           description: The Helm feature was created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HelmFeatureModel'
         "400":
           description: The user request was invalid
           content:
@@ -2800,7 +2978,7 @@ paths:
           type: string
       - name: timeoutSeconds
         in: query
-        description: "The number of seconds to wait for the deletion to be finalized,\
+        description: "The number of seconds to wait for the operation to be finalized,\
           \ unless 0 is specified which indicates not to wait"
         schema:
           minimum: 0
@@ -3028,8 +3206,16 @@ paths:
       responses:
         "200":
           description: The service tier was updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceTierModel'
         "201":
           description: The service tier was created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceTierModel'
         "400":
           description: The user request was invalid
           content:
@@ -3089,7 +3275,7 @@ paths:
           type: string
       - name: timeoutSeconds
         in: query
-        description: "The number of seconds to wait for the deletion to be finalized,\
+        description: "The number of seconds to wait for the operation to be finalized,\
           \ unless 0 is specified which indicates not to wait"
         schema:
           minimum: 0
@@ -3486,7 +3672,7 @@ components:
           x-order: 2
         value:
           $ref: '#/components/schemas/JsonNode'
-    DatabaseCreateUpdateModel:
+    DatabaseModel:
       required:
       - name
       - organization
@@ -3543,19 +3729,6 @@ components:
             hcl: labels
             tfsdk: labels
           x-order: 3
-        dbaPassword:
-          type: string
-          description: The password for the DBA user. Can only be specified when creating
-            a database.
-          writeOnly: true
-          x-tf-name: dba_password
-          x-oapi-codegen-extra-tags:
-            cty: dba_password
-            hcl: dba_password
-            tfsdk: dba_password
-          x-tf-sensitive: true
-          x-immutable: true
-          x-order: 4
         restoreFrom:
           $ref: '#/components/schemas/RestoreFromModel'
         tier:
@@ -3568,7 +3741,7 @@ components:
             cty: tier
             hcl: tier
             tfsdk: tier
-          x-order: 6
+          x-order: 5
         maintenance:
           $ref: '#/components/schemas/MaintenanceModel'
         properties:
@@ -3578,7 +3751,7 @@ components:
           description: "The version of the resource. When specified in a `PUT` request\
             \ payload, indicates that the resoure should be updated, and is used by\
             \ the system to guard against concurrent updates."
-          x-order: 9
+          x-order: 8
           x-oapi-codegen-extra-tags:
             tfsdk: "-"
         status:
@@ -3785,7 +3958,7 @@ components:
         cty: restore_from
         hcl: restore_from
         tfsdk: restore_from
-    DatabaseModel:
+    DatabaseCreateUpdateModel:
       required:
       - name
       - organization
@@ -3842,6 +4015,18 @@ components:
             hcl: labels
             tfsdk: labels
           x-order: 3
+        dbaPassword:
+          type: string
+          description: The password for the DBA user. Can only be specified when creating
+            a database.
+          writeOnly: true
+          x-tf-name: dba_password
+          x-oapi-codegen-extra-tags:
+            cty: dba_password
+            hcl: dba_password
+            tfsdk: dba_password
+          x-tf-sensitive: true
+          x-order: 4
         restoreFrom:
           $ref: '#/components/schemas/RestoreFromModel'
         tier:
@@ -3854,7 +4039,7 @@ components:
             cty: tier
             hcl: tier
             tfsdk: tier
-          x-order: 5
+          x-order: 6
         maintenance:
           $ref: '#/components/schemas/MaintenanceModel'
         properties:
@@ -3864,11 +4049,31 @@ components:
           description: "The version of the resource. When specified in a `PUT` request\
             \ payload, indicates that the resoure should be updated, and is used by\
             \ the system to guard against concurrent updates."
-          x-order: 8
+          x-order: 9
           x-oapi-codegen-extra-tags:
             tfsdk: "-"
         status:
           $ref: '#/components/schemas/DatabaseStatusModel'
+    UpdateDbaPasswordModel:
+      required:
+      - current
+      type: object
+      properties:
+        current:
+          type: string
+          description: "The current DBA password, which must be supplied for verification\
+            \ purposes"
+          x-order: 0
+        target:
+          type: string
+          description: The target DBA password
+          x-order: 1
+        resync:
+          type: boolean
+          description: "Whether to update configured DBA password so that it matches\
+            \ actual DBA password. If `true`, `current` is verified by connecting\
+            \ to the database directly before updating configured DBA password."
+          x-order: 2
     DbaasAccessRuleModel:
       type: object
       properties:
@@ -4115,6 +4320,59 @@ components:
         cty: status
         hcl: status
         tfsdk: status
+    DbaasUserModel:
+      required:
+      - accessRule
+      - name
+      - organization
+      type: object
+      properties:
+        organization:
+          pattern: "[a-z][a-z0-9]*"
+          type: string
+          description: The organization that the user belongs to
+          x-tf-name: organization
+          x-oapi-codegen-extra-tags:
+            cty: organization
+            hcl: organization
+            tfsdk: organization
+          x-tf-identifier: true
+          x-order: 0
+        name:
+          pattern: "[a-z][a-z0-9]*"
+          type: string
+          description: The name of the user
+          x-tf-name: name
+          x-oapi-codegen-extra-tags:
+            cty: name
+            hcl: name
+            tfsdk: name
+          x-tf-identifier: true
+          x-order: 1
+        labels:
+          pattern: "(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])"
+          type: object
+          additionalProperties:
+            pattern: "(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])"
+            type: string
+          description: User-defined labels attached to the resource that can be used
+            for filtering
+          x-tf-name: labels
+          x-oapi-codegen-extra-tags:
+            cty: labels
+            hcl: labels
+            tfsdk: labels
+          x-order: 2
+        accessRule:
+          $ref: '#/components/schemas/DbaasAccessRuleModel'
+        resourceVersion:
+          type: string
+          description: "The version of the resource. When specified in a `PUT` request\
+            \ payload, indicates that the resoure should be updated, and is used by\
+            \ the system to guard against concurrent updates."
+          x-order: 4
+          x-oapi-codegen-extra-tags:
+            tfsdk: "-"
     DbaasUserCreateUpdateModel:
       required:
       - accessRule
@@ -4177,59 +4435,6 @@ components:
             \ payload, indicates that the resoure should be updated, and is used by\
             \ the system to guard against concurrent updates."
           x-order: 5
-          x-oapi-codegen-extra-tags:
-            tfsdk: "-"
-    DbaasUserModel:
-      required:
-      - accessRule
-      - name
-      - organization
-      type: object
-      properties:
-        organization:
-          pattern: "[a-z][a-z0-9]*"
-          type: string
-          description: The organization that the user belongs to
-          x-tf-name: organization
-          x-oapi-codegen-extra-tags:
-            cty: organization
-            hcl: organization
-            tfsdk: organization
-          x-tf-identifier: true
-          x-order: 0
-        name:
-          pattern: "[a-z][a-z0-9]*"
-          type: string
-          description: The name of the user
-          x-tf-name: name
-          x-oapi-codegen-extra-tags:
-            cty: name
-            hcl: name
-            tfsdk: name
-          x-tf-identifier: true
-          x-order: 1
-        labels:
-          pattern: "(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])"
-          type: object
-          additionalProperties:
-            pattern: "(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])"
-            type: string
-          description: User-defined labels attached to the resource that can be used
-            for filtering
-          x-tf-name: labels
-          x-oapi-codegen-extra-tags:
-            cty: labels
-            hcl: labels
-            tfsdk: labels
-          x-order: 2
-        accessRule:
-          $ref: '#/components/schemas/DbaasAccessRuleModel'
-        resourceVersion:
-          type: string
-          description: "The version of the resource. When specified in a `PUT` request\
-            \ payload, indicates that the resoure should be updated, and is used by\
-            \ the system to guard against concurrent updates."
-          x-order: 4
           x-oapi-codegen-extra-tags:
             tfsdk: "-"
     DatabaseQuotaModel:
