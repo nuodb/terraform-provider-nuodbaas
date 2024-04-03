@@ -977,47 +977,46 @@ func TestImmutableAttributeChange(t *testing.T) {
 		HasAttribute("status.state").
 		HasAttribute("status.ready")
 
-	t.Run("applyDbaPasswordChange", func(t *testing.T) {
-		// Check whether the REST server supports updating the DBA password
-		supportsDbaPasswordUpdate := true
-		client, err := vars.providerCfg.CreateClient()
-		require.NoError(t, err)
-		resp, err := client.UpdateDbaPassword(
-			ctx, vars.database.Organization, vars.database.Project, vars.database.Name, nil,
-			openapi.UpdateDbaPasswordModel{Current: *vars.database.DbaPassword})
-		require.NoError(t, err)
+	// Check whether the REST server supports updating the DBA password
+	client, err := vars.providerCfg.CreateClient()
+	require.NoError(t, err)
+	resp, err := client.UpdateDbaPassword(
+		ctx, vars.database.Organization, vars.database.Project, vars.database.Name, nil,
+		openapi.UpdateDbaPasswordModel{Current: *vars.database.DbaPassword})
+	require.NoError(t, err)
 
-		// "404 Not Found" with no "detail" message indicates that
-		// /dbaPassword sub-resource does not exist
-		err = helper.ParseResponse(resp, nil)
-		if IsDbaPasswordUnsupportedError(resp, err) {
-			supportsDbaPasswordUpdate = false
-		} else {
-			require.NoError(t, err)
-		}
-
-		// Change DBA password and run `terraform apply`
-		originalPassword := vars.database.DbaPassword
-		vars.database.DbaPassword = ptr("updated")
-
-		// Revert DBA password change if we expect failure
-		if !supportsDbaPasswordUpdate {
+	// "404 Not Found" with no "detail" message indicates that /dbaPassword
+	// sub-resource does not exist. Run appropriate test case based on what
+	// behavior is supported.
+	err = helper.ParseResponse(resp, nil)
+	if IsDbaPasswordUpdateUnsupportedError(resp, err) {
+		t.Run("dbaPasswordChangeRejected", func(t *testing.T) {
+			// Change DBA password and run `terraform apply`. Revert
+			// DBA password change when finished.
+			originalPassword := vars.database.DbaPassword
+			vars.database.DbaPassword = ptr("updated")
 			defer func() {
 				vars.database.DbaPassword = originalPassword
 			}()
-		}
 
-		tf.WriteConfigT(t, vars.builder.Build())
-		out, err := tf.Apply()
-		if supportsDbaPasswordUpdate {
-			require.NoError(t, err)
-		} else {
+			tf.WriteConfigT(t, vars.builder.Build())
+			out, err := tf.Apply()
 			// Password change should be rejected if the REST server
 			// does not support it
 			require.Error(t, err)
 			require.Contains(t, string(out), "Configured DBA password was changed")
-		}
-	})
+		})
+	} else {
+		require.NoError(t, err)
+		t.Run("dbaPasswordChange", func(t *testing.T) {
+			// Change DBA password and run `terraform apply`
+			vars.database.DbaPassword = ptr("updated")
+			tf.WriteConfigT(t, vars.builder.Build())
+			out, err := tf.Apply()
+			require.NoError(t, err)
+			require.Contains(t, string(out), "0 to add, 1 to change, 0 to destroy.")
+		})
+	}
 
 	// Change the project SLA and verify that a warning is displayed by
 	// Terraform when running `terraform plan` unless the environment

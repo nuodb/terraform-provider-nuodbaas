@@ -81,7 +81,7 @@ const (
 		"Revert the configured DBA password to the value in the Terraform state and retry."
 )
 
-func IsDbaPasswordUnsupportedError(resp *http.Response, err error) bool {
+func IsDbaPasswordUpdateUnsupportedError(resp *http.Response, err error) bool {
 	if err != nil {
 		// "404 Not Found" is returned with no "detail" message if /dbaPassword	sub-resource is not supported
 		if resp.StatusCode == http.StatusNotFound {
@@ -108,7 +108,7 @@ func (state *DatabaseResourceModel) Update(ctx context.Context, client openapi.C
 		// Decode the response and check that there is no error
 		err = helper.ParseResponse(resp, nil)
 		if err != nil {
-			if IsDbaPasswordUnsupportedError(resp, err) {
+			if IsDbaPasswordUpdateUnsupportedError(resp, err) {
 				return fmt.Errorf(DBA_PASSWORD_CHANGE_UNSUPPORTED_MSG)
 			}
 			return err
