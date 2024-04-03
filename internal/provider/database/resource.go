@@ -31,7 +31,10 @@ func (state *DatabaseResourceModel) Reset() {
 
 func (state *DatabaseResourceModel) DbaPasswordMatches(other *DatabaseResourceModel) bool {
 	if other != nil {
-		return state.DbaPassword == other.DbaPassword || *state.DbaPassword == *other.DbaPassword
+		if state.DbaPassword == nil || other.DbaPassword == nil {
+			return state.DbaPassword == other.DbaPassword
+		}
+		return *state.DbaPassword == *other.DbaPassword
 	}
 	return true
 }
@@ -93,7 +96,7 @@ func IsDbaPasswordUnsupportedError(resp *http.Response, err error) bool {
 func (state *DatabaseResourceModel) Update(ctx context.Context, client openapi.ClientInterface, currentState framework.ResourceState) error {
 	// Try to update DBA password if it was changed in config
 	currentDatabase, _ := currentState.(*DatabaseResourceModel)
-	if state.DbaPasswordMatches(currentDatabase) {
+	if !state.DbaPasswordMatches(currentDatabase) {
 		request := openapi.UpdateDbaPasswordModel{
 			Current: *currentDatabase.DbaPassword,
 			Target:  state.DbaPassword,
