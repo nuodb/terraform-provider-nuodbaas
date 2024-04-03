@@ -29,6 +29,13 @@ func (state *DatabaseResourceModel) Reset() {
 	*state = DatabaseResourceModel{}
 }
 
+func (state *DatabaseResourceModel) DbaPasswordMatches(other *DatabaseResourceModel) bool {
+	if other != nil {
+		return state.DbaPassword == other.DbaPassword || *state.DbaPassword == *other.DbaPassword
+	}
+	return true
+}
+
 func (state *DatabaseResourceModel) CheckReady() error {
 	if state.Status == nil || state.Status.State == nil {
 		return fmt.Errorf("Database %s/%s/%s has no status information", state.Organization, state.Project, state.Name)
@@ -85,8 +92,8 @@ func IsDbaPasswordUnsupportedError(resp *http.Response, err error) bool {
 
 func (state *DatabaseResourceModel) Update(ctx context.Context, client openapi.ClientInterface, currentState framework.ResourceState) error {
 	// Try to update DBA password if it was changed in config
-	currentDatabase := currentState.(*DatabaseResourceModel)
-	if *state.DbaPassword != *currentDatabase.DbaPassword {
+	currentDatabase, _ := currentState.(*DatabaseResourceModel)
+	if state.DbaPasswordMatches(currentDatabase) {
 		request := openapi.UpdateDbaPasswordModel{
 			Current: *currentDatabase.DbaPassword,
 			Target:  state.DbaPassword,
