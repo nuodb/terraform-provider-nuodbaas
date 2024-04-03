@@ -59,8 +59,12 @@ func (vars *testVars) resetVars() {
 			Project:      "proj",
 			Name:         "db",
 		}, "nuodbaas_database.db").
-		WithProjectsDataSource("proj_list", &ProjectsDataSourceModel{}).
-		WithDatabasesDataSource("db_list", &DatabasesDataSourceModel{})
+		WithProjectsDataSource("proj_list", &ProjectsDataSourceModel{
+			Filter: &ProjectFilterModel{Organization: ptr("org")},
+		}).
+		WithDatabasesDataSource("db_list", &DatabasesDataSourceModel{
+			Filter: &DatabaseFilterModel{Organization: ptr("org")},
+		})
 }
 
 func newTestVars(overrideTimeouts bool) *testVars {
