@@ -29,7 +29,7 @@ func (state *ProjectResourceModel) Reset() {
 	*state = ProjectResourceModel{}
 }
 
-func (state *ProjectResourceModel) CheckReady() error {
+func (state *ProjectResourceModel) CheckReady(ctx context.Context, client openapi.ClientInterface) error {
 	if state.Status == nil || state.Status.State == nil {
 		return fmt.Errorf("Project %s/%s has no status information", state.Organization, state.Name)
 	}

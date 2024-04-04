@@ -62,8 +62,10 @@ type ResourceState interface {
 	Reset()
 
 	// CheckReady returns an error if the resource is not in the desired
-	// state according to its spec, based on the local state.
-	CheckReady() error
+	// state according to its spec, based on the local state. The supplied
+	// client can be used to request additional readiness information from
+	// the server.
+	CheckReady(ctx context.Context, client openapi.ClientInterface) error
 
 	// Create creates the resource in the backend based on the local state
 	// and waits for it to satisfy IsReady().
@@ -319,7 +321,7 @@ func (r *GenericResource) AwaitReady(ctx context.Context, state ResourceState, o
 	defer cancel()
 	for {
 		// Check if resource is ready
-		readyErr := state.CheckReady()
+		readyErr := state.CheckReady(ctx, r.client.Client)
 		if readyErr == nil {
 			return nil
 		}

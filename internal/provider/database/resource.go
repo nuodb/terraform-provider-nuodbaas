@@ -39,7 +39,8 @@ func (state *DatabaseResourceModel) DbaPasswordMatches(other *DatabaseResourceMo
 	return true
 }
 
-func (state *DatabaseResourceModel) CheckReady() error {
+func (state *DatabaseResourceModel) CheckReady(ctx context.Context, client openapi.ClientInterface) error {
+	// Check that database is either Available or Stopped based on maintenance.isDisabled value
 	if state.Status == nil || state.Status.State == nil {
 		return fmt.Errorf("Database %s/%s/%s has no status information", state.Organization, state.Project, state.Name)
 	}
@@ -50,6 +51,18 @@ func (state *DatabaseResourceModel) CheckReady() error {
 	if *state.Status.State != expectedState {
 		return fmt.Errorf("Database %s/%s/%s has an unexpected state: expected=%s, found=%s",
 			state.Organization, state.Project, state.Name, expectedState, *state.Status.State)
+	}
+	// Check that DBA password is up-to-date if password update is supported
+	resp, err := state.UpdateDbaPassword(ctx, client, nil)
+	if IsDbaPasswordUpdateUnsupportedError(resp, err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("DBA password for database %s/%s/%s has not been updated",
+			state.Organization, state.Project, state.Name)
 	}
 	return nil
 }
@@ -93,24 +106,28 @@ func IsDbaPasswordUpdateUnsupportedError(resp *http.Response, err error) bool {
 	return false
 }
 
+func (state *DatabaseResourceModel) UpdateDbaPassword(ctx context.Context, client openapi.ClientInterface, target *string) (*http.Response, error) {
+	request := openapi.UpdateDbaPasswordModel{
+		Current: *state.DbaPassword,
+		Target:  target,
+	}
+	resp, err := client.UpdateDbaPassword(ctx, state.Organization, state.Project, state.Name, nil, request)
+	if err != nil {
+		return resp, err
+	}
+	// Decode the response and check that there is no error
+	return resp, helper.ParseResponse(resp, nil)
+}
+
 func (state *DatabaseResourceModel) Update(ctx context.Context, client openapi.ClientInterface, currentState framework.ResourceState) error {
 	// Try to update DBA password if it was changed in config
 	currentDatabase, _ := currentState.(*DatabaseResourceModel)
 	if !state.DbaPasswordMatches(currentDatabase) {
-		request := openapi.UpdateDbaPasswordModel{
-			Current: *currentDatabase.DbaPassword,
-			Target:  state.DbaPassword,
+		resp, err := currentDatabase.UpdateDbaPassword(ctx, client, state.DbaPassword)
+		if IsDbaPasswordUpdateUnsupportedError(resp, err) {
+			return fmt.Errorf(DBA_PASSWORD_CHANGE_UNSUPPORTED_MSG)
 		}
-		resp, err := client.UpdateDbaPassword(ctx, state.Organization, state.Project, state.Name, nil, request)
 		if err != nil {
-			return err
-		}
-		// Decode the response and check that there is no error
-		err = helper.ParseResponse(resp, nil)
-		if err != nil {
-			if IsDbaPasswordUpdateUnsupportedError(resp, err) {
-				return fmt.Errorf(DBA_PASSWORD_CHANGE_UNSUPPORTED_MSG)
-			}
 			return err
 		}
 	}

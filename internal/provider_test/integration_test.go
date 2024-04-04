@@ -1011,9 +1011,27 @@ func TestImmutableAttributeChange(t *testing.T) {
 		t.Run("dbaPasswordChange", func(t *testing.T) {
 			// Change DBA password and run `terraform apply`
 			vars.database.DbaPassword = ptr("updated")
+			// Expect readiness check to fail due to DBA password
+			// not being updated and specify small timeout
+			if vars.providerCfg.Timeouts == nil {
+				vars.providerCfg.Timeouts = map[string]framework.OperationTimeouts{
+					"database": {
+						Update: ptr("2s"),
+					},
+				}
+			}
 			tf.WriteConfigT(t, vars.builder.Build())
 			out, err := tf.Apply()
-			require.NoError(t, err)
+			if IsE2E() {
+				// E2E tests disable readiness check completely
+				require.NoError(t, err)
+			} else {
+				// Check that readiness check failed due to DBA password
+				require.Error(t, err)
+
+				// TODO: Figure out how to check error messages despite Terraform line wrapping
+				require.Contains(t, string(out), "DBA password for database org/proj/db")
+			}
 			require.Contains(t, string(out), "0 to add, 1 to change, 0 to destroy.")
 		})
 	}
