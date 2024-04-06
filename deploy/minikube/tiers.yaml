@@ -76,3 +76,23 @@ spec:
   - name: nano-resources
   - name: nano-disk
   - name: n0-replicas
+---
+apiVersion: cp.nuodb.com/v1beta1
+kind: ServiceTier
+metadata:
+  name: n0.small
+spec:
+  features:
+  - name: nano-resources
+  - name: nano-disk
+  - name: n0-replicas
+---
+apiVersion: cp.nuodb.com/v1beta1
+kind: ServiceTier
+metadata:
+  name: n1.small
+spec:
+  features:
+  - name: nano-resources
+  - name: nano-disk
+  - name: n0-replicas

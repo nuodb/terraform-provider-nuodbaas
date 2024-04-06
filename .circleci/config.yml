@@ -1,8 +1,5 @@
 version: 2.1
 
-orbs:
-  go: circleci/go@1.7.3
-
 executors:
   go:
     # Check https://circleci.com/developer/images/image/cimg/go for more details
@@ -10,25 +7,49 @@ executors:
       - image: cimg/go:1.22.0
     resource_class: small
 
-  java:
-    # Check https://circleci.com/developer/images/image/cimg/openjdk for more details
-    docker:
-      - image: cimg/openjdk:11.0
-    resource_class: small
-
   ubuntu_vm:
     machine:
       image: ubuntu-2204:2023.10.1
     resource_class: medium
 
-commands:
-  upload_results:
-    description: |
-      Push test results and artifacts
+jobs:
+  functional_tests:
+    parameters:
+      test-driver:
+        description: |
+          The test driver to use.
+        type: string
+      nuodb-cp-version:
+        description: |
+          The version of the NuoDB Control Plane to test against.
+        type: string
+        default: 2.4.1
+    executor: ubuntu_vm
+    environment:
+      TEST_RESULTS: /tmp/test-results
+      OUTPUT_DIR: /tmp/test-artifacts
+      NUODB_CP_VERSION: << parameters.nuodb-cp-version >>
     steps:
+      - checkout
+      - run:
+          name: "Setup environment"
+          command: |
+            echo "Setting up << parameters.test-driver >> with NuoDB CP << parameters.nuodb-cp-version >>..."
+            make setup-<< parameters.test-driver >>
+            make env-<< parameters.test-driver >> >> "$BASH_ENV"
+      - run:
+          name: "Run tests"
+          command: |
+            make testacc
       - run:
           name: "Generate coverage report"
-          command: "make coverage-report"
+          command: |
+            make coverage-report
+      - run:
+          name: "Collect logging"
+          command: |
+            make logs-<< parameters.test-driver >>
+          when: always
       - store_artifacts:
           name: "Upload test artifacts"
           path: /tmp/test-artifacts
@@ -36,52 +57,6 @@ commands:
       - store_test_results:
           name: "Upload test results"
           path: /tmp/test-results
-
-jobs:
-  e2e_tests:
-    executor: ubuntu_vm
-    environment:
-      E2E_TEST: "true"
-      MINIKUBE_VERSION: "1.32.0"
-      HELM_VERSION: "v3.14.0"
-      KUBERNETES_VERSION: "1.28.3"
-      TEST_RESULTS: /tmp/test-results
-      OUTPUT_DIR: /tmp/test-artifacts
-      TESTARGS: "-short"
-    steps:
-      - checkout
-      - run:
-          name: "Setup environment"
-          command: .circleci/setup.sh
-      - run:
-          name: "Run tests"
-          command: |
-            make testacc
-      - run:
-          name: "Dump Kubernetes logs"
-          command: |
-            bin/kubectl cluster-info dump --output-directory="$OUTPUT_DIR"
-          when: on_fail
-      - upload_results
-
-  integration_tests:
-    executor: java
-    environment:
-      TEST_RESULTS: /tmp/test-results
-      OUTPUT_DIR: /tmp/test-artifacts
-    steps:
-      - go/install:
-          version: "1.20"
-      - checkout
-      - run:
-          name: "Create directories for results"
-          command: |
-            mkdir -p "$TEST_RESULTS" "$OUTPUT_DIR"
-      - run:
-          name: "Run integration tests"
-          command: |
-            make integration-tests
-      - upload_results
 
   check_quality:
     executor: go
@@ -113,7 +88,13 @@ jobs:
 workflows:
   test:
     jobs:
-      - e2e_tests
-      - integration_tests
-      - check_quality
-      - deploy_test
+      - functional_tests:
+          name: Functional tests (KWOK)
+          test-driver: kwok
+      - functional_tests:
+          name: Functional tests (Minikube)
+          test-driver: minikube
+      - check_quality:
+          name: Static code checks
+      - deploy_test:
+          name: End-to-end deployment test

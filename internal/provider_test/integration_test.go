@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
@@ -21,8 +22,53 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func IsE2E() bool {
-	return os.Getenv("E2E_TEST") == "true"
+type TestOption string
+
+const (
+	PAUSE_OPERATOR_COMMAND  TestOption = "PAUSE_OPERATOR_COMMAND"
+	RESUME_OPERATOR_COMMAND TestOption = "RESUME_OPERATOR_COMMAND"
+	POD_SCHEDULING_ENABLED  TestOption = "POD_SCHEDULING_ENABLED"
+	WEBHOOKS_ENABLED        TestOption = "WEBHOOKS_ENABLED"
+)
+
+func (option TestOption) Get() string {
+	return os.Getenv(string(option))
+}
+
+func (option TestOption) IsTrue() bool {
+	return option.Get() == "true"
+}
+
+func (option TestOption) IsFalse() bool {
+	return option.Get() == "false"
+}
+
+func PauseOperator(t *testing.T) {
+	// Pausing Operator when webhooks are enabled prevents CRUD operations
+	// from being performed
+	if WEBHOOKS_ENABLED.IsTrue() {
+		t.Skip("Cannot pause operator if webhooks are enabled")
+	}
+	pauseCmd := PAUSE_OPERATOR_COMMAND.Get()
+	if pauseCmd == "" {
+		t.Skip("Skipping test because environment does not support pausing operator")
+	}
+	resumeCmd := RESUME_OPERATOR_COMMAND.Get()
+	if resumeCmd == "" {
+		t.Skip("Skipping test because environment does not support resuming operator")
+	}
+	// Pause reconciliation by stopping Operator
+	cmd := exec.Command(pauseCmd)
+	out, err := cmd.CombinedOutput()
+	require.NoError(t, err, out)
+	// On test teardown, resume Operator
+	t.Cleanup(func() {
+		cmd := exec.Command(resumeCmd)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Logf("Unexpected error [%s]: %s", err, out)
+		}
+	})
 }
 
 type testVars struct {
@@ -68,7 +114,7 @@ func newTestVars(overrideTimeouts bool) *testVars {
 	ret.resetVars()
 	// If overrideTimeouts=true and this is an end-to-end test, accelerate
 	// test by skipping readiness checks.
-	if overrideTimeouts && IsE2E() {
+	if overrideTimeouts && POD_SCHEDULING_ENABLED.IsTrue() {
 		ret.providerCfg.Timeouts = map[string]framework.OperationTimeouts{
 			"default": {
 				Create: ptr("0"),
@@ -182,12 +228,6 @@ func TestFullLifecycle(t *testing.T) {
 	// Update database config attributes (tier, labels, and product_version)
 	// and execute `terraform apply`
 	tier := "n1.small"
-	if IsE2E() {
-		// Avoid setting an unavailable service tier or increasing the
-		// replica count in end-to-end tests, which could be time
-		// consuming
-		tier = "n0.nano"
-	}
 	vars.database.Tier = &tier
 	vars.database.Labels = &map[string]string{
 		"priority": "high",
@@ -312,11 +352,19 @@ func TestFullLifecycle(t *testing.T) {
 }
 
 func TestAttributeSerialization(t *testing.T) {
-	if IsE2E() {
+	if WEBHOOKS_ENABLED.IsTrue() {
 		t.Skip("Do not test attributes exhaustively in end-to-end configuration, which may reject some settings")
 	}
 
 	vars := newTestVars(false)
+	// Disable readiness checks since some configurations may not be valid
+	// and result in resources never becoming ready
+	vars.providerCfg.Timeouts = map[string]framework.OperationTimeouts{
+		"default": {
+			Create: ptr("0"),
+			Update: ptr("0"),
+		},
+	}
 
 	// Create provider server that runs within test
 	ctx := context.Background()
@@ -346,10 +394,9 @@ func TestAttributeSerialization(t *testing.T) {
 			HasAttributeValue("labels", map[string]any{}).
 			HasAttribute("properties.product_version").
 			DoesNotHaveAttribute("maintenance").
-			HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
-			HasAttribute("status.message").
-			HasAttributeValue("status.ready", true).
-			HasAttributeValue("status.shutdown", false)
+			HasAttribute("status.state").
+			HasAttribute("status.ready").
+			HasAttribute("status.shutdown")
 	})
 	// Check attributes in database resource and data source
 	checkResourceAndDataSource(t, "nuodbaas_database.db", tf, func(ac *AttributeChecker) {
@@ -360,10 +407,9 @@ func TestAttributeSerialization(t *testing.T) {
 			HasAttributeValue("labels", map[string]any{}).
 			HasAttribute("properties.product_version").
 			DoesNotHaveAttribute("maintenance").
-			HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
-			HasAttribute("status.message").
-			HasAttributeValue("status.ready", true).
-			HasAttributeValue("status.shutdown", false)
+			HasAttribute("status.state").
+			HasAttribute("status.ready").
+			HasAttribute("status.shutdown")
 	})
 
 	// Save original database and project structs
@@ -420,10 +466,9 @@ func TestAttributeSerialization(t *testing.T) {
 			HasAttributeValue("properties.tier_parameters.adminReplicas", "3").
 			HasAttributeValue("properties.product_version", "6.0").
 			HasAttributeValue("maintenance.is_disabled", false).
-			HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
-			HasAttribute("status.message").
-			HasAttributeValue("status.ready", true).
-			HasAttributeValue("status.shutdown", false)
+			HasAttribute("status.state").
+			HasAttribute("status.ready").
+			HasAttribute("status.shutdown")
 	})
 	// Check attributes in database resource and data source
 	checkResourceAndDataSource(t, "nuodbaas_database.db", tf, func(ac *AttributeChecker) {
@@ -439,10 +484,9 @@ func TestAttributeSerialization(t *testing.T) {
 			HasAttributeValue("properties.tier_parameters.teReplicas", "5").
 			HasAttributeValue("properties.product_version", "6.0").
 			HasAttributeValue("maintenance.is_disabled", true).
-			HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateStopped)).
-			HasAttribute("status.message").
-			HasAttributeValue("status.ready", false).
-			HasAttributeValue("status.shutdown", true)
+			HasAttribute("status.state").
+			HasAttribute("status.ready").
+			HasAttribute("status.shutdown")
 	})
 
 	// Revert project and database to original, sparsely-populated settings
@@ -466,10 +510,9 @@ func TestAttributeSerialization(t *testing.T) {
 			HasAttributeValue("properties.tier_parameters.adminReplicas", "3").
 			HasAttributeValue("properties.product_version", "6.0").
 			HasAttributeValue("maintenance.is_disabled", false).
-			HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
-			HasAttribute("status.message").
-			HasAttributeValue("status.ready", true).
-			HasAttributeValue("status.shutdown", false)
+			HasAttribute("status.state").
+			HasAttribute("status.ready").
+			HasAttribute("status.shutdown")
 	})
 	// Check attributes in database resource and data source
 	checkResourceAndDataSource(t, "nuodbaas_database.db", tf, func(ac *AttributeChecker) {
@@ -485,10 +528,9 @@ func TestAttributeSerialization(t *testing.T) {
 			HasAttributeValue("properties.tier_parameters.teReplicas", "5").
 			HasAttributeValue("properties.product_version", "6.0").
 			HasAttributeValue("maintenance.is_disabled", true).
-			HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateStopped)).
-			HasAttribute("status.message").
-			HasAttributeValue("status.ready", false).
-			HasAttributeValue("status.shutdown", true)
+			HasAttribute("status.state").
+			HasAttribute("status.ready").
+			HasAttribute("status.shutdown")
 	})
 
 	// Explicitly set labels and tier_parameters to empty maps so that they
@@ -511,10 +553,9 @@ func TestAttributeSerialization(t *testing.T) {
 			HasAttributeValue("properties.tier_parameters", map[string]any{}).
 			HasAttributeValue("properties.product_version", "6.0").
 			HasAttributeValue("maintenance.is_disabled", false).
-			HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
-			HasAttribute("status.message").
-			HasAttributeValue("status.ready", true).
-			HasAttributeValue("status.shutdown", false)
+			HasAttribute("status.state").
+			HasAttribute("status.ready").
+			HasAttribute("status.shutdown")
 	})
 	// Check attributes in database resource and data source
 	checkResourceAndDataSource(t, "nuodbaas_database.db", tf, func(ac *AttributeChecker) {
@@ -528,10 +569,9 @@ func TestAttributeSerialization(t *testing.T) {
 			HasAttributeValue("properties.tier_parameters", map[string]any{}).
 			HasAttributeValue("properties.product_version", "6.0").
 			HasAttributeValue("maintenance.is_disabled", true).
-			HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateStopped)).
-			HasAttribute("status.message").
-			HasAttributeValue("status.ready", false).
-			HasAttributeValue("status.shutdown", true)
+			HasAttribute("status.state").
+			HasAttribute("status.ready").
+			HasAttribute("status.shutdown")
 	})
 }
 
@@ -544,8 +584,7 @@ func TestTimeouts(t *testing.T) {
 	vars := newTestVars(false)
 
 	// Disable reconciliation
-	reset := SetMockReconcilePolicy(t, MockReconcilePolicy{MarkAsReady: "false"})
-	defer reset()
+	PauseOperator(t)
 
 	// Specify timeout for all resources
 	timeout := "1s"
@@ -1022,7 +1061,7 @@ func TestImmutableAttributeChange(t *testing.T) {
 			}
 			tf.WriteConfigT(t, vars.builder.Build())
 			out, err := tf.Apply()
-			if IsE2E() {
+			if POD_SCHEDULING_ENABLED.IsTrue() {
 				// E2E tests disable readiness check completely
 				require.NoError(t, err)
 			} else {
@@ -1233,7 +1272,7 @@ func TestDataSourceFiltering(t *testing.T) {
 
 	numProjects := 5
 	numDatabases := 5
-	if IsE2E() {
+	if POD_SCHEDULING_ENABLED.IsTrue() {
 		numProjects = 2
 		numDatabases = 2
 	}
