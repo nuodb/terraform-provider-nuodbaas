@@ -15,6 +15,7 @@ import (
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
 
 var (
@@ -28,7 +29,7 @@ func (state *ProjectResourceModel) Reset() {
 	*state = ProjectResourceModel{}
 }
 
-func (state *ProjectResourceModel) CheckReady() error {
+func (state *ProjectResourceModel) CheckReady(ctx context.Context, client openapi.ClientInterface) error {
 	if state.Status == nil || state.Status.State == nil {
 		return fmt.Errorf("Project %s/%s has no status information", state.Organization, state.Name)
 	}
@@ -60,7 +61,7 @@ func (state *ProjectResourceModel) Read(ctx context.Context, client openapi.Clie
 	return helper.ParseResponse(resp, state)
 }
 
-func (state *ProjectResourceModel) Update(ctx context.Context, client openapi.ClientInterface) error {
+func (state *ProjectResourceModel) Update(ctx context.Context, client openapi.ClientInterface, currentState framework.ResourceState) error {
 	// Fetch project and get resourceVersion
 	latest := &ProjectResourceModel{
 		Organization: state.Organization,
@@ -111,15 +112,19 @@ func (state *ProjectResourceModel) SetId(id string) error {
 	return nil
 }
 
+func GetProjectResourceAttributes() (map[string]schema.Attribute, error) {
+	return framework.GetResourceAttributes("ProjectModel")
+}
+
 func NewProjectResourceModel() framework.ResourceState {
 	return &ProjectResourceModel{}
 }
 
 func NewProjectResource() resource.Resource {
 	return &framework.GenericResource{
-		TypeName:         "project",
-		Description:      "Resource for managing NuoDB projects created using the DBaaS Control Plane",
-		GetOpenApiSchema: framework.GetProjectSchema,
-		Build:            NewProjectResourceModel,
+		TypeName:              "project",
+		Description:           "Resource for managing NuoDB projects created using the DBaaS Control Plane",
+		GetResourceAttributes: GetProjectResourceAttributes,
+		Build:                 NewProjectResourceModel,
 	}
 }

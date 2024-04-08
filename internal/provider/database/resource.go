@@ -8,9 +8,11 @@ package database
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/helper"
@@ -27,7 +29,18 @@ func (state *DatabaseResourceModel) Reset() {
 	*state = DatabaseResourceModel{}
 }
 
-func (state *DatabaseResourceModel) CheckReady() error {
+func (state *DatabaseResourceModel) DbaPasswordMatches(other *DatabaseResourceModel) bool {
+	if other != nil {
+		if state.DbaPassword == nil || other.DbaPassword == nil {
+			return state.DbaPassword == other.DbaPassword
+		}
+		return *state.DbaPassword == *other.DbaPassword
+	}
+	return true
+}
+
+func (state *DatabaseResourceModel) CheckReady(ctx context.Context, client openapi.ClientInterface) error {
+	// Check that database is either Available or Stopped based on maintenance.isDisabled value
 	if state.Status == nil || state.Status.State == nil {
 		return fmt.Errorf("Database %s/%s/%s has no status information", state.Organization, state.Project, state.Name)
 	}
@@ -38,6 +51,18 @@ func (state *DatabaseResourceModel) CheckReady() error {
 	if *state.Status.State != expectedState {
 		return fmt.Errorf("Database %s/%s/%s has an unexpected state: expected=%s, found=%s",
 			state.Organization, state.Project, state.Name, expectedState, *state.Status.State)
+	}
+	// Check that DBA password is up-to-date if password update is supported
+	resp, err := state.UpdateDbaPassword(ctx, client, nil)
+	if IsDbaPasswordUpdateUnsupportedError(resp, err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("DBA password for database %s/%s/%s has not been updated",
+			state.Organization, state.Project, state.Name)
 	}
 	return nil
 }
@@ -64,7 +89,48 @@ func (state *DatabaseResourceModel) Read(ctx context.Context, client openapi.Cli
 	return helper.ParseResponse(resp, state)
 }
 
-func (state *DatabaseResourceModel) Update(ctx context.Context, client openapi.ClientInterface) error {
+const (
+	DBA_PASSWORD_CHANGE_UNSUPPORTED_MSG = "Configured DBA password was changed and the server does not support updating the DBA password. " +
+		"Revert the configured DBA password to the value in the Terraform state and retry."
+)
+
+func IsDbaPasswordUpdateUnsupportedError(resp *http.Response, err error) bool {
+	if err != nil {
+		// "404 Not Found" is returned with no "detail" message if /dbaPassword	sub-resource is not supported
+		if resp.StatusCode == http.StatusNotFound {
+			if apiError, ok := err.(*helper.ApiError); !ok || apiError.GetDetail() == "" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (state *DatabaseResourceModel) UpdateDbaPassword(ctx context.Context, client openapi.ClientInterface, target *string) (*http.Response, error) {
+	request := openapi.UpdateDbaPasswordModel{
+		Current: *state.DbaPassword,
+		Target:  target,
+	}
+	resp, err := client.UpdateDbaPassword(ctx, state.Organization, state.Project, state.Name, nil, request)
+	if err != nil {
+		return resp, err
+	}
+	// Decode the response and check that there is no error
+	return resp, helper.ParseResponse(resp, nil)
+}
+
+func (state *DatabaseResourceModel) Update(ctx context.Context, client openapi.ClientInterface, currentState framework.ResourceState) error {
+	// Try to update DBA password if it was changed in config
+	currentDatabase, _ := currentState.(*DatabaseResourceModel)
+	if !state.DbaPasswordMatches(currentDatabase) {
+		resp, err := currentDatabase.UpdateDbaPassword(ctx, client, state.DbaPassword)
+		if IsDbaPasswordUpdateUnsupportedError(resp, err) {
+			return fmt.Errorf(DBA_PASSWORD_CHANGE_UNSUPPORTED_MSG)
+		}
+		if err != nil {
+			return err
+		}
+	}
 	// Fetch database and get resourceVersion
 	latest := &DatabaseResourceModel{
 		Organization: state.Organization,
@@ -123,15 +189,19 @@ func (state *DatabaseResourceModel) SetId(id string) error {
 	return nil
 }
 
+func GetDatabaseResourceAttributes() (map[string]schema.Attribute, error) {
+	return framework.GetResourceAttributes("DatabaseCreateUpdateModel")
+}
+
 func NewDatabaseResourceState() framework.ResourceState {
 	return &DatabaseResourceModel{}
 }
 
 func NewDatabaseResource() resource.Resource {
 	return &framework.GenericResource{
-		TypeName:         "database",
-		Description:      "Resource for managing NuoDB databases created using the DBaaS Control Plane",
-		GetOpenApiSchema: framework.GetDatabaseResourceSchema,
-		Build:            NewDatabaseResourceState,
+		TypeName:              "database",
+		Description:           "Resource for managing NuoDB databases created using the DBaaS Control Plane",
+		GetResourceAttributes: GetDatabaseResourceAttributes,
+		Build:                 NewDatabaseResourceState,
 	}
 }

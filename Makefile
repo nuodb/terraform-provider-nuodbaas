@@ -180,9 +180,11 @@ extract-creds: ## Extract and print environment variables for use with running C
 	@echo "export NUODB_CP_PASSWORD=\"$(shell kubectl get secret dbaas-user-system-admin -o jsonpath='{.data.password}' | base64 -d)\""
 	@echo "export NUODB_CP_URL_BASE=\"http://$(HOST):$(PORT)/nuodb-cp\""
 
-tmp/test-helper:
+tmp/test-helper.tgz:
 	mkdir -p tmp
 	curl -L -s https://github.com/nuodb/nuodb-cp-releases/releases/download/test-helper/test-helper.tgz -o tmp/test-helper.tgz
+
+tmp/test-helper: tmp/test-helper.tgz
 	cd tmp/ && tar -xf test-helper.tgz
 
 .PHONY: deploy-test-helper

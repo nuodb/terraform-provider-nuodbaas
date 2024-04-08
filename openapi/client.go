@@ -114,6 +114,11 @@ type ClientInterface interface {
 
 	CreateDatabase(ctx context.Context, organization string, project string, database string, body CreateDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// UpdateDbaPasswordWithBody request with any body
+	UpdateDbaPasswordWithBody(ctx context.Context, organization string, project string, database string, params *UpdateDbaPasswordParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateDbaPassword(ctx context.Context, organization string, project string, database string, params *UpdateDbaPasswordParams, body UpdateDbaPasswordJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetAllProjects request
 	GetAllProjects(ctx context.Context, params *GetAllProjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -235,6 +240,30 @@ func (c *Client) CreateDatabaseWithBody(ctx context.Context, organization string
 
 func (c *Client) CreateDatabase(ctx context.Context, organization string, project string, database string, body CreateDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateDatabaseRequest(c.Server, organization, project, database, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateDbaPasswordWithBody(ctx context.Context, organization string, project string, database string, params *UpdateDbaPasswordParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateDbaPasswordRequestWithBody(c.Server, organization, project, database, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateDbaPassword(ctx context.Context, organization string, project string, database string, params *UpdateDbaPasswordParams, body UpdateDbaPasswordJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateDbaPasswordRequest(c.Server, organization, project, database, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -797,6 +826,89 @@ func NewCreateDatabaseRequestWithBody(server string, organization string, projec
 	return req, nil
 }
 
+// NewUpdateDbaPasswordRequest calls the generic UpdateDbaPassword builder with application/json body
+func NewUpdateDbaPasswordRequest(server string, organization string, project string, database string, params *UpdateDbaPasswordParams, body UpdateDbaPasswordJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateDbaPasswordRequestWithBody(server, organization, project, database, params, "application/json", bodyReader)
+}
+
+// NewUpdateDbaPasswordRequestWithBody generates requests for UpdateDbaPassword with any type of body
+func NewUpdateDbaPasswordRequestWithBody(server string, organization string, project string, database string, params *UpdateDbaPasswordParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "organization", runtime.ParamLocationPath, organization)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "project", runtime.ParamLocationPath, project)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "database", runtime.ParamLocationPath, database)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/databases/%s/%s/%s/dbaPassword", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.TimeoutSeconds != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "timeoutSeconds", runtime.ParamLocationQuery, *params.TimeoutSeconds); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetAllProjectsRequest generates requests for GetAllProjects
 func NewGetAllProjectsRequest(server string, params *GetAllProjectsParams) (*http.Request, error) {
 	var err error
@@ -1214,6 +1326,11 @@ type ClientWithResponsesInterface interface {
 
 	CreateDatabaseWithResponse(ctx context.Context, organization string, project string, database string, body CreateDatabaseJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateDatabaseResponse, error)
 
+	// UpdateDbaPasswordWithBodyWithResponse request with any body
+	UpdateDbaPasswordWithBodyWithResponse(ctx context.Context, organization string, project string, database string, params *UpdateDbaPasswordParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDbaPasswordResponse, error)
+
+	UpdateDbaPasswordWithResponse(ctx context.Context, organization string, project string, database string, params *UpdateDbaPasswordParams, body UpdateDbaPasswordJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDbaPasswordResponse, error)
+
 	// GetAllProjectsWithResponse request
 	GetAllProjectsWithResponse(ctx context.Context, params *GetAllProjectsParams, reqEditors ...RequestEditorFn) (*GetAllProjectsResponse, error)
 
@@ -1373,6 +1490,7 @@ func (r GetDatabaseResponse) StatusCode() int {
 type PatchDatabaseResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *DatabaseModel
 	JSON400      *ErrorContent
 	JSON401      *ErrorContent
 	JSON403      *ErrorContent
@@ -1402,6 +1520,8 @@ func (r PatchDatabaseResponse) StatusCode() int {
 type CreateDatabaseResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *DatabaseModel
+	JSON201      *DatabaseModel
 	JSON400      *ErrorContent
 	JSON401      *ErrorContent
 	JSON403      *ErrorContent
@@ -1422,6 +1542,35 @@ func (r CreateDatabaseResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CreateDatabaseResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateDbaPasswordResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *ErrorContent
+	JSON401      *ErrorContent
+	JSON403      *ErrorContent
+	JSON404      *ErrorContent
+	JSON408      *ErrorContent
+	JSON409      *ErrorContent
+	JSON415      *ErrorContent
+	JSON500      *ErrorContent
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateDbaPasswordResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateDbaPasswordResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1538,6 +1687,7 @@ func (r GetProjectResponse) StatusCode() int {
 type PatchProjectResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *ProjectModel
 	JSON400      *ErrorContent
 	JSON401      *ErrorContent
 	JSON403      *ErrorContent
@@ -1566,6 +1716,8 @@ func (r PatchProjectResponse) StatusCode() int {
 type CreateProjectResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *ProjectModel
+	JSON201      *ProjectModel
 	JSON400      *ErrorContent
 	JSON401      *ErrorContent
 	JSON403      *ErrorContent
@@ -1668,6 +1820,23 @@ func (c *ClientWithResponses) CreateDatabaseWithResponse(ctx context.Context, or
 		return nil, err
 	}
 	return ParseCreateDatabaseResponse(rsp)
+}
+
+// UpdateDbaPasswordWithBodyWithResponse request with arbitrary body returning *UpdateDbaPasswordResponse
+func (c *ClientWithResponses) UpdateDbaPasswordWithBodyWithResponse(ctx context.Context, organization string, project string, database string, params *UpdateDbaPasswordParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateDbaPasswordResponse, error) {
+	rsp, err := c.UpdateDbaPasswordWithBody(ctx, organization, project, database, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateDbaPasswordResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateDbaPasswordWithResponse(ctx context.Context, organization string, project string, database string, params *UpdateDbaPasswordParams, body UpdateDbaPasswordJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateDbaPasswordResponse, error) {
+	rsp, err := c.UpdateDbaPassword(ctx, organization, project, database, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateDbaPasswordResponse(rsp)
 }
 
 // GetAllProjectsWithResponse request returning *GetAllProjectsResponse
@@ -2045,6 +2214,13 @@ func ParsePatchDatabaseResponse(rsp *http.Response) (*PatchDatabaseResponse, err
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest DatabaseModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest ErrorContent
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -2120,6 +2296,20 @@ func ParseCreateDatabaseResponse(rsp *http.Response) (*CreateDatabaseResponse, e
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest DatabaseModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest DatabaseModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest ErrorContent
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -2168,6 +2358,81 @@ func ParseCreateDatabaseResponse(rsp *http.Response) (*CreateDatabaseResponse, e
 			return nil, err
 		}
 		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ErrorContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateDbaPasswordResponse parses an HTTP response from a UpdateDbaPasswordWithResponse call
+func ParseUpdateDbaPasswordResponse(rsp *http.Response) (*UpdateDbaPasswordResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateDbaPasswordResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ErrorContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest ErrorContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest ErrorContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ErrorContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 408:
+		var dest ErrorContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON408 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ErrorContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 415:
+		var dest ErrorContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON415 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest ErrorContent
@@ -2432,6 +2697,13 @@ func ParsePatchProjectResponse(rsp *http.Response) (*PatchProjectResponse, error
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ProjectModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest ErrorContent
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -2500,6 +2772,20 @@ func ParseCreateProjectResponse(rsp *http.Response) (*CreateProjectResponse, err
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ProjectModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest ProjectModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest ErrorContent
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {

@@ -13,6 +13,7 @@ import (
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 )
 
 var (
@@ -29,15 +30,19 @@ func (state *DatabaseDataSourceModel) Read(ctx context.Context, client openapi.C
 	return helper.ParseResponse(resp, state)
 }
 
+func GetDatabaseDataSourceAttributes() (map[string]schema.Attribute, error) {
+	return framework.GetDataSourceAttributes("DatabaseModel")
+}
+
 func NewDatabaseDataSourceState() framework.DataSourceState {
 	return &DatabaseDataSourceModel{}
 }
 
 func NewDatabaseDataSource() datasource.DataSource {
 	return &framework.GenericDataSource{
-		TypeName:         "database",
-		Description:      "Data source for exposing information about NuoDB databases created using the DBaaS Control Plane",
-		GetOpenApiSchema: framework.GetDatabaseDataSourceSchema,
-		Build:            NewDatabaseDataSourceState,
+		TypeName:                "database",
+		Description:             "Data source for exposing information about NuoDB databases created using the DBaaS Control Plane",
+		GetDataSourceAttributes: GetDatabaseDataSourceAttributes,
+		Build:                   NewDatabaseDataSourceState,
 	}
 }

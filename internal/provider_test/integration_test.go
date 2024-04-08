@@ -977,39 +977,68 @@ func TestImmutableAttributeChange(t *testing.T) {
 		HasAttribute("status.state").
 		HasAttribute("status.ready")
 
-	// Change DBA password and verify that a warning is displayed by
-	// Terraform. Since the DBA password is only sent on create, there will
-	// not be an error from the server. TODO(asz6): When password rotation
-	// is supported by the REST service, we will accept updates to the DBA
-	// password and remove the RequiresReplace plan modifier from the
-	// `dba_password` attribute.
-	t.Run("applyDbaPasswordChange", func(t *testing.T) {
-		updatedPassword := "updated"
-		vars.database.DbaPassword = &updatedPassword
-		tf.WriteConfigT(t, vars.builder.Build())
-		out, err := tf.Apply()
-		require.NoError(t, err)
-		require.Contains(t, string(out), "Immutable Attribute Change")
-		require.Contains(t, string(out), "`dba_password`")
-		require.Contains(t, string(out), "(`<redacted>`)")
-	})
+	// Check whether the REST server supports updating the DBA password
+	client, err := vars.providerCfg.CreateClient()
+	require.NoError(t, err)
+	resp, err := client.UpdateDbaPassword(
+		ctx, vars.database.Organization, vars.database.Project, vars.database.Name, nil,
+		openapi.UpdateDbaPasswordModel{Current: *vars.database.DbaPassword})
+	require.NoError(t, err)
 
-	// Change the DBA password again, this time with
-	// NUODB_CP_ALLOW_DESTRUCTIVE_REPLACE=true
-	t.Run("applyDbaPasswordChangeWithReplace", func(t *testing.T) {
-		t.Setenv(framework.ALLOW_DESTRUCTIVE_REPLACE_VAR, "true")
+	// "404 Not Found" with no "detail" message indicates that /dbaPassword
+	// sub-resource does not exist. Run appropriate test case based on what
+	// behavior is supported.
+	err = helper.ParseResponse(resp, nil)
+	if IsDbaPasswordUpdateUnsupportedError(resp, err) {
+		t.Run("dbaPasswordChangeRejected", func(t *testing.T) {
+			// Change DBA password and run `terraform apply`. Revert
+			// DBA password change when finished.
+			originalPassword := vars.database.DbaPassword
+			vars.database.DbaPassword = ptr("updated")
+			defer func() {
+				vars.database.DbaPassword = originalPassword
+			}()
 
-		updatedPassword := "updated-again"
-		vars.database.DbaPassword = &updatedPassword
-		tf.WriteConfigT(t, vars.builder.Build())
-		out, err := tf.Apply()
+			tf.WriteConfigT(t, vars.builder.Build())
+			out, err := tf.Apply()
+			// Password change should be rejected if the REST server
+			// does not support it
+			require.Error(t, err)
+			require.Contains(t, string(out), "Configured DBA password was changed")
+		})
+	} else {
 		require.NoError(t, err)
-		require.Contains(t, string(out), "# forces replacement")
-		require.Contains(t, string(out), "Apply complete! Resources: 1 added, 0 changed, 1 destroyed.")
-	})
+		t.Run("dbaPasswordChange", func(t *testing.T) {
+			// Change DBA password and run `terraform apply`
+			vars.database.DbaPassword = ptr("updated")
+			// Expect readiness check to fail due to DBA password
+			// not being updated and specify small timeout
+			if vars.providerCfg.Timeouts == nil {
+				vars.providerCfg.Timeouts = map[string]framework.OperationTimeouts{
+					"database": {
+						Update: ptr("2s"),
+					},
+				}
+			}
+			tf.WriteConfigT(t, vars.builder.Build())
+			out, err := tf.Apply()
+			if IsE2E() {
+				// E2E tests disable readiness check completely
+				require.NoError(t, err)
+			} else {
+				// Check that readiness check failed due to DBA password
+				require.Error(t, err)
+
+				// TODO: Figure out how to check error messages despite Terraform line wrapping
+				require.Contains(t, string(out), "DBA password for database org/proj/db")
+			}
+			require.Contains(t, string(out), "0 to add, 1 to change, 0 to destroy.")
+		})
+	}
 
 	// Change the project SLA and verify that a warning is displayed by
-	// Terraform when running `terraform plan`
+	// Terraform when running `terraform plan` unless the environment
+	// variable ALLOW_DESTRUCTIVE_REPLACE=true is set
 	t.Run("planSlaChange", func(t *testing.T) {
 		vars.project.Sla = "qa"
 		defer func() {
@@ -1023,6 +1052,13 @@ func TestImmutableAttributeChange(t *testing.T) {
 		require.Contains(t, string(out), "`sla`")
 		require.Contains(t, string(out), "(`\"dev\"`)")
 		require.NotContains(t, string(out), "Unable to update project")
+
+		t.Setenv(framework.ALLOW_DESTRUCTIVE_REPLACE_VAR, "true")
+		tf.WriteConfigT(t, vars.builder.Build())
+		out, err = tf.Plan()
+		require.NoError(t, err)
+		require.Contains(t, string(out), "# forces replacement")
+		require.Contains(t, string(out), "1 to add, 0 to change, 1 to destroy.")
 	})
 
 	// Run `terraform apply` and verify that a warning is displayed by
