@@ -9,12 +9,9 @@ if [ "$IGNORE_NOT_FOUND" = true ]; then
 fi
 
 echo "Deleting Control Plane resources..."
-kubectl get databases.cp.nuodb.com -o name | xargs -r kubectl delete
-kubectl get domains.cp.nuodb.com -o name | xargs -r kubectl delete
-kubectl get servicetiers.cp.nuodb.com -o name | xargs -r kubectl delete
-kubectl get helmfeatures.cp.nuodb.com -o name | xargs -r kubectl delete
-kubectl get databasequotas.cp.nuodb.com -o name | xargs -r kubectl delete
-kubectl get pvc -o name --selector=group=nuodb | xargs -r kubectl delete
+for crd in $(kubectl get crd -o name | sed -n 's|.*/\(.*\.cp\.nuodb\.com\)|\1|p'); do
+    kubectl get "$crd" -o name | xargs -r kubectl delete
+done
 
 echo "Uninstalling Control Plane and dependencies..."
 helm uninstall nuodb-cp-rest

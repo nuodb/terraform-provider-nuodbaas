@@ -1,10 +1,11 @@
 apiVersion: cp.nuodb.com/v1beta1
 kind: HelmFeature
 metadata:
-  name: nano-resources
+  name: minimal-resources
 spec:
   values:
     admin:
+      replicas: 1
       resources:
         limits:
           cpu: 250m
@@ -12,59 +13,36 @@ spec:
         requests:
           cpu: 250m
           memory: 500Mi
-    database:
-      sm:
-        resources:
-          limits:
-            cpu: 250m
-            memory: 500Mi
-          requests:
-            cpu: 250m
-            memory: 500Mi
-        memoryOption: 500Mi
-      te:
-        resources:
-          limits:
-            cpu: 250m
-            memory: 500Mi
-          requests:
-            cpu: 250m
-            memory: 500Mi
-        memoryOption: 500Mi
-
----
-apiVersion: cp.nuodb.com/v1beta1
-kind: HelmFeature
-metadata:
-  name: nano-disk
-spec:
-  values:
-    admin:
       persistence:
         enabled: true
         size: 1Gi
-    database:
-      persistence:
-        enabled: true
-        size: 5Gi
-
----
-apiVersion: cp.nuodb.com/v1beta1
-kind: HelmFeature
-metadata:
-  name: n0-replicas
-spec:
-  values:
-    admin:
-      replicas: 1
     database:
       sm:
         hotCopy:
           enablePod: false
         noHotCopy:
           replicas: 1
+        resources:
+          limits:
+            cpu: 250m
+            memory: 500Mi
+          requests:
+            cpu: 250m
+            memory: 500Mi
+        memoryOption: 500Mi
       te:
         replicas: 1
+        resources:
+          limits:
+            cpu: 250m
+            memory: 500Mi
+          requests:
+            cpu: 250m
+            memory: 500Mi
+        memoryOption: 500Mi
+      persistence:
+        enabled: true
+        size: 5Gi
 
 ---
 apiVersion: cp.nuodb.com/v1beta1
@@ -73,9 +51,7 @@ metadata:
   name: n0.nano
 spec:
   features:
-  - name: nano-resources
-  - name: nano-disk
-  - name: n0-replicas
+  - name: minimal-resources
 ---
 apiVersion: cp.nuodb.com/v1beta1
 kind: ServiceTier
@@ -83,9 +59,7 @@ metadata:
   name: n0.small
 spec:
   features:
-  - name: nano-resources
-  - name: nano-disk
-  - name: n0-replicas
+  - name: minimal-resources
 ---
 apiVersion: cp.nuodb.com/v1beta1
 kind: ServiceTier
@@ -93,6 +67,4 @@ metadata:
   name: n1.small
 spec:
   features:
-  - name: nano-resources
-  - name: nano-disk
-  - name: n0-replicas
+  - name: minimal-resources

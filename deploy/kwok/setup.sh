@@ -111,7 +111,7 @@ while ! check; do
         exit 1
     fi
     echo "Retrying in 1 second..."
-    sleep $i
+    sleep 1
     i=$((i + 1))
 done
 
