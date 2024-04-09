@@ -112,7 +112,7 @@ lint: $(GOLANGCI_LINT) ## Run linters to check code quality and find for common 
 kwok-deps: $(KWOKCTL) $(KUBECTL) $(HELM)
 
 .PHONY: k8s-deps
-minikube-deps: $(KUBECTL) $(HELM)
+k8s-deps: $(KUBECTL) $(HELM)
 
 .PHONY: minikube-deps
 minikube-deps: $(MINIKUBE) k8s-deps
