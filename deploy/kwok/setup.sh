@@ -9,7 +9,10 @@ export KWOK_WORKDIR
 : ${KUBECONFIG:="$TMP_DIR/kubeconfig.yaml"}
 export KUBECONFIG
 
+# Special volume provisioner required for scheduling stateful workloads in
+# KWOK. See https://github.com/adriansuarez/noop-provisioner.
 : ${PROVISIONER_IMAGE:="ghcr.io/adriansuarez/noop-provisioner:latest"}
+
 : ${NUODB_CP_REPO:="https://nuodb.github.io/nuodb-cp-releases/charts"}
 : ${NUODB_CP_VERSION:="2.4.1"}
 : ${NUODB_CP_IMAGE:="ghcr.io/nuodb/nuodb-cp-images:$NUODB_CP_VERSION"}

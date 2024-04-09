@@ -14,6 +14,6 @@ export NUODB_CP_PASSWORD="${NUODB_CP_PASSWORD:-"changeIt"}"
 export PAUSE_OPERATOR_COMMAND="$(pwd)/pause-operator.sh"
 export RESUME_OPERATOR_COMMAND="$(pwd)/resume-operator.sh"
 
-export POD_SCHEDULING_ENABLED="false"
+export CONTAINER_SCHEDULING_ENABLED="false"
 export WEBHOOKS_ENABLED="false"
 EOF

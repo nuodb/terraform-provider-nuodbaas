@@ -25,10 +25,10 @@ import (
 type TestOption string
 
 const (
-	PAUSE_OPERATOR_COMMAND  TestOption = "PAUSE_OPERATOR_COMMAND"
-	RESUME_OPERATOR_COMMAND TestOption = "RESUME_OPERATOR_COMMAND"
-	POD_SCHEDULING_ENABLED  TestOption = "POD_SCHEDULING_ENABLED"
-	WEBHOOKS_ENABLED        TestOption = "WEBHOOKS_ENABLED"
+	PAUSE_OPERATOR_COMMAND       TestOption = "PAUSE_OPERATOR_COMMAND"
+	RESUME_OPERATOR_COMMAND      TestOption = "RESUME_OPERATOR_COMMAND"
+	CONTAINER_SCHEDULING_ENABLED TestOption = "CONTAINER_SCHEDULING_ENABLED"
+	WEBHOOKS_ENABLED             TestOption = "WEBHOOKS_ENABLED"
 )
 
 func (option TestOption) Get() string {
@@ -114,7 +114,7 @@ func newTestVars(overrideTimeouts bool) *testVars {
 	ret.resetVars()
 	// If overrideTimeouts=true and this is an end-to-end test, accelerate
 	// test by skipping readiness checks.
-	if overrideTimeouts && POD_SCHEDULING_ENABLED.IsTrue() {
+	if overrideTimeouts && CONTAINER_SCHEDULING_ENABLED.IsTrue() {
 		ret.providerCfg.Timeouts = map[string]framework.OperationTimeouts{
 			"default": {
 				Create: ptr("0"),
@@ -1061,7 +1061,7 @@ func TestImmutableAttributeChange(t *testing.T) {
 			}
 			tf.WriteConfigT(t, vars.builder.Build())
 			out, err := tf.Apply()
-			if POD_SCHEDULING_ENABLED.IsTrue() {
+			if CONTAINER_SCHEDULING_ENABLED.IsTrue() {
 				// E2E tests disable readiness check completely
 				require.NoError(t, err)
 			} else {
@@ -1272,7 +1272,7 @@ func TestDataSourceFiltering(t *testing.T) {
 
 	numProjects := 5
 	numDatabases := 5
-	if POD_SCHEDULING_ENABLED.IsTrue() {
+	if CONTAINER_SCHEDULING_ENABLED.IsTrue() {
 		numProjects = 2
 		numDatabases = 2
 	}
