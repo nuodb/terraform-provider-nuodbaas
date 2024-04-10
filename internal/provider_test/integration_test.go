@@ -8,8 +8,10 @@ package provider_test
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
@@ -29,6 +31,7 @@ const (
 	RESUME_OPERATOR_COMMAND      TestOption = "RESUME_OPERATOR_COMMAND"
 	CONTAINER_SCHEDULING_ENABLED TestOption = "CONTAINER_SCHEDULING_ENABLED"
 	WEBHOOKS_ENABLED             TestOption = "WEBHOOKS_ENABLED"
+	ORGANIZATION_BOUND_USER      TestOption = "ORGANIZATION_BOUND_USER"
 )
 
 func (option TestOption) Get() string {
@@ -51,11 +54,11 @@ func PauseOperator(t *testing.T) {
 	}
 	pauseCmd := PAUSE_OPERATOR_COMMAND.Get()
 	if pauseCmd == "" {
-		t.Skip("Skipping test because environment does not support pausing operator")
+		t.Skip("Pausing operator is not supported")
 	}
 	resumeCmd := RESUME_OPERATOR_COMMAND.Get()
 	if resumeCmd == "" {
-		t.Skip("Skipping test because environment does not support resuming operator")
+		t.Skip("Resuming operator is not supported")
 	}
 	// Pause reconciliation by stopping Operator
 	cmd := exec.Command(pauseCmd)
@@ -71,6 +74,20 @@ func PauseOperator(t *testing.T) {
 	})
 }
 
+func getOrganization() string {
+	user := os.Getenv("NUODB_CP_USER")
+	if user == "" {
+		return "org"
+	}
+	parts := strings.Split(user, "/")
+	return parts[0]
+}
+
+func withRandomSuffix(name string) string {
+	suffix := rand.Intn(1000) //nolint:gosec // This is not a security concern
+	return fmt.Sprintf("%s%d", name, suffix)
+}
+
 type testVars struct {
 	providerCfg NuoDbaasProviderModel
 	project     ProjectResourceModel
@@ -81,15 +98,19 @@ type testVars struct {
 func (vars *testVars) resetVars() {
 	dbaPassword := "dba"
 	vars.providerCfg = NuoDbaasProviderModel{}
+	// Get organization from user name
+	orgName := getOrganization()
+	// Generate a random project name to avoid collisions
+	projectName := withRandomSuffix("proj")
 	vars.project = ProjectResourceModel{
-		Organization: "org",
-		Name:         "proj",
+		Organization: orgName,
+		Name:         projectName,
 		Sla:          "dev",
 		Tier:         "n0.nano",
 	}
 	vars.database = DatabaseResourceModel{
-		Organization: "org",
-		Project:      "proj",
+		Organization: orgName,
+		Project:      projectName,
 		Name:         "db",
 		DbaPassword:  &dbaPassword,
 	}
@@ -97,12 +118,12 @@ func (vars *testVars) resetVars() {
 		WithProjectResource("proj", &vars.project).
 		WithDatabaseResource("db", &vars.database, "nuodbaas_project.proj").
 		WithProjectDataSource("proj", &ProjectNameModel{
-			Organization: "org",
-			Name:         "proj",
+			Organization: orgName,
+			Name:         projectName,
 		}, "nuodbaas_project.proj").
 		WithDatabaseDataSource("db", &DatabaseNameModel{
-			Organization: "org",
-			Project:      "proj",
+			Organization: orgName,
+			Project:      projectName,
 			Name:         "db",
 		}, "nuodbaas_database.db").
 		WithProjectsDataSource("proj_list", &ProjectsDataSourceModel{}).
@@ -157,8 +178,8 @@ func TestFullLifecycle(t *testing.T) {
 	actualProject := vars.project
 	err = actualProject.Read(ctx, client)
 	require.NoError(t, err)
-	require.Equal(t, "org", actualProject.Organization)
-	require.Equal(t, "proj", actualProject.Name)
+	require.Equal(t, vars.project.Organization, actualProject.Organization)
+	require.Equal(t, vars.project.Name, actualProject.Name)
 	require.Equal(t, "dev", actualProject.Sla)
 	require.Equal(t, "n0.nano", actualProject.Tier)
 	require.NotNil(t, actualProject.Status)
@@ -169,8 +190,8 @@ func TestFullLifecycle(t *testing.T) {
 	actualDatabase := vars.database
 	err = actualDatabase.Read(ctx, client)
 	require.NoError(t, err)
-	require.Equal(t, "org", actualDatabase.Organization)
-	require.Equal(t, "proj", actualDatabase.Project)
+	require.Equal(t, vars.project.Organization, actualDatabase.Organization)
+	require.Equal(t, vars.project.Name, actualDatabase.Project)
 	require.Equal(t, "db", actualDatabase.Name)
 	require.NotNil(t, actualDatabase.Tier)
 	require.Equal(t, "n0.nano", *actualDatabase.Tier)
@@ -187,16 +208,16 @@ func TestFullLifecycle(t *testing.T) {
 
 	// Check attributes in data sources
 	tf.CheckStateResource(t, "data.nuodbaas_project.proj").
-		HasAttributeValue("organization", "org").
-		HasAttributeValue("name", "proj").
+		HasAttributeValue("organization", vars.project.Organization).
+		HasAttributeValue("name", vars.project.Name).
 		HasAttributeValue("labels", map[string]any{}).
 		HasAttribute("properties.product_version").
 		HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
 		HasAttributeValue("status.ready", true).
 		HasAttributeValue("status.shutdown", false)
 	tf.CheckStateResource(t, "data.nuodbaas_database.db").
-		HasAttributeValue("organization", "org").
-		HasAttributeValue("project", "proj").
+		HasAttributeValue("organization", vars.project.Organization).
+		HasAttributeValue("project", vars.project.Name).
 		HasAttributeValue("name", "db").
 		HasAttributeValue("labels", map[string]any{}).
 		HasAttributeValue("tier", "n0.nano").
@@ -212,22 +233,20 @@ func TestFullLifecycle(t *testing.T) {
 	_, err = tf.Run("refresh")
 	require.NoError(t, err)
 	tf.CheckStateResource(t, "data.nuodbaas_projects.proj_list").
-		HasAttributeValue("projects", []any{
-			map[string]any{
-				"organization": "org",
-				"name":         "proj",
-			}})
+		HasListAttributeContaining("projects", map[string]any{
+			"organization": vars.project.Organization,
+			"name":         vars.project.Name,
+		})
 	tf.CheckStateResource(t, "data.nuodbaas_databases.db_list").
-		HasAttributeValue("databases", []any{
-			map[string]any{
-				"organization": "org",
-				"project":      "proj",
-				"name":         "db",
-			}})
+		HasListAttributeContaining("databases", map[string]any{
+			"organization": vars.project.Organization,
+			"project":      vars.project.Name,
+			"name":         "db",
+		})
 
 	// Update database config attributes (tier, labels, and product_version)
 	// and execute `terraform apply`
-	tier := "n1.small"
+	tier := "n0.small"
 	vars.database.Tier = &tier
 	vars.database.Labels = &map[string]string{
 		"priority": "high",
@@ -268,8 +287,8 @@ func TestFullLifecycle(t *testing.T) {
 
 	// Check attributes in data sources
 	tf.CheckStateResource(t, "data.nuodbaas_project.proj").
-		HasAttributeValue("organization", "org").
-		HasAttributeValue("name", "proj").
+		HasAttributeValue("organization", vars.project.Organization).
+		HasAttributeValue("name", vars.project.Name).
 		HasAttributeValue("tier", tier).
 		HasAttributeValue("labels", map[string]any{"priority": "high"}).
 		HasAttributeValue("properties.product_version", productVersion).
@@ -277,8 +296,8 @@ func TestFullLifecycle(t *testing.T) {
 		HasAttributeValue("status.ready", true).
 		HasAttributeValue("status.shutdown", false)
 	tf.CheckStateResource(t, "data.nuodbaas_database.db").
-		HasAttributeValue("organization", "org").
-		HasAttributeValue("project", "proj").
+		HasAttributeValue("organization", vars.project.Organization).
+		HasAttributeValue("project", vars.project.Name).
 		HasAttributeValue("name", "db").
 		HasAttributeValue("tier", tier).
 		HasAttributeValue("labels", map[string]any{"priority": "high"}).
@@ -319,8 +338,8 @@ func TestFullLifecycle(t *testing.T) {
 
 	// Check attributes in data sources
 	tf.CheckStateResource(t, "data.nuodbaas_project.proj").
-		HasAttributeValue("organization", "org").
-		HasAttributeValue("name", "proj").
+		HasAttributeValue("organization", vars.project.Organization).
+		HasAttributeValue("name", vars.project.Name).
 		HasAttributeValue("tier", tier).
 		HasAttributeValue("labels", map[string]any{"priority": "high"}).
 		HasAttributeValue("properties.product_version", productVersion).
@@ -328,8 +347,8 @@ func TestFullLifecycle(t *testing.T) {
 		HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateStopped)).
 		HasAttributeValue("status.shutdown", true)
 	tf.CheckStateResource(t, "data.nuodbaas_database.db").
-		HasAttributeValue("organization", "org").
-		HasAttributeValue("project", "proj").
+		HasAttributeValue("organization", vars.project.Organization).
+		HasAttributeValue("project", vars.project.Name).
 		HasAttributeValue("name", "db").
 		HasAttributeValue("tier", tier).
 		HasAttributeValue("labels", map[string]any{}).
@@ -387,8 +406,8 @@ func TestAttributeSerialization(t *testing.T) {
 
 	// Check attributes in project resource and data source
 	checkResourceAndDataSource(t, "nuodbaas_project.proj", tf, func(ac *AttributeChecker) {
-		ac.HasAttributeValue("organization", "org").
-			HasAttributeValue("name", "proj").
+		ac.HasAttributeValue("organization", vars.project.Organization).
+			HasAttributeValue("name", vars.project.Name).
 			HasAttributeValue("sla", "dev").
 			HasAttributeValue("tier", "n0.nano").
 			HasAttributeValue("labels", map[string]any{}).
@@ -400,8 +419,8 @@ func TestAttributeSerialization(t *testing.T) {
 	})
 	// Check attributes in database resource and data source
 	checkResourceAndDataSource(t, "nuodbaas_database.db", tf, func(ac *AttributeChecker) {
-		ac.HasAttributeValue("organization", "org").
-			HasAttributeValue("project", "proj").
+		ac.HasAttributeValue("organization", vars.project.Organization).
+			HasAttributeValue("project", vars.project.Name).
 			HasAttributeValue("name", "db").
 			HasAttributeValue("tier", "n0.nano").
 			HasAttributeValue("labels", map[string]any{}).
@@ -457,8 +476,8 @@ func TestAttributeSerialization(t *testing.T) {
 
 	// Check attributes in project resource and data source
 	checkResourceAndDataSource(t, "nuodbaas_project.proj", tf, func(ac *AttributeChecker) {
-		ac.HasAttributeValue("organization", "org").
-			HasAttributeValue("name", "proj").
+		ac.HasAttributeValue("organization", vars.project.Organization).
+			HasAttributeValue("name", vars.project.Name).
 			HasAttributeValue("sla", "dev").
 			HasAttributeValue("tier", "n0.nano").
 			HasAttributeValue("labels", map[string]any{"one": "1", "two": "2"}).
@@ -472,8 +491,8 @@ func TestAttributeSerialization(t *testing.T) {
 	})
 	// Check attributes in database resource and data source
 	checkResourceAndDataSource(t, "nuodbaas_database.db", tf, func(ac *AttributeChecker) {
-		ac.HasAttributeValue("organization", "org").
-			HasAttributeValue("project", "proj").
+		ac.HasAttributeValue("organization", vars.project.Organization).
+			HasAttributeValue("project", vars.project.Name).
 			HasAttributeValue("name", "db").
 			HasAttributeValue("tier", "n0.nano").
 			HasAttributeValue("labels", map[string]any{"one": "1", "two": "2"}).
@@ -501,8 +520,8 @@ func TestAttributeSerialization(t *testing.T) {
 
 	// Check attributes in project resource and data source
 	checkResourceAndDataSource(t, "nuodbaas_project.proj", tf, func(ac *AttributeChecker) {
-		ac.HasAttributeValue("organization", "org").
-			HasAttributeValue("name", "proj").
+		ac.HasAttributeValue("organization", vars.project.Organization).
+			HasAttributeValue("name", vars.project.Name).
 			HasAttributeValue("sla", "dev").
 			HasAttributeValue("tier", "n0.nano").
 			HasAttributeValue("labels", map[string]any{"one": "1", "two": "2"}).
@@ -516,8 +535,8 @@ func TestAttributeSerialization(t *testing.T) {
 	})
 	// Check attributes in database resource and data source
 	checkResourceAndDataSource(t, "nuodbaas_database.db", tf, func(ac *AttributeChecker) {
-		ac.HasAttributeValue("organization", "org").
-			HasAttributeValue("project", "proj").
+		ac.HasAttributeValue("organization", vars.project.Organization).
+			HasAttributeValue("project", vars.project.Name).
 			HasAttributeValue("name", "db").
 			HasAttributeValue("tier", "n0.nano").
 			HasAttributeValue("labels", map[string]any{"one": "1", "two": "2"}).
@@ -545,8 +564,8 @@ func TestAttributeSerialization(t *testing.T) {
 
 	// Check attributes in project resource and data source
 	checkResourceAndDataSource(t, "nuodbaas_project.proj", tf, func(ac *AttributeChecker) {
-		ac.HasAttributeValue("organization", "org").
-			HasAttributeValue("name", "proj").
+		ac.HasAttributeValue("organization", vars.project.Organization).
+			HasAttributeValue("name", vars.project.Name).
 			HasAttributeValue("sla", "dev").
 			HasAttributeValue("tier", "n0.nano").
 			HasAttributeValue("labels", map[string]any{}).
@@ -559,8 +578,8 @@ func TestAttributeSerialization(t *testing.T) {
 	})
 	// Check attributes in database resource and data source
 	checkResourceAndDataSource(t, "nuodbaas_database.db", tf, func(ac *AttributeChecker) {
-		ac.HasAttributeValue("organization", "org").
-			HasAttributeValue("project", "proj").
+		ac.HasAttributeValue("organization", vars.project.Organization).
+			HasAttributeValue("project", vars.project.Name).
 			HasAttributeValue("name", "db").
 			HasAttributeValue("tier", "n0.nano").
 			HasAttributeValue("labels", map[string]any{}).
@@ -736,12 +755,12 @@ func TestNegative(t *testing.T) {
 	require.Contains(t, string(out), `Expected an id with format "organization/project/name".`)
 
 	// Try to import resource not in config
-	out, err = tf.Run("import", "nuodbaas_project.nonexistent", "org/proj")
+	out, err = tf.Run("import", "nuodbaas_project.nonexistent", vars.project.Organization+"/proj")
 	require.Error(t, err)
 	require.Contains(t, string(out), `resource address "nuodbaas_project.nonexistent" does not exist in the configuration.`)
 
 	// Try to import resource not in remote state
-	out, err = tf.Run("import", "nuodbaas_database.db", "org/proj/nonexistent")
+	out, err = tf.Run("import", "nuodbaas_database.db", vars.project.Organization+"/proj/nonexistent")
 	require.Error(t, err)
 	require.Contains(t, string(out), "Cannot import non-existent remote object")
 
@@ -765,8 +784,8 @@ func TestNegative(t *testing.T) {
 	// Specify a data source without a dependency and run `terraform apply`.
 	// This should fail with 404 Not Found.
 	vars.builder.WithProjectDataSource("nodep", &ProjectNameModel{
-		Organization: "org",
-		Name:         "proj",
+		Organization: vars.project.Organization,
+		Name:         vars.project.Name,
 	})
 	tf.WriteConfigT(t, vars.builder.Build())
 	out, err = tf.Apply()
@@ -779,8 +798,8 @@ func TestNegative(t *testing.T) {
 	vars.builder.WithProjectsDataSource("project_list", &ProjectsDataSourceModel{
 		Projects: []ProjectNameModel{
 			{
-				Organization: "org",
-				Name:         "proj",
+				Organization: vars.project.Organization,
+				Name:         vars.project.Name,
 			},
 		},
 	})
@@ -793,14 +812,14 @@ func TestNegative(t *testing.T) {
 	// Specify an invalid database filter
 	vars.builder.WithDatabasesDataSource("database_list", &DatabasesDataSourceModel{
 		Filter: &DatabaseFilterModel{
-			Project: ptr("proj"),
+			Project: ptr(vars.project.Name),
 		},
 	})
 	tf.WriteConfigT(t, vars.builder.Build())
 	out, err = tf.Apply()
 	require.Error(t, err)
 	require.Contains(t, string(out), "Unable to read databases")
-	require.Contains(t, string(out), "Cannot specify project filter (proj) without organization")
+	require.Contains(t, string(out), "Cannot specify project filter ("+vars.project.Name+") without organization")
 	vars.builder.WithoutDatabasesDataSource("database_list")
 
 	// Specify a database resource without a project dependency and run
@@ -808,7 +827,7 @@ func TestNegative(t *testing.T) {
 	// non-existent name because there is small chance that org/proj gets
 	// created in time
 	vars.builder.WithDatabaseResource("nodep", &DatabaseResourceModel{
-		Organization: "org",
+		Organization: vars.project.Organization,
 		Project:      "nonexistent",
 		Name:         "nodep",
 		DbaPassword:  vars.database.DbaPassword,
@@ -857,7 +876,7 @@ func TestNegative(t *testing.T) {
 		HasAttribute("status.ready")
 
 	// Try to import resource already being managed
-	out, err = tf.Run("import", "nuodbaas_database.db", "org/proj/db")
+	out, err = tf.Run("import", "nuodbaas_database.db", vars.project.Organization+"/"+vars.project.Name+"/db")
 	require.Error(t, err)
 	require.Contains(t, string(out), "Resource already managed by Terraform")
 
@@ -942,9 +961,9 @@ func TestNegative(t *testing.T) {
 		// destroy` to fail
 		dbaPassword := "db"
 		database := DatabaseResourceModel{
-			Organization: "org",
-			Project:      "proj",
-			Name:         "unmanaged",
+			Organization: vars.project.Organization,
+			Project:      vars.project.Name,
+			Name:         withRandomSuffix("unmanaged"),
 			DbaPassword:  &dbaPassword,
 		}
 		err = database.Create(ctx, client)
@@ -1069,7 +1088,7 @@ func TestImmutableAttributeChange(t *testing.T) {
 				require.Error(t, err)
 
 				// TODO: Figure out how to check error messages despite Terraform line wrapping
-				require.Contains(t, string(out), "DBA password for database org/proj/db")
+				require.Contains(t, string(out), "DBA password for database "+vars.project.Organization+"/"+vars.project.Name+"/db")
 			}
 			require.Contains(t, string(out), "0 to add, 1 to change, 0 to destroy.")
 		})
@@ -1167,8 +1186,8 @@ func TestImport(t *testing.T) {
 
 	// Create project
 	project := ProjectResourceModel{
-		Organization: "org",
-		Name:         "proj",
+		Organization: vars.project.Organization,
+		Name:         vars.project.Name,
 		Sla:          "dev",
 		Tier:         "n0.nano",
 	}
@@ -1184,8 +1203,8 @@ func TestImport(t *testing.T) {
 
 	// Create database
 	database := DatabaseResourceModel{
-		Organization: "org",
-		Project:      "proj",
+		Organization: vars.project.Organization,
+		Project:      vars.project.Name,
 		Name:         "db",
 		DbaPassword:  vars.database.DbaPassword,
 		// Include label that is not in config
@@ -1236,21 +1255,21 @@ func TestImport(t *testing.T) {
 	require.Contains(t, string(out), "Empty or non-existent state")
 
 	// Run `terraform import` for project and database
-	out, err = tf.Run("import", "nuodbaas_project.proj", "org/proj")
+	out, err = tf.Run("import", "nuodbaas_project.proj", vars.project.Organization+"/"+vars.project.Name)
 	require.NoError(t, err)
 	require.Contains(t, string(out), "Import successful!")
-	out, err = tf.Run("import", "nuodbaas_database.db", "org/proj/db")
+	out, err = tf.Run("import", "nuodbaas_database.db", vars.project.Organization+"/"+vars.project.Name+"/db")
 	require.NoError(t, err)
 	require.Contains(t, string(out), "Import successful!")
 
 	// Verify that project and database are in state
 	tf.CheckStateResource(t, "nuodbaas_project.proj").
-		HasAttributeValue("organization", "org").
-		HasAttributeValue("name", "proj").
+		HasAttributeValue("organization", vars.project.Organization).
+		HasAttributeValue("name", vars.project.Name).
 		HasAttributeValue("tier", "n0.nano")
 	tf.CheckStateResource(t, "nuodbaas_database.db").
-		HasAttributeValue("organization", "org").
-		HasAttributeValue("project", "proj").
+		HasAttributeValue("organization", vars.project.Organization).
+		HasAttributeValue("project", vars.project.Name).
 		HasAttributeValue("name", "db").
 		HasAttributeValue("tier", "n0.nano").
 		HasAttributeValue("labels", map[string]any{"color": "blue"})
@@ -1263,6 +1282,10 @@ func TestImport(t *testing.T) {
 }
 
 func TestDataSourceFiltering(t *testing.T) {
+	if ORGANIZATION_BOUND_USER.IsTrue() {
+		t.Skipf("Current user is bound to organization")
+	}
+
 	vars := newTestVars(true)
 
 	// Create a projects and databases by directly invoking the REST service

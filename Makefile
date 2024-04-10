@@ -117,18 +117,21 @@ k8s-deps: $(KUBECTL) $(HELM)
 .PHONY: minikube-deps
 minikube-deps: $(MINIKUBE) k8s-deps
 
+.PHONY: external-deps
+external-deps: $(KUBECTL) $(HELM)
+
 setup-%: %-deps
 	mkdir -p $(OUTPUT_DIR) $(TMP_DIR)
-	./deploy/$*/setup.sh
+	[ ! -x "./deploy/$*/setup.sh" ] || ./deploy/$*/setup.sh
 
 env-%: %-deps
-	@./deploy/$*/env.sh
+	@[ ! -x "./deploy/$*/env.sh" ] || ./deploy/$*/env.sh
 
 logs-%: %-deps
-	./deploy/$*/logs.sh
+	[ ! -x "./deploy/$*/logs.sh" ] || ./deploy/$*/logs.sh
 
 teardown-%: %-deps
-	./deploy/$*/teardown.sh
+	[ ! -x "./deploy/$*/teardown.sh" ] || ./deploy/$*/teardown.sh
 
 .PHONY: testacc
 testacc: $(GOTESTSUM) $(TERRAFORM) ## Run acceptance tests

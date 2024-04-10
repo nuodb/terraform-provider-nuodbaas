@@ -1,3 +1,4 @@
+// +build !shared_env
 // (C) Copyright 2013-2024 Dassault Systemes SE.  All Rights Reserved.
 //
 // This software is licensed under a BSD 3-Clause License.
