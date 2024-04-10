@@ -118,7 +118,6 @@ k8s-deps: $(KUBECTL) $(HELM)
 minikube-deps: $(MINIKUBE) k8s-deps
 
 .PHONY: external-deps
-external-deps: $(KUBECTL) $(HELM)
 
 setup-%: %-deps
 	mkdir -p $(OUTPUT_DIR) $(TMP_DIR)
