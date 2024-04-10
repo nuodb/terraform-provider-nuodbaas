@@ -1286,7 +1286,15 @@ func TestDataSourceFiltering(t *testing.T) {
 		t.Skipf("Current user is bound to organization")
 	}
 
-	vars := newTestVars(true)
+	var vars testVars
+	vars.resetVars()
+	// Disable readiness checks
+	vars.providerCfg.Timeouts = map[string]framework.OperationTimeouts{
+		"default": {
+			Create: ptr("0"),
+			Update: ptr("0"),
+		},
+	}
 
 	// Create a projects and databases by directly invoking the REST service
 	client, err := vars.providerCfg.CreateClient()
