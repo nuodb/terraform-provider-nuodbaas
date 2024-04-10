@@ -963,7 +963,7 @@ func TestNegative(t *testing.T) {
 		database := DatabaseResourceModel{
 			Organization: vars.project.Organization,
 			Project:      vars.project.Name,
-			Name:         withRandomSuffix("unmanaged"),
+			Name:         "unmanaged",
 			DbaPassword:  &dbaPassword,
 		}
 		err = database.Create(ctx, client)
