@@ -464,6 +464,23 @@ func (ac *AttributeChecker) ForEach(attributePath string, expectedCount int, ass
 	return ac
 }
 
+func (ac *AttributeChecker) HasListAttributeContaining(attributePath string, expected any) *AttributeChecker {
+	actual, err := FindChildNode(ac.resource, attributePath)
+	require.NoError(ac.t, err)
+	require.NotNil(ac.t, actual)
+
+	// Check that value is a list or slice
+	v := reflect.ValueOf(actual)
+	switch v.Kind() {
+	case reflect.Array, reflect.Slice:
+	default:
+		require.FailNow(ac.t, "Unexpected type: %T", actual)
+	}
+
+	require.Contains(ac.t, actual, expected, "Value not found at attribute path %s", attributePath)
+	return ac
+}
+
 // CreateTerraformWorkspace creates an empty directory to serve as a workspace for Terraform.
 func CreateTerraformWorkspace(t *testing.T) *TfHelper {
 	projectRoot := GetProjectRoot(t)

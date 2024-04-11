@@ -94,6 +94,9 @@ workflows:
       - functional_tests:
           name: Functional tests (Minikube)
           test-driver: minikube
+      - functional_tests:
+          name: Functional tests (External DBaaS)
+          test-driver: external
       - check_quality:
           name: Static code checks
       - deploy_test:
