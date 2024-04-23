@@ -23,7 +23,7 @@ jobs:
         description: |
           The version of the NuoDB Control Plane to test against.
         type: string
-        default: 2.4.1
+        default: 2.5.0
     executor: ubuntu_vm
     environment:
       TEST_RESULTS: /tmp/test-results
@@ -94,6 +94,14 @@ workflows:
       - functional_tests:
           name: Functional tests (Minikube)
           test-driver: minikube
+      - functional_tests:
+          name: Functional tests (KWOK, 2.4.1)
+          test-driver: kwok
+          nuodb-cp-version: 2.4.1
+      - functional_tests:
+          name: Functional tests (Minikube, 2.4.1)
+          test-driver: minikube
+          nuodb-cp-version: 2.4.1
       - functional_tests:
           name: Functional tests (External DBaaS)
           test-driver: external

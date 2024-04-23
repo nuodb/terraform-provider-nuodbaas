@@ -252,8 +252,19 @@ func TestFullLifecycle(t *testing.T) {
 		"priority": "high",
 	}
 	productVersion := "5.1"
-	vars.database.Properties = &openapi.DatabasePropertiesModel{
-		ProductVersion: &productVersion,
+	var expectedProductVersion string
+	// Avoid triggering rolling upgrade if real processes are being started,
+	// since this will result in the database transitioning back and forth
+	// between Modifying and Available
+	if !CONTAINER_SCHEDULING_ENABLED.IsTrue() {
+		expectedProductVersion = productVersion
+		vars.database.Properties = &openapi.DatabasePropertiesModel{
+			ProductVersion: &productVersion,
+		}
+	} else {
+		require.NotNil(t, actualDatabase.Properties)
+		require.NotNil(t, actualDatabase.Properties.ProductVersion)
+		expectedProductVersion = *actualDatabase.Properties.ProductVersion
 	}
 	tf.WriteConfigT(t, vars.builder.Build())
 	_, err = tf.Apply()
@@ -264,7 +275,9 @@ func TestFullLifecycle(t *testing.T) {
 	require.Equal(t, tier, *actualDatabase.Tier)
 	require.Equal(t, vars.database.Labels, actualDatabase.Labels)
 	require.NotNil(t, actualDatabase.Properties)
-	require.Equal(t, vars.database.Properties.ProductVersion, actualDatabase.Properties.ProductVersion)
+	if !CONTAINER_SCHEDULING_ENABLED.IsTrue() {
+		require.Equal(t, vars.database.Properties.ProductVersion, actualDatabase.Properties.ProductVersion)
+	}
 
 	// Update project config attributes (tier, labels, and product_version)
 	// and execute `terraform apply`
@@ -272,8 +285,11 @@ func TestFullLifecycle(t *testing.T) {
 	vars.project.Labels = &map[string]string{
 		"priority": "high",
 	}
-	vars.project.Properties = &openapi.ProjectPropertiesModel{
-		ProductVersion: &productVersion,
+	// Avoid triggering rolling upgrade if real processes are being started
+	if !CONTAINER_SCHEDULING_ENABLED.IsTrue() {
+		vars.project.Properties = &openapi.ProjectPropertiesModel{
+			ProductVersion: &productVersion,
+		}
 	}
 	tf.WriteConfigT(t, vars.builder.Build())
 	_, err = tf.Apply()
@@ -283,7 +299,9 @@ func TestFullLifecycle(t *testing.T) {
 	require.Equal(t, tier, actualProject.Tier)
 	require.Equal(t, vars.project.Labels, actualProject.Labels)
 	require.NotNil(t, actualProject.Properties)
-	require.Equal(t, vars.project.Properties.ProductVersion, actualProject.Properties.ProductVersion)
+	if !CONTAINER_SCHEDULING_ENABLED.IsTrue() {
+		require.Equal(t, vars.project.Properties.ProductVersion, actualProject.Properties.ProductVersion)
+	}
 
 	// Check attributes in data sources
 	tf.CheckStateResource(t, "data.nuodbaas_project.proj").
@@ -291,7 +309,7 @@ func TestFullLifecycle(t *testing.T) {
 		HasAttributeValue("name", vars.project.Name).
 		HasAttributeValue("tier", tier).
 		HasAttributeValue("labels", map[string]any{"priority": "high"}).
-		HasAttributeValue("properties.product_version", productVersion).
+		HasAttributeValue("properties.product_version", expectedProductVersion).
 		HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateAvailable)).
 		HasAttributeValue("status.ready", true).
 		HasAttributeValue("status.shutdown", false)
@@ -301,7 +319,7 @@ func TestFullLifecycle(t *testing.T) {
 		HasAttributeValue("name", "db").
 		HasAttributeValue("tier", tier).
 		HasAttributeValue("labels", map[string]any{"priority": "high"}).
-		HasAttributeValue("properties.product_version", productVersion).
+		HasAttributeValue("properties.product_version", expectedProductVersion).
 		HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
 		HasAttributeValue("status.ready", true).
 		HasAttributeValue("status.shutdown", false)
@@ -342,7 +360,7 @@ func TestFullLifecycle(t *testing.T) {
 		HasAttributeValue("name", vars.project.Name).
 		HasAttributeValue("tier", tier).
 		HasAttributeValue("labels", map[string]any{"priority": "high"}).
-		HasAttributeValue("properties.product_version", productVersion).
+		HasAttributeValue("properties.product_version", expectedProductVersion).
 		HasAttributeValue("maintenance.is_disabled", true).
 		HasAttributeValue("status.state", string(openapi.ProjectStatusModelStateStopped)).
 		HasAttributeValue("status.shutdown", true)
@@ -352,7 +370,7 @@ func TestFullLifecycle(t *testing.T) {
 		HasAttributeValue("name", "db").
 		HasAttributeValue("tier", tier).
 		HasAttributeValue("labels", map[string]any{}).
-		HasAttributeValue("properties.product_version", productVersion).
+		HasAttributeValue("properties.product_version", expectedProductVersion).
 		HasAttributeValue("maintenance.is_disabled", true).
 		HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateStopped)).
 		HasAttributeValue("status.shutdown", true)

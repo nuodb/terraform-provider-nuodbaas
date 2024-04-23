@@ -4,7 +4,7 @@ set -e
 cd "$(dirname "$0")"
 ./check.sh
 
-: ${NUODB_CP_VERSION:="2.4.1"}
+: ${NUODB_CP_VERSION:="2.5.0"}
 : ${NUODB_CP_REPO:="https://nuodb.github.io/nuodb-cp-releases/charts"}
 
 : ${CERT_MANAGER_VERSION:="1.13.3"}
