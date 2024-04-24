@@ -26,13 +26,14 @@ const (
 func DefaultApiClient() (*openapi.Client, error) {
 	user := os.Getenv("NUODB_CP_USER")
 	password := os.Getenv("NUODB_CP_PASSWORD")
+	token := os.Getenv("NUODB_CP_TOKEN")
 	urlBase := os.Getenv("NUODB_CP_URL_BASE")
 
 	if urlBase == "" {
 		urlBase = DEFAULT_URL
 	}
 
-	return nuodbaas_client.NewApiClient(urlBase, user, password, true)
+	return nuodbaas_client.NewApiClient(urlBase, user, password, token, true)
 }
 
 func CreateProject(t *testing.T, ctx context.Context, client *openapi.Client, organization string, name string, sla string, tier string) error {

@@ -13,6 +13,7 @@ KUBECTL_VERSION ?= 1.28.3
 KWOKCTL_VERSION ?= 0.5.1
 HELM_VERSION ?= 3.14.3
 MINIKUBE_VERSION ?= 1.32.0
+NUODB_CP_VERSION ?= 2.5.0
 
 GOTESTSUM := bin/gotestsum
 TFPLUGINDOCS := bin/tfplugindocs
@@ -23,6 +24,7 @@ KWOKCTL := bin/kwokctl
 HELM := bin/helm
 MINIKUBE := bin/minikube
 GOLANGCI_LINT := bin/golangci-lint
+NUODB_CP := bin/nuodb-cp
 
 PUBLISH_VERSION ?= 1.0.0
 PUBLISH_DIR ?= $(PROJECT_DIR)/dist
@@ -74,6 +76,11 @@ $(MINIKUBE):
 	curl -L -s https://storage.googleapis.com/minikube/releases/v$(MINIKUBE_VERSION)/minikube-$(OS)-$(ARCH) -o $(MINIKUBE)
 	chmod +x $(MINIKUBE)
 
+$(NUODB_CP):
+	mkdir -p bin
+	curl -L -s https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(NUODB_CP_VERSION)/nuodb-cp -o $(NUODB_CP)
+	chmod +x $(NUODB_CP)
+
 bin/%:
 	$(MAKE) install-tools
 
@@ -112,7 +119,7 @@ lint: $(GOLANGCI_LINT) ## Run linters to check code quality and find for common 
 kwok-deps: $(KWOKCTL) $(KUBECTL) $(HELM)
 
 .PHONY: k8s-deps
-k8s-deps: $(KUBECTL) $(HELM)
+k8s-deps: $(KUBECTL) $(HELM) $(NUODB_CP)
 
 .PHONY: minikube-deps
 minikube-deps: $(MINIKUBE) k8s-deps
