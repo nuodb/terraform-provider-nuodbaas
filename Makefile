@@ -107,7 +107,7 @@ generate: $(TFPLUGINDOCS) $(OAPI_CODEGEN) $(TERRAFORM) ## Generate Golang client
 
 .PHONY: update-spec
 update-spec: ## Update spec to released Control Plane version
-	curl -s https://raw.githubusercontent.com/nuodb/nuodb-cp-releases/v$(CP_VERSION)/openapi.yaml -o openapi.yaml
+	curl -s https://raw.githubusercontent.com/nuodb/nuodb-cp-releases/v$(NUODB_CP_VERSION)/openapi.yaml -o openapi.yaml
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Run linters to check code quality and find for common errors

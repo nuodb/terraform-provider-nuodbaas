@@ -32,6 +32,7 @@ const (
 const (
 	CONCURRENTUPDATE ErrorContentCode = "CONCURRENT_UPDATE"
 	HTTPERROR        ErrorContentCode = "HTTP_ERROR"
+	UNKNOWNREQUEST   ErrorContentCode = "UNKNOWN_REQUEST"
 )
 
 // Defines values for JsonPatchOperationOp.
@@ -174,6 +175,7 @@ type ErrorContent struct {
 	// Code Application-level error code that describes how the error should be handled and how the `detail` field should be interpreted:
 	//   * `HTTP_ERROR` - The error should be handled based on the HTTP status code (`status`) of the response according to RFC-9910, and `detail` should be interpreted as a human-readable string.
 	//   * `CONCURRENT_UPDATE` - A concurrent update caused the `PUT` or `PATCH` request to fail. A `PUT` request can be retried after using `GET` to obtain the latest resource version and applying the desired change to it. A `PATCH` request can be retried without any changes to the request content.
+	//   * `UNKNOWN_REQUEST` - The client request is unroutable due to an unknown content-type, method, or resource path. This can be indicate a versioning issue between the client and server.
 	Code *ErrorContentCode `json:"code,omitempty"`
 
 	// Status HTTP status code and reason
@@ -186,11 +188,39 @@ type ErrorContent struct {
 // ErrorContentCode Application-level error code that describes how the error should be handled and how the `detail` field should be interpreted:
 //   - `HTTP_ERROR` - The error should be handled based on the HTTP status code (`status`) of the response according to RFC-9910, and `detail` should be interpreted as a human-readable string.
 //   - `CONCURRENT_UPDATE` - A concurrent update caused the `PUT` or `PATCH` request to fail. A `PUT` request can be retried after using `GET` to obtain the latest resource version and applying the desired change to it. A `PATCH` request can be retried without any changes to the request content.
+//   - `UNKNOWN_REQUEST` - The client request is unroutable due to an unknown content-type, method, or resource path. This can be indicate a versioning issue between the client and server.
 type ErrorContentCode string
 
-// ItemListString defines model for ItemListString.
-type ItemListString struct {
-	Items *[]string `json:"items,omitempty"`
+// ExpandedListEntry defines model for ExpandedListEntry.
+type ExpandedListEntry struct {
+	// Ref The sub-path relative to the request URL that can be used to obtain the resource
+	Ref *string `json:"$ref,omitempty"`
+}
+
+// ItemList defines model for ItemList.
+type ItemList struct {
+	// Offset The offset at which items are being listed, based on the user request
+	Offset *int32 `json:"offset,omitempty"`
+
+	// Cursor The cursor at which items are being listed, based on the user request
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Limit The maximum number of items that could have been returned, based on the user request. If `limit` is equal to the number of items returned, then it is possible that more items are available (see `next`), which can be obtained by advancing the `offset` by `limit` or supplying the last value in the list (or its `$ref`) as `cursor`.
+	Limit *int32 `json:"limit,omitempty"`
+
+	// Items The list of items returned. If expansion of payload fields was requested using the query parameter `expand` or `expand.<field>`, then the items will be objects, otherwise, they will be strings representing the sub-paths at which the resource can be found.
+	Items *[]ItemList_Items_Item `json:"items,omitempty"`
+
+	// Next The URL to obtain the next list of items, if `limit` was specified and more items are available. The absence of the `next` field indicates that all items have been returned.
+	Next *string `json:"next,omitempty"`
+}
+
+// ItemListItems0 defines model for .
+type ItemListItems0 = string
+
+// ItemList_Items_Item defines model for ItemList.items.Item.
+type ItemList_Items_Item struct {
+	union json.RawMessage
 }
 
 // JsonNode defines model for JsonNode.
@@ -323,6 +353,18 @@ type UpdateDbaPasswordModel struct {
 
 // GetAllDatabasesParams defines parameters for GetAllDatabases.
 type GetAllDatabasesParams struct {
+	// Offset The offset at which to list items
+	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Cursor The cursor at which to list items, which represents the last item returned. If specified, all items returned must be lexicographically greater than the supplied value. For expanded payloads, the `$ref` value is compared to the cursor.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
+
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
 	// * `key` - Only return resources that have label with specified key
 	// * `key=value` - Only return resources that have label with specified key set to value
@@ -336,6 +378,18 @@ type GetAllDatabasesParams struct {
 
 // GetOrganizationDatabasesParams defines parameters for GetOrganizationDatabases.
 type GetOrganizationDatabasesParams struct {
+	// Offset The offset at which to list items
+	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Cursor The cursor at which to list items, which represents the last item returned. If specified, all items returned must be lexicographically greater than the supplied value. For expanded payloads, the `$ref` value is compared to the cursor.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
+
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
 	// * `key` - Only return resources that have label with specified key
 	// * `key=value` - Only return resources that have label with specified key set to value
@@ -349,6 +403,18 @@ type GetOrganizationDatabasesParams struct {
 
 // GetDatabasesParams defines parameters for GetDatabases.
 type GetDatabasesParams struct {
+	// Offset The offset at which to list items
+	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Cursor The cursor at which to list items, which represents the last item returned. If specified, all items returned must be lexicographically greater than the supplied value. For expanded payloads, the `$ref` value is compared to the cursor.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
+
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
 	// * `key` - Only return resources that have label with specified key
 	// * `key=value` - Only return resources that have label with specified key set to value
@@ -377,6 +443,18 @@ type UpdateDbaPasswordParams struct {
 
 // GetAllProjectsParams defines parameters for GetAllProjects.
 type GetAllProjectsParams struct {
+	// Offset The offset at which to list items
+	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Cursor The cursor at which to list items, which represents the last item returned. If specified, all items returned must be lexicographically greater than the supplied value. For expanded payloads, the `$ref` value is compared to the cursor.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
+
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
 	// * `key` - Only return resources that have label with specified key
 	// * `key=value` - Only return resources that have label with specified key set to value
@@ -390,6 +468,18 @@ type GetAllProjectsParams struct {
 
 // GetProjectsParams defines parameters for GetProjects.
 type GetProjectsParams struct {
+	// Offset The offset at which to list items
+	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Cursor The cursor at which to list items, which represents the last item returned. If specified, all items returned must be lexicographically greater than the supplied value. For expanded payloads, the `$ref` value is compared to the cursor.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
+
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
 	// * `key` - Only return resources that have label with specified key
 	// * `key=value` - Only return resources that have label with specified key set to value
@@ -424,6 +514,68 @@ type PatchProjectApplicationJSONPatchPlusJSONRequestBody = PatchProjectApplicati
 
 // CreateProjectJSONRequestBody defines body for CreateProject for application/json ContentType.
 type CreateProjectJSONRequestBody = ProjectModel
+
+// AsItemListItems0 returns the union data inside the ItemList_Items_Item as a ItemListItems0
+func (t ItemList_Items_Item) AsItemListItems0() (ItemListItems0, error) {
+	var body ItemListItems0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromItemListItems0 overwrites any union data inside the ItemList_Items_Item as the provided ItemListItems0
+func (t *ItemList_Items_Item) FromItemListItems0(v ItemListItems0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeItemListItems0 performs a merge with any union data inside the ItemList_Items_Item, using the provided ItemListItems0
+func (t *ItemList_Items_Item) MergeItemListItems0(v ItemListItems0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExpandedListEntry returns the union data inside the ItemList_Items_Item as a ExpandedListEntry
+func (t ItemList_Items_Item) AsExpandedListEntry() (ExpandedListEntry, error) {
+	var body ExpandedListEntry
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExpandedListEntry overwrites any union data inside the ItemList_Items_Item as the provided ExpandedListEntry
+func (t *ItemList_Items_Item) FromExpandedListEntry(v ExpandedListEntry) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExpandedListEntry performs a merge with any union data inside the ItemList_Items_Item, using the provided ExpandedListEntry
+func (t *ItemList_Items_Item) MergeExpandedListEntry(v ExpandedListEntry) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ItemList_Items_Item) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ItemList_Items_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // AsJsonNode0 returns the union data inside the JsonNode as a JsonNode0
 func (t JsonNode) AsJsonNode0() (JsonNode0, error) {

@@ -106,63 +106,64 @@ func DeleteDatabaseByName(ctx context.Context, client *openapi.Client, organizat
 	return ParseResponse(resp, nil)
 }
 
+func processListResponse(prefix string, resp *http.Response, err error) ([]string, error) {
+	// Make sure request was successful
+	if err != nil {
+		return nil, err
+	}
+	// Decode as ItemList
+	var itemList openapi.ItemList
+	err = ParseResponse(resp, &itemList)
+	if err != nil {
+		return nil, err
+	}
+	// Return resource names with prefix
+	var names []string
+	if itemList.Items != nil {
+		for _, item := range *itemList.Items {
+			name, err := item.AsItemListItems0()
+			if err != nil {
+				return nil, err
+			}
+			names = append(names, prefix+name)
+		}
+	}
+	return names, nil
+}
+
 func GetDatabases(ctx context.Context, client openapi.ClientInterface, organization, project string, labelFilter *string, listAccessible bool) ([]string, error) {
-	var databases []string
+	var prefix string
+	var resp *http.Response
+	var err error
 	if len(organization) == 0 {
+		// Make sure project was not specified without organization
 		if len(project) != 0 {
 			return nil, fmt.Errorf("Cannot specify project filter (%s) without organization", project)
 		}
-
+		// List all databases
 		params := openapi.GetAllDatabasesParams{
 			LabelFilter:    labelFilter,
 			ListAccessible: &listAccessible,
 		}
-		resp, err := client.GetAllDatabases(ctx, &params)
-		if err != nil {
-			return nil, err
-		}
-		var itemList openapi.ItemListString
-		err = ParseResponse(resp, &itemList)
-		if err != nil {
-			return nil, err
-		}
-		databases = *itemList.Items
+		resp, err = client.GetAllDatabases(ctx, &params)
 	} else if len(project) == 0 {
+		// List all databases within organization
+		prefix = organization + "/"
 		params := openapi.GetOrganizationDatabasesParams{
 			LabelFilter:    labelFilter,
 			ListAccessible: &listAccessible,
 		}
-		resp, err := client.GetOrganizationDatabases(ctx, organization, &params)
-		if err != nil {
-			return nil, err
-		}
-		var itemList openapi.ItemListString
-		err = ParseResponse(resp, &itemList)
-		if err != nil {
-			return nil, err
-		}
-		for _, db := range *itemList.Items {
-			databases = append(databases, organization+"/"+db)
-		}
+		resp, err = client.GetOrganizationDatabases(ctx, organization, &params)
 	} else {
+		// List all databases within project
+		prefix = organization + "/" + project + "/"
 		params := openapi.GetDatabasesParams{
 			LabelFilter:    labelFilter,
 			ListAccessible: &listAccessible,
 		}
-		resp, err := client.GetDatabases(ctx, organization, project, &params)
-		if err != nil {
-			return nil, err
-		}
-		var itemList openapi.ItemListString
-		err = ParseResponse(resp, &itemList)
-		if err != nil {
-			return nil, err
-		}
-		for _, db := range *itemList.Items {
-			databases = append(databases, organization+"/"+project+"/"+db)
-		}
+		resp, err = client.GetDatabases(ctx, organization, project, &params)
 	}
-	return databases, nil
+	return processListResponse(prefix, resp, err)
 }
 
 func GetProjectByName(ctx context.Context, client *openapi.Client, organization, name string, dest any) error {
@@ -182,39 +183,24 @@ func DeleteProjectByName(ctx context.Context, client *openapi.Client, organizati
 }
 
 func GetProjects(ctx context.Context, client openapi.ClientInterface, organization string, labelFilter *string, listAccessible bool) ([]string, error) {
-	var projects []string
+	var prefix string
+	var resp *http.Response
+	var err error
 	if len(organization) == 0 {
+		// List all projects
 		params := openapi.GetAllProjectsParams{
 			LabelFilter:    labelFilter,
 			ListAccessible: &listAccessible,
 		}
-		resp, err := client.GetAllProjects(ctx, &params)
-		if err != nil {
-			return nil, err
-		}
-		var itemList openapi.ItemListString
-		err = ParseResponse(resp, &itemList)
-		if err != nil {
-			return nil, err
-		}
-		projects = *itemList.Items
+		resp, err = client.GetAllProjects(ctx, &params)
 	} else {
+		// List all project within organization
+		prefix = organization + "/"
 		params := openapi.GetProjectsParams{
 			LabelFilter:    labelFilter,
 			ListAccessible: &listAccessible,
 		}
-		resp, err := client.GetProjects(ctx, organization, &params)
-		if err != nil {
-			return nil, err
-		}
-		var itemList openapi.ItemListString
-		err = ParseResponse(resp, &itemList)
-		if err != nil {
-			return nil, err
-		}
-		for _, project := range *itemList.Items {
-			projects = append(projects, organization+"/"+project)
-		}
+		resp, err = client.GetProjects(ctx, organization, &params)
 	}
-	return projects, nil
+	return processListResponse(prefix, resp, err)
 }
