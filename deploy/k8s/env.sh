@@ -16,9 +16,9 @@ export NUODB_CP_USER=system/admin
 export NUODB_CP_PASSWORD="$(kubectl get secret dbaas-user-system-admin -o jsonpath='{.data.password}' | base64 -d)"
 
 # Use token authentication if server is configured to generate tokens
-if [ ! "$(kubectl get secrets nuodb-cp-runtime-config -o jsonpath='{.data.secretPassword}' --ignore-not-found)" = "" ]; then
+if [ -n "$(kubectl get secrets nuodb-cp-runtime-config -o jsonpath='{.data.secretPassword}' --ignore-not-found)" ]; then
     NUODB_CP_TOKEN="$(nuodb-cp httpclient POST login --jsonpath token --unquote)"
-    if [ ! "$NUODB_CP_TOKEN" = "" ]; then
+    if [ -n "$NUODB_CP_TOKEN" ]; then
         unset NUODB_CP_USER
         unset NUODB_CP_PASSWORD
     fi
