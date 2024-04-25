@@ -26,7 +26,9 @@ MINIKUBE := bin/minikube
 GOLANGCI_LINT := bin/golangci-lint
 NUODB_CP := bin/nuodb-cp
 
-PUBLISH_VERSION ?= 1.0.0
+# Releases use the tag to obtain the version and not this variable, but this is
+# used by the `make package` target which is used by the e2e app test
+PUBLISH_VERSION ?= 1.1.0
 PUBLISH_DIR ?= $(PROJECT_DIR)/dist
 
 IGNORE_NOT_FOUND ?= true
