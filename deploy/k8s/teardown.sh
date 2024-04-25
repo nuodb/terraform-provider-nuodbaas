@@ -9,6 +9,13 @@ if [ "$IGNORE_NOT_FOUND" = true ]; then
 fi
 
 echo "Deleting Control Plane resources..."
+# Delete databases before domains
+kubectl get databases.cp.nuodb.com -o name | xargs -r kubectl delete --ignore-not-found
+kubectl get domains.cp.nuodb.com -o name | xargs -r kubectl delete --ignore-not-found
+# Delete service tiers before Helm features
+kubectl get servicetiers.cp.nuodb.com -o name | xargs -r kubectl delete --ignore-not-found
+kubectl get helmfeatures.cp.nuodb.com -o name | xargs -r kubectl delete --ignore-not-found
+# Delete any other NuoDB CP resources
 for crd in $(kubectl get crd -o name | sed -n 's|.*/\(.*\.cp\.nuodb\.com\)|\1|p'); do
     kubectl get "$crd" -o name | xargs -r kubectl delete
 done

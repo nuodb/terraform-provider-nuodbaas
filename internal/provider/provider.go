@@ -42,6 +42,7 @@ type NuoDbaasProvider struct {
 type NuoDbaasProviderModel struct {
 	User       *string                                `tfsdk:"user" hcl:"user" cty:"user"`
 	Password   *string                                `tfsdk:"password" hcl:"password" cty:"password"`
+	Token      *string                                `tfsdk:"token" hcl:"token" cty:"token"`
 	UrlBase    *string                                `tfsdk:"url_base" hcl:"url_base" cty:"url_base"`
 	SkipVerify *bool                                  `tfsdk:"skip_verify" hcl:"skip_verify" cty:"skip_verify"`
 	Timeouts   map[string]framework.OperationTimeouts `tfsdk:"timeouts" hcl:"timeouts" cty:"timeouts"`
@@ -50,6 +51,7 @@ type NuoDbaasProviderModel struct {
 const (
 	NUODB_CP_USER        = "NUODB_CP_USER"
 	NUODB_CP_PASSWORD    = "NUODB_CP_PASSWORD" //nolint:gosec // This is not a hardcoded password
+	NUODB_CP_TOKEN       = "NUODB_CP_TOKEN"    //nolint:gosec // This is not a hardcoded authentication token
 	NUODB_CP_URL_BASE    = "NUODB_CP_URL_BASE"
 	NUODB_CP_SKIP_VERIFY = "NUODB_CP_SKIP_VERIFY"
 )
@@ -68,6 +70,13 @@ func (pm *NuoDbaasProviderModel) GetPassword() string {
 	return os.Getenv(NUODB_CP_PASSWORD)
 }
 
+func (pm *NuoDbaasProviderModel) GetToken() string {
+	if pm.Token != nil {
+		return *pm.Token
+	}
+	return os.Getenv(NUODB_CP_TOKEN)
+}
+
 func (pm *NuoDbaasProviderModel) GetUrlBase() string {
 	if pm.UrlBase != nil {
 		return *pm.UrlBase
@@ -83,7 +92,7 @@ func (pm *NuoDbaasProviderModel) GetSkipVerify() bool {
 }
 
 func (pm *NuoDbaasProviderModel) CreateClient() (*openapi.Client, error) {
-	return nuodbaas_client.NewApiClient(pm.GetUrlBase(), pm.GetUser(), pm.GetPassword(), pm.GetSkipVerify())
+	return nuodbaas_client.NewApiClient(pm.GetUrlBase(), pm.GetUser(), pm.GetPassword(), pm.GetToken(), pm.GetSkipVerify())
 }
 
 func (p *NuoDbaasProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -103,6 +112,12 @@ func (p *NuoDbaasProvider) Schema(ctx context.Context, req provider.SchemaReques
 			"password": schema.StringAttribute{
 				Description: "The password for the user. " +
 					"If not specified, defaults to the value of the `" + NUODB_CP_PASSWORD + "` environment variable.",
+				Optional:  true,
+				Sensitive: true,
+			},
+			"token": schema.StringAttribute{
+				Description: "The token to use to authenticate the user. " +
+					"If not specified, defaults to the value of the `" + NUODB_CP_TOKEN + "` environment variable.",
 				Optional:  true,
 				Sensitive: true,
 			},
@@ -195,13 +210,17 @@ func parseAndValidate(ctx context.Context, rawConfig tfsdk.Config, diags *diag.D
 	hasPassword := config.GetPassword() != ""
 
 	if (hasUser && !hasPassword) || (hasPassword && !hasUser) { // user xnor password
-		diags.AddError("Partial credentials", "To use authenticantion, both user name and password should be provided.")
+		diags.AddError("Partial credentials", "To use basic authentication, both user name and password should be provided.")
 	}
 
 	if hasUser {
 		userParts := strings.Split(config.GetUser(), "/")
 		if len(userParts) != 2 || len(userParts[0]) < 1 || len(userParts[1]) < 1 {
 			diags.AddAttributeError(path.Root("user"), "Malformed user name", "User name should be in the format \"<organization>/<user>\".")
+		}
+		// Make sure that token was not also supplied
+		if config.GetToken() != "" {
+			diags.AddError("Multiple credentials", "Both basic and token authentication credentials were supplied.")
 		}
 	}
 

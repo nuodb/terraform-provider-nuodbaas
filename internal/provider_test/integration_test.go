@@ -899,6 +899,12 @@ func TestNegative(t *testing.T) {
 	require.Contains(t, string(out), "Resource already managed by Terraform")
 
 	t.Run("invalidProviderConfiguration", func(t *testing.T) {
+		// Clear any credentials set via environment variables
+		t.Setenv("NUODB_CP_USER", "")
+		t.Setenv("NUODB_CP_PASSWORD", "")
+		t.Setenv("NUODB_CP_TOKEN", "")
+
+		// Revert provider configuration when finished
 		defer func() {
 			vars.providerCfg = NuoDbaasProviderModel{}
 		}()
@@ -1514,11 +1520,13 @@ func TestValidation(t *testing.T) {
 		// Clear any credentials that might exist in the environment, for example when running as an e2e test
 		t.Setenv(NUODB_CP_USER, "")
 		t.Setenv(NUODB_CP_PASSWORD, "")
+		t.Setenv(NUODB_CP_TOKEN, "")
 
 		vars := newTestVars(false)
 
+		// TODO: Another place where we cannot assert on full message due to annoying line wrapping
 		errorString := "Partial credentials"
-		errorDescription := "To use authenticantion, both user name and password should be provided."
+		errorDescription := "To use basic authentication, both user name and password"
 
 		// Test user without a password
 		vars.providerCfg.User = ptr("org/user")
@@ -1575,12 +1583,45 @@ func TestValidation(t *testing.T) {
 		require.Contains(t, string(out), errorDescription)
 	})
 
+	t.Run("multiple credentials", func(t *testing.T) {
+		// Specify both basic and token credentials via environment variables
+		t.Setenv(NUODB_CP_USER, "org/user")
+		t.Setenv(NUODB_CP_PASSWORD, "pass")
+		t.Setenv(NUODB_CP_TOKEN, "token")
+		vars := newTestVars(false)
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		errorString := "Multiple credentials"
+		errorDescription := "Both basic and token authentication credentials were supplied."
+
+		// Run `terraform validate`
+		out, err := tf.Validate()
+		require.Error(t, err)
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+
+		// Specify both basic and token credentials via config
+		t.Setenv(NUODB_CP_USER, "")
+		t.Setenv(NUODB_CP_PASSWORD, "")
+		t.Setenv(NUODB_CP_TOKEN, "")
+		vars.providerCfg.User = ptr("org/user")
+		vars.providerCfg.Password = ptr("pass")
+		vars.providerCfg.Token = ptr("token")
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.Error(t, err)
+		require.Contains(t, string(out), errorString)
+		require.Contains(t, string(out), errorDescription)
+	})
+
 	t.Run("malformed user", func(t *testing.T) {
 		vars := newTestVars(false)
 		// Clear any credentials that might exist in the environment, for example when running as an e2e test
 		t.Setenv(NUODB_CP_USER, "")
-
 		t.Setenv(NUODB_CP_PASSWORD, "somePassword")
+		t.Setenv(NUODB_CP_TOKEN, "")
 
 		errorString := "Malformed user name"
 		errorDescription := "User name should be in the format \"<organization>/<user>\"."
