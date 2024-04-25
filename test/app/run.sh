@@ -6,9 +6,9 @@ WS_ROOT="$(cd ../.. && pwd)"
 make -C "$WS_ROOT" package
 
 # Download Terraform binary if necessary
-if [ -z "$TERRAFORM_BIN" ] || [ ! -x "$TERRAFORM_BIN" ]; then
+if [ -z "$TERRAFORM" ] || [ ! -x "$TERRAFORM" ]; then
     make -C "$WS_ROOT" bin/terraform
-    TERRAFORM_BIN="$WS_ROOT/bin/terraform"
+    TERRAFORM="$WS_ROOT/bin/terraform"
 fi
 
 # Set config to use local provider
@@ -35,20 +35,20 @@ check_err() {
 errors=""
 
 # Get organization from user name
-USER_ORG="${NUODB_CP_USER%/*}"
+export TF_VAR_org_name="${NUODB_CP_USER%/*}"
 
 # Initialize Terraform workspace and apply configuration
-check_err "$TERRAFORM_BIN" init
-check_err "$TERRAFORM_BIN" apply -auto-approve -var "org_name=${USER_ORG}"
+check_err "$TERRAFORM" init
+check_err "$TERRAFORM" apply -auto-approve
 
 # Check that client application exited cleanly
-exit_code="$("$TERRAFORM_BIN" output -raw exit)"
+exit_code="$("$TERRAFORM" output -raw exit)"
 if [ "$exit_code" -ne 0 ]; then
     errors="$errors\n* Unexpected exit code for application container: $exit_code"
 fi
 
 # Destroy resources
-check_err "$TERRAFORM_BIN" destroy -auto-approve -var "org_name=${USER_ORG}"
+check_err "$TERRAFORM" destroy -auto-approve
 
 # Check that no errors occurred
 if [ -n "$errors" ]; then

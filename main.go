@@ -27,12 +27,12 @@ import (
 //go:generate bin/tfplugindocs generate --provider-name nuodbaas
 
 var (
-	// these will be set by the goreleaser configuration
-	// to appropriate values for the compiled binary.
-	version string = "1.1.0"
-
-	// goreleaser can pass other information to the main package, such as the specific commit
-	// https://goreleaser.com/cookbooks/using-main.version/
+	// This will be overridden by the version from the Git tag when GoReleaser
+	// creates an actual release. `{{version}}` in the comment is a marker to
+	// enable scraping of the version when running `make package`.
+	//
+	// For more information on GoReleaser, see https://goreleaser.com/cookbooks/using-main.version/
+	version string = "1.1.0" // {{version}}
 )
 
 func main() {

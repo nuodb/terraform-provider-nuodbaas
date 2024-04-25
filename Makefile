@@ -26,9 +26,12 @@ MINIKUBE := bin/minikube
 GOLANGCI_LINT := bin/golangci-lint
 NUODB_CP := bin/nuodb-cp
 
-# Releases use the tag to obtain the version and not this variable, but this is
-# used by the `make package` target which is used by the e2e app test
-PUBLISH_VERSION ?= 1.1.0
+# For actual releases, GoReleaser uses the Git tag to obtain the version and
+# not this variable, but this is used by the `make package` target which is
+# invoked by the e2e app test. Scrape the value from the main.go file, which is
+# also overridden by the Git tag, so that we do not specify the same value in
+# multiple places.
+PUBLISH_VERSION ?= $(shell sed -n 's|^\t*version string *= "\([^"]*\)" // {{version}}|\1|p' main.go)
 PUBLISH_DIR ?= $(PROJECT_DIR)/dist
 
 IGNORE_NOT_FOUND ?= true
