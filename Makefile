@@ -26,7 +26,12 @@ MINIKUBE := bin/minikube
 GOLANGCI_LINT := bin/golangci-lint
 NUODB_CP := bin/nuodb-cp
 
-PUBLISH_VERSION ?= 1.0.0
+# For actual releases, GoReleaser uses the Git tag to obtain the version and
+# not this variable, but this is used by the `make package` target which is
+# invoked by the e2e app test. Scrape the value from the main.go file, which is
+# also overridden by the Git tag, so that we do not specify the same value in
+# multiple places.
+PUBLISH_VERSION ?= $(shell sed -n 's|^\t*version string *= "\([^"]*\)" // {{version}}|\1|p' main.go)
 PUBLISH_DIR ?= $(PROJECT_DIR)/dist
 
 IGNORE_NOT_FOUND ?= true
@@ -107,7 +112,7 @@ generate: $(TFPLUGINDOCS) $(OAPI_CODEGEN) $(TERRAFORM) ## Generate Golang client
 
 .PHONY: update-spec
 update-spec: ## Update spec to released Control Plane version
-	curl -s https://raw.githubusercontent.com/nuodb/nuodb-cp-releases/v$(CP_VERSION)/openapi.yaml -o openapi.yaml
+	curl -s https://raw.githubusercontent.com/nuodb/nuodb-cp-releases/v$(NUODB_CP_VERSION)/openapi.yaml -o openapi.yaml
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Run linters to check code quality and find for common errors
