@@ -35,30 +35,53 @@ func getSchemas() (openapi3.Schemas, error) {
 	return nil, nil
 }
 
-func GetSchema(name string) (*openapi3.Schema, error) {
+type SchemaOverride = func(*openapi3.Schema)
+
+// WithDescription returns a SchemaOverride that overrides the description of
+// the property at the specified path.
+func WithDescription(path, description string) SchemaOverride {
+	return func(oas *openapi3.Schema) {
+		// Split the path into name and remaining
+		parts := strings.SplitN(path, ".", 2)
+		property, ok := oas.Properties[parts[0]]
+		if ok && property != nil && property.Value != nil {
+			if len(parts) == 1 {
+				// Property has been found, so override its description
+				property.Value.Description = description
+			} else {
+				// Property is nested, so invoke override on nested schema
+				WithDescription(parts[1], description)(property.Value)
+			}
+		}
+	}
+}
+
+func GetSchema(name string, overrides ...SchemaOverride) (*openapi3.Schema, error) {
 	schemas, err := getSchemas()
 	if err != nil {
 		return nil, err
 	}
 	schemaRef, ok := schemas[name]
-	if ok && schemaRef != nil {
-		if schemaRef.Value != nil {
-			return schemaRef.Value, nil
+	if ok && schemaRef != nil && schemaRef.Value != nil {
+		// Invoke schema overrides
+		for _, override := range overrides {
+			override(schemaRef.Value)
 		}
+		return schemaRef.Value, nil
 	}
 	return nil, fmt.Errorf("Schema %s not found", name)
 }
 
-func GetResourceAttributes(name string) (map[string]resource.Attribute, error) {
-	oas, err := GetSchema(name)
+func GetResourceAttributes(name string, overrides ...SchemaOverride) (map[string]resource.Attribute, error) {
+	oas, err := GetSchema(name, overrides...)
 	if err != nil {
 		return nil, err
 	}
 	return ToResourceSchema(oas, false), nil
 }
 
-func GetDataSourceAttributes(name string) (map[string]datasource.Attribute, error) {
-	oas, err := GetSchema(name)
+func GetDataSourceAttributes(name string, overrides ...SchemaOverride) (map[string]datasource.Attribute, error) {
+	oas, err := GetSchema(name, overrides...)
 	if err != nil {
 		return nil, err
 	}

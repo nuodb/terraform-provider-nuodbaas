@@ -190,7 +190,8 @@ func (state *DatabaseResourceModel) SetId(id string) error {
 }
 
 func GetDatabaseResourceAttributes() (map[string]schema.Attribute, error) {
-	return framework.GetResourceAttributes("DatabaseCreateUpdateModel")
+	return framework.GetResourceAttributes("DatabaseCreateUpdateModel",
+		framework.WithDescription("dbaPassword", "The password for the DBA user"))
 }
 
 func NewDatabaseResourceState() framework.ResourceState {
