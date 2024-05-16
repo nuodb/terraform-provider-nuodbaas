@@ -16,9 +16,9 @@ import (
 )
 
 // Generate model structs and client for REST API:
-//go:generate bin/oapi-codegen -generate types -include-tags databases,projects -package openapi -o openapi/types.go openapi.yaml
-//go:generate bin/oapi-codegen -generate client -include-tags databases,projects -package openapi -o openapi/client.go openapi.yaml
-//go:generate bin/oapi-codegen -generate spec -include-tags databases,projects -package openapi -o openapi/spec.go openapi.yaml
+//go:generate bin/oapi-codegen -generate types -include-tags backups,databases,projects -package openapi -o openapi/types.go openapi.yaml
+//go:generate bin/oapi-codegen -generate client -include-tags backups,databases,projects -package openapi -o openapi/client.go openapi.yaml
+//go:generate bin/oapi-codegen -generate spec -include-tags backups,databases,projects -package openapi -o openapi/spec.go openapi.yaml
 
 // Format Terraform examples:
 //go:generate bin/terraform fmt -recursive ./examples/
