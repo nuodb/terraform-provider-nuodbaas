@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"runtime"
 	"sort"
 	"strings"
@@ -21,6 +22,7 @@ import (
 
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider"
+	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/backuppolicy"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/database"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/project"
 
@@ -94,12 +96,20 @@ func (b *TfConfigBuilder) WithProjectResource(name string, project *ProjectResou
 	return b.WithResource("nuodbaas_project."+name, project, dependsOn...)
 }
 
+func (b *TfConfigBuilder) WithBackupPolicyResource(name string, policy *BackupPolicyResourceModel, dependsOn ...string) *TfConfigBuilder {
+	return b.WithResource("nuodbaas_backuppolicy."+name, policy, dependsOn...)
+}
+
 func (b *TfConfigBuilder) WithDatabaseDataSource(name string, database *DatabaseNameModel, dependsOn ...string) *TfConfigBuilder {
 	return b.WithDataSource("nuodbaas_database."+name, database, dependsOn...)
 }
 
 func (b *TfConfigBuilder) WithProjectDataSource(name string, project *ProjectNameModel, dependsOn ...string) *TfConfigBuilder {
 	return b.WithDataSource("nuodbaas_project."+name, project, dependsOn...)
+}
+
+func (b *TfConfigBuilder) WithBackupPolicyDataSource(name string, policy *BackupPolicyNameModel, dependsOn ...string) *TfConfigBuilder {
+	return b.WithDataSource("nuodbaas_backuppolicy."+name, policy, dependsOn...)
 }
 
 func (b *TfConfigBuilder) WithDatabasesDataSource(name string, databases *DatabasesDataSourceModel, dependsOn ...string) *TfConfigBuilder {
@@ -110,12 +120,20 @@ func (b *TfConfigBuilder) WithProjectsDataSource(name string, projects *Projects
 	return b.WithDataSource("nuodbaas_projects."+name, projects, dependsOn...)
 }
 
+func (b *TfConfigBuilder) WithBackupPoliciesDataSource(name string, policies *BackupPoliciesDataSourceModel, dependsOn ...string) *TfConfigBuilder {
+	return b.WithDataSource("nuodbaas_backuppolicies."+name, policies, dependsOn...)
+}
+
 func (b *TfConfigBuilder) WithoutDatabaseResource(name string) *TfConfigBuilder {
 	return b.WithoutResource("nuodbaas_database." + name)
 }
 
 func (b *TfConfigBuilder) WithoutProjectResource(name string) *TfConfigBuilder {
 	return b.WithoutResource("nuodbaas_project." + name)
+}
+
+func (b *TfConfigBuilder) WithoutBackupPolicyResource(name string) *TfConfigBuilder {
+	return b.WithoutResource("nuodbaas_backuppolicy." + name)
 }
 
 func (b *TfConfigBuilder) WithoutDatabaseDataSource(name string) *TfConfigBuilder {
@@ -126,12 +144,20 @@ func (b *TfConfigBuilder) WithoutProjectDataSource(name string) *TfConfigBuilder
 	return b.WithoutDataSource("nuodbaas_project." + name)
 }
 
+func (b *TfConfigBuilder) WithoutBackupPolicyDataSource(name string) *TfConfigBuilder {
+	return b.WithoutDataSource("nuodbaas_backuppolicy." + name)
+}
+
 func (b *TfConfigBuilder) WithoutDatabasesDataSource(name string) *TfConfigBuilder {
 	return b.WithoutDataSource("nuodbaas_databases." + name)
 }
 
 func (b *TfConfigBuilder) WithoutProjectsDataSource(name string) *TfConfigBuilder {
 	return b.WithoutDataSource("nuodbaas_projects." + name)
+}
+
+func (b *TfConfigBuilder) WithoutBackupPoliciesDataSource(name string) *TfConfigBuilder {
+	return b.WithoutDataSource("nuodbaas_backuppolicies." + name)
 }
 
 func (b *TfConfigBuilder) Build() string {
@@ -262,13 +288,27 @@ func (tf *TfHelper) Run(args ...string) ([]byte, error) {
 		cmd.Env = append(os.Environ(), "TF_CLI_CONFIG_FILE="+tf.TfrcFile)
 	}
 	out, err := cmd.CombinedOutput()
-	if !tf.Silent {
-		switch err.(type) {
-		case nil, *exec.ExitError:
-			fmt.Println()
-			fmt.Printf("> terraform %s\n", strings.Join(args, " "))
-			fmt.Printf("%s\n", out)
+	// If an unexpected error occurred, return immediately
+	if err != nil {
+		// Negative testing may generate an ExitError
+		if exitErr := err.(*exec.ExitError); exitErr == nil {
+			return out, err
 		}
+	}
+	if !tf.Silent {
+		fmt.Println()
+		fmt.Printf("> terraform %s\n", strings.Join(args, " "))
+		fmt.Printf("%s\n", out)
+	}
+	// Strip any ANSI color codes
+	if re, reErr := regexp.Compile(`(?m)\x1b\[[0-9;]*m`); reErr == nil {
+		out = re.ReplaceAll(out, []byte(""))
+	}
+	// Remove special formatting and line wrapping from "Error" and "Warning"
+	// messages so that paragraphs appear as one line and are searchable for
+	// the presence of expected substrings
+	if re, reErr := regexp.Compile(`(?m)\n│ ([[:graph:]])`); reErr == nil {
+		out = re.ReplaceAll(out, []byte(" $1"))
 	}
 	return out, err
 }

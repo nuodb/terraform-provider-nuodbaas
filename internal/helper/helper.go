@@ -204,3 +204,26 @@ func GetProjects(ctx context.Context, client openapi.ClientInterface, organizati
 	}
 	return processListResponse(prefix, resp, err)
 }
+
+func GetBackupPolicies(ctx context.Context, client openapi.ClientInterface, organization string, labelFilter *string, listAccessible bool) ([]string, error) {
+	var prefix string
+	var resp *http.Response
+	var err error
+	if len(organization) == 0 {
+		// List all backup policies
+		params := openapi.GetAllBackupPoliciesParams{
+			LabelFilter:    labelFilter,
+			ListAccessible: &listAccessible,
+		}
+		resp, err = client.GetAllBackupPolicies(ctx, &params)
+	} else {
+		// List all backup policies within organization
+		prefix = organization + "/"
+		params := openapi.GetBackupPoliciesParams{
+			LabelFilter:    labelFilter,
+			ListAccessible: &listAccessible,
+		}
+		resp, err = client.GetBackupPolicies(ctx, organization, &params)
+	}
+	return processListResponse(prefix, resp, err)
+}

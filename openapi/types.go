@@ -15,6 +15,14 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// Defines values for BackupStatusModelState.
+const (
+	BackupStatusModelStateDeleting  BackupStatusModelState = "Deleting"
+	BackupStatusModelStateFailed    BackupStatusModelState = "Failed"
+	BackupStatusModelStatePending   BackupStatusModelState = "Pending"
+	BackupStatusModelStateSucceeded BackupStatusModelState = "Succeeded"
+)
+
 // Defines values for DatabaseStatusModelState.
 const (
 	DatabaseStatusModelStateAvailable DatabaseStatusModelState = "Available"
@@ -56,6 +64,125 @@ const (
 	ProjectStatusModelStateStopped   ProjectStatusModelState = "Stopped"
 	ProjectStatusModelStateStopping  ProjectStatusModelState = "Stopping"
 )
+
+// BackupCreateModel defines model for BackupCreateModel.
+type BackupCreateModel struct {
+	// Organization The organization that the backup belongs to
+	Organization string `cty:"organization" hcl:"organization" json:"organization" tfsdk:"organization"`
+
+	// Project The project that the backup belongs to
+	Project string `cty:"project" hcl:"project" json:"project" tfsdk:"project"`
+
+	// Database The database that the backup belongs to
+	Database string `cty:"database" hcl:"database" json:"database" tfsdk:"database"`
+
+	// Labels User-defined labels attached to the resource that can be used for filtering
+	Labels *map[string]string `cty:"labels" hcl:"labels" json:"labels,omitempty" tfsdk:"labels"`
+}
+
+// BackupModel defines model for BackupModel.
+type BackupModel struct {
+	// Organization The organization that the backup belongs to
+	Organization string `cty:"organization" hcl:"organization" json:"organization" tfsdk:"organization"`
+
+	// Project The project that the backup belongs to
+	Project string `cty:"project" hcl:"project" json:"project" tfsdk:"project"`
+
+	// Database The database that the backup belongs to
+	Database string `cty:"database" hcl:"database" json:"database" tfsdk:"database"`
+
+	// Name The name of the backup
+	Name string `cty:"name" hcl:"name" json:"name" tfsdk:"name"`
+
+	// Labels User-defined labels attached to the resource that can be used for filtering
+	Labels *map[string]string `cty:"labels" hcl:"labels" json:"labels,omitempty" tfsdk:"labels"`
+
+	// ResourceVersion The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.
+	ResourceVersion *string            `json:"resourceVersion,omitempty" tfsdk:"-"`
+	ImportSource    *ImportSourceModel `cty:"import_source" hcl:"import_source" json:"importSource,omitempty" tfsdk:"import_source"`
+	Status          *BackupStatusModel `cty:"status" hcl:"status" json:"status,omitempty" tfsdk:"status"`
+}
+
+// BackupPolicyModel defines model for BackupPolicyModel.
+type BackupPolicyModel struct {
+	// Organization The organization that the backup policy belongs to
+	Organization string `cty:"organization" hcl:"organization" json:"organization" tfsdk:"organization"`
+
+	// Name The name of the backup policy
+	Name string `cty:"name" hcl:"name" json:"name" tfsdk:"name"`
+
+	// Labels User-defined labels attached to the resource that can be used for filtering
+	Labels *map[string]string `cty:"labels" hcl:"labels" json:"labels,omitempty" tfsdk:"labels"`
+
+	// Frequency The frequency to schedule backups at, in cron format
+	Frequency string `cty:"frequency" hcl:"frequency" json:"frequency" tfsdk:"frequency"`
+
+	// Suspended Whether backups from the policy are suspended
+	Suspended *bool `cty:"suspended" hcl:"suspended" json:"suspended,omitempty" tfsdk:"suspended"`
+
+	// ResourceVersion The version of the resource. When specified in a `PUT` request payload, indicates that the resoure should be updated, and is used by the system to guard against concurrent updates.
+	ResourceVersion *string                      `json:"resourceVersion,omitempty" tfsdk:"-"`
+	Properties      *BackupPolicyPropertiesModel `cty:"properties" hcl:"properties" json:"properties,omitempty" tfsdk:"properties"`
+	Retention       *RetentionModel              `cty:"retention" hcl:"retention" json:"retention,omitempty" tfsdk:"retention"`
+	Selector        SelectorModel                `cty:"selector" hcl:"selector" json:"selector" tfsdk:"selector"`
+	Status          *BackupPolicyStatusModel     `cty:"status" hcl:"status" json:"status,omitempty" tfsdk:"status"`
+}
+
+// BackupPolicyPropertiesModel defines model for BackupPolicyPropertiesModel.
+type BackupPolicyPropertiesModel struct {
+	// PropagatePolicyLabels Whether to propagate the user-defined labels from the backup policy to backup resources created by this policy
+	PropagatePolicyLabels *bool `cty:"propagate_policy_labels" hcl:"propagate_policy_labels" json:"propagatePolicyLabels,omitempty" tfsdk:"propagate_policy_labels"`
+
+	// PropagateDatabaseLabels Whether to propagate the user-defined labels from the matching database to backup resources created by this policy
+	PropagateDatabaseLabels *bool `cty:"propagate_database_labels" hcl:"propagate_database_labels" json:"propagateDatabaseLabels,omitempty" tfsdk:"propagate_database_labels"`
+}
+
+// BackupPolicyStatusModel defines model for BackupPolicyStatusModel.
+type BackupPolicyStatusModel struct {
+	// LastScheduleTime The time that backups were last taken by this policy
+	LastScheduleTime *string `cty:"last_schedule_time" hcl:"last_schedule_time" json:"lastScheduleTime,omitempty" tfsdk:"last_schedule_time"`
+
+	// LastMissedScheduleTime The time that backups were last missed by this policy
+	LastMissedScheduleTime *string `cty:"last_missed_schedule_time" hcl:"last_missed_schedule_time" json:"lastMissedScheduleTime,omitempty" tfsdk:"last_missed_schedule_time"`
+
+	// NextScheduleTime The time that backups are next scheduled by this policy
+	NextScheduleTime *string `cty:"next_schedule_time" hcl:"next_schedule_time" json:"nextScheduleTime,omitempty" tfsdk:"next_schedule_time"`
+}
+
+// BackupStatusModel defines model for BackupStatusModel.
+type BackupStatusModel struct {
+	// CreationTime The time that the backup was taken
+	CreationTime *string `cty:"creation_time" hcl:"creation_time" json:"creationTime,omitempty" tfsdk:"creation_time"`
+
+	// BackupHandle The handle for the backup
+	BackupHandle *string `cty:"backup_handle" hcl:"backup_handle" json:"backupHandle,omitempty" tfsdk:"backup_handle"`
+
+	// BackupPlugin The plugin used to manage the backup
+	BackupPlugin *string `cty:"backup_plugin" hcl:"backup_plugin" json:"backupPlugin,omitempty" tfsdk:"backup_plugin"`
+
+	// ReadyToUse Whether the backup is ready to be used to restore a database
+	ReadyToUse *bool `cty:"ready_to_use" hcl:"ready_to_use" json:"readyToUse,omitempty" tfsdk:"ready_to_use"`
+
+	// Message Message summarizing the state of the backup
+	Message *string `cty:"message" hcl:"message" json:"message,omitempty" tfsdk:"message"`
+
+	// State The state of the backup:
+	//   * `Pending` - The backup is pending completion
+	//   * `Succeeded` - The backup completed successfully and is available for use
+	//   * `Failed` - The backup failed and is unusable
+	//   * `Deleting` - The backup has been marked for deletion, which is in progress
+	State *BackupStatusModelState `cty:"state" hcl:"state" json:"state,omitempty" tfsdk:"state"`
+
+	// CreatedByPolicy The fully-qualified name of the backup policy that the backup was created by
+	CreatedByPolicy *string `cty:"created_by_policy" hcl:"created_by_policy" json:"createdByPolicy,omitempty" tfsdk:"created_by_policy"`
+}
+
+// BackupStatusModelState The state of the backup:
+//   - `Pending` - The backup is pending completion
+//   - `Succeeded` - The backup completed successfully and is available for use
+//   - `Failed` - The backup failed and is unusable
+//   - `Deleting` - The backup has been marked for deletion, which is in progress
+type BackupStatusModelState string
 
 // DatabaseCreateUpdateModel defines model for DatabaseCreateUpdateModel.
 type DatabaseCreateUpdateModel struct {
@@ -195,6 +322,15 @@ type ErrorContentCode string
 type ExpandedListEntry struct {
 	// Ref The sub-path relative to the request URL that can be used to obtain the resource
 	Ref *string `json:"$ref,omitempty"`
+}
+
+// ImportSourceModel defines model for ImportSourceModel.
+type ImportSourceModel struct {
+	// BackupHandle The existing backup handle to import
+	BackupHandle string `cty:"backup_handle" hcl:"backup_handle" json:"backupHandle" tfsdk:"backup_handle"`
+
+	// BackupPlugin The plugin used to create the backup to import
+	BackupPlugin string `cty:"backup_plugin" hcl:"backup_plugin" json:"backupPlugin" tfsdk:"backup_plugin"`
 }
 
 // ItemList defines model for ItemList.
@@ -339,6 +475,39 @@ type RestoreFromModel struct {
 	Backup *string `cty:"backup" hcl:"backup" json:"backup,omitempty" tfsdk:"backup"`
 }
 
+// RetentionModel defines model for RetentionModel.
+type RetentionModel struct {
+	// Hourly The number of hourly backups to retain
+	Hourly *int32 `cty:"hourly" hcl:"hourly" json:"hourly,omitempty" tfsdk:"hourly"`
+
+	// Daily The number of daily backups to retain
+	Daily *int32 `cty:"daily" hcl:"daily" json:"daily,omitempty" tfsdk:"daily"`
+
+	// Weekly The number of weekly backups to retain
+	Weekly *int32 `cty:"weekly" hcl:"weekly" json:"weekly,omitempty" tfsdk:"weekly"`
+
+	// Monthly The number of monthly backups to retain
+	Monthly *int32 `cty:"monthly" hcl:"monthly" json:"monthly,omitempty" tfsdk:"monthly"`
+
+	// Yearly The number of yearly backups to retain
+	Yearly *int32 `cty:"yearly" hcl:"yearly" json:"yearly,omitempty" tfsdk:"yearly"`
+}
+
+// SelectorModel defines model for SelectorModel.
+type SelectorModel struct {
+	// Scope The scope that the backup policy applies to
+	Scope string `cty:"scope" hcl:"scope" json:"scope" tfsdk:"scope"`
+
+	// Slas The SLAs to filter databases on
+	Slas *[]string `cty:"slas" hcl:"slas" json:"slas,omitempty" tfsdk:"slas"`
+
+	// Tiers The tiers to filter databases on
+	Tiers *[]string `cty:"tiers" hcl:"tiers" json:"tiers,omitempty" tfsdk:"tiers"`
+
+	// Labels The user-defined labels to filter databases on
+	Labels *map[string]string `cty:"labels" hcl:"labels" json:"labels,omitempty" tfsdk:"labels"`
+}
+
 // UpdateDbaPasswordModel defines model for UpdateDbaPasswordModel.
 type UpdateDbaPasswordModel struct {
 	// Current The current DBA password, which must be supplied for verification purposes
@@ -350,6 +519,224 @@ type UpdateDbaPasswordModel struct {
 	// Resync Whether to update configured DBA password so that it matches actual DBA password. If `true`, `current` is verified by connecting to the database directly before updating configured DBA password.
 	Resync *bool `json:"resync,omitempty"`
 }
+
+// GetAllBackupPoliciesParams defines parameters for GetAllBackupPolicies.
+type GetAllBackupPoliciesParams struct {
+	// Offset The offset at which to list items
+	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Cursor The cursor at which to list items, which represents the last item returned. If specified, all items returned must be lexicographically greater than the supplied value. For expanded payloads, the `$ref` value is compared to the cursor.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
+
+	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
+	// * `key` - Only return resources that have label with specified key
+	// * `key=value` - Only return resources that have label with specified key set to value
+	// * `!key` - Only return resources that do _not_ have label with specified key
+	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
+	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
+
+	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
+	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
+}
+
+// GetBackupPoliciesParams defines parameters for GetBackupPolicies.
+type GetBackupPoliciesParams struct {
+	// Offset The offset at which to list items
+	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Cursor The cursor at which to list items, which represents the last item returned. If specified, all items returned must be lexicographically greater than the supplied value. For expanded payloads, the `$ref` value is compared to the cursor.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
+
+	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
+	// * `key` - Only return resources that have label with specified key
+	// * `key=value` - Only return resources that have label with specified key set to value
+	// * `!key` - Only return resources that do _not_ have label with specified key
+	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
+	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
+
+	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
+	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
+}
+
+// DeleteBackupPolicyParams defines parameters for DeleteBackupPolicy.
+type DeleteBackupPolicyParams struct {
+	// TimeoutSeconds The number of seconds to wait for the operation to be finalized, unless 0 is specified which indicates not to wait
+	TimeoutSeconds *int32 `form:"timeoutSeconds,omitempty" json:"timeoutSeconds,omitempty"`
+}
+
+// PatchBackupPolicyApplicationJSONPatchPlusJSONBody defines parameters for PatchBackupPolicy.
+type PatchBackupPolicyApplicationJSONPatchPlusJSONBody = []JsonPatchOperation
+
+// GetBackupsFromPolicyParams defines parameters for GetBackupsFromPolicy.
+type GetBackupsFromPolicyParams struct {
+	// Offset The offset at which to list items
+	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Cursor The cursor at which to list items, which represents the last item returned. If specified, all items returned must be lexicographically greater than the supplied value. For expanded payloads, the `$ref` value is compared to the cursor.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
+
+	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
+	// * `key` - Only return resources that have label with specified key
+	// * `key=value` - Only return resources that have label with specified key set to value
+	// * `!key` - Only return resources that do _not_ have label with specified key
+	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
+	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
+
+	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
+	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
+}
+
+// GetMatchingDatabasesParams defines parameters for GetMatchingDatabases.
+type GetMatchingDatabasesParams struct {
+	// Offset The offset at which to list items
+	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Cursor The cursor at which to list items, which represents the last item returned. If specified, all items returned must be lexicographically greater than the supplied value. For expanded payloads, the `$ref` value is compared to the cursor.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
+
+	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
+	// * `key` - Only return resources that have label with specified key
+	// * `key=value` - Only return resources that have label with specified key set to value
+	// * `!key` - Only return resources that do _not_ have label with specified key
+	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
+	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
+
+	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
+	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
+}
+
+// GetAllBackupsParams defines parameters for GetAllBackups.
+type GetAllBackupsParams struct {
+	// Offset The offset at which to list items
+	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Cursor The cursor at which to list items, which represents the last item returned. If specified, all items returned must be lexicographically greater than the supplied value. For expanded payloads, the `$ref` value is compared to the cursor.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
+
+	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
+	// * `key` - Only return resources that have label with specified key
+	// * `key=value` - Only return resources that have label with specified key set to value
+	// * `!key` - Only return resources that do _not_ have label with specified key
+	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
+	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
+
+	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
+	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
+}
+
+// GetOrganizationBackupsParams defines parameters for GetOrganizationBackups.
+type GetOrganizationBackupsParams struct {
+	// Offset The offset at which to list items
+	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Cursor The cursor at which to list items, which represents the last item returned. If specified, all items returned must be lexicographically greater than the supplied value. For expanded payloads, the `$ref` value is compared to the cursor.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
+
+	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
+	// * `key` - Only return resources that have label with specified key
+	// * `key=value` - Only return resources that have label with specified key set to value
+	// * `!key` - Only return resources that do _not_ have label with specified key
+	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
+	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
+
+	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
+	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
+}
+
+// GetProjectBackupsParams defines parameters for GetProjectBackups.
+type GetProjectBackupsParams struct {
+	// Offset The offset at which to list items
+	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Cursor The cursor at which to list items, which represents the last item returned. If specified, all items returned must be lexicographically greater than the supplied value. For expanded payloads, the `$ref` value is compared to the cursor.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
+
+	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
+	// * `key` - Only return resources that have label with specified key
+	// * `key=value` - Only return resources that have label with specified key set to value
+	// * `!key` - Only return resources that do _not_ have label with specified key
+	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
+	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
+
+	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
+	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
+}
+
+// GetBackupsParams defines parameters for GetBackups.
+type GetBackupsParams struct {
+	// Offset The offset at which to list items
+	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Cursor The cursor at which to list items, which represents the last item returned. If specified, all items returned must be lexicographically greater than the supplied value. For expanded payloads, the `$ref` value is compared to the cursor.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
+
+	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
+	// * `key` - Only return resources that have label with specified key
+	// * `key=value` - Only return resources that have label with specified key set to value
+	// * `!key` - Only return resources that do _not_ have label with specified key
+	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
+	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
+
+	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
+	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
+}
+
+// DeleteBackupParams defines parameters for DeleteBackup.
+type DeleteBackupParams struct {
+	// TimeoutSeconds The number of seconds to wait for the operation to be finalized, unless 0 is specified which indicates not to wait
+	TimeoutSeconds *int32 `form:"timeoutSeconds,omitempty" json:"timeoutSeconds,omitempty"`
+}
+
+// PatchBackupApplicationJSONPatchPlusJSONBody defines parameters for PatchBackup.
+type PatchBackupApplicationJSONPatchPlusJSONBody = []JsonPatchOperation
 
 // GetAllDatabasesParams defines parameters for GetAllDatabases.
 type GetAllDatabasesParams struct {
@@ -499,6 +886,21 @@ type DeleteProjectParams struct {
 
 // PatchProjectApplicationJSONPatchPlusJSONBody defines parameters for PatchProject.
 type PatchProjectApplicationJSONPatchPlusJSONBody = []JsonPatchOperation
+
+// PatchBackupPolicyApplicationJSONPatchPlusJSONRequestBody defines body for PatchBackupPolicy for application/json-patch+json ContentType.
+type PatchBackupPolicyApplicationJSONPatchPlusJSONRequestBody = PatchBackupPolicyApplicationJSONPatchPlusJSONBody
+
+// CreateBackupPolicyJSONRequestBody defines body for CreateBackupPolicy for application/json ContentType.
+type CreateBackupPolicyJSONRequestBody = BackupPolicyModel
+
+// CreateBackupJSONRequestBody defines body for CreateBackup for application/json ContentType.
+type CreateBackupJSONRequestBody = BackupCreateModel
+
+// PatchBackupApplicationJSONPatchPlusJSONRequestBody defines body for PatchBackup for application/json-patch+json ContentType.
+type PatchBackupApplicationJSONPatchPlusJSONRequestBody = PatchBackupApplicationJSONPatchPlusJSONBody
+
+// CreateOrUpdateBackupJSONRequestBody defines body for CreateOrUpdateBackup for application/json ContentType.
+type CreateOrUpdateBackupJSONRequestBody = BackupModel
 
 // PatchDatabaseApplicationJSONPatchPlusJSONRequestBody defines body for PatchDatabase for application/json-patch+json ContentType.
 type PatchDatabaseApplicationJSONPatchPlusJSONRequestBody = PatchDatabaseApplicationJSONPatchPlusJSONBody
