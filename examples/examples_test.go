@@ -49,10 +49,19 @@ func testChart(t *testing.T, plan string, configVariables config.Variables, hasR
 	})
 }
 
+// Skip configs in the following directories
+var skipDirs = map[string]struct{}{
+	"nuodbaas_backuppolicy":   {},
+	"nuodbaas_backuppolicies": {},
+}
+
 func testChartDir(t *testing.T, path string, setUp string, configVariables config.Variables, hasResources bool, noApply bool, checkClean bool) {
 	require.NoError(t, filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
 		require.NoError(t, err)
 		if d.IsDir() {
+			if _, ok := skipDirs[d.Name()]; ok {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 
