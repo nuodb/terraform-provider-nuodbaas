@@ -76,7 +76,7 @@ func TestBackupPolicy(t *testing.T) {
 		WithBackupPoliciesDataSource("all_policies", &BackupPoliciesDataSourceModel{}, "nuodbaas_backuppolicy.pol").
 		WithBackupPoliciesDataSource("org_policies", &BackupPoliciesDataSourceModel{
 			Filter: &BackupPolicyFilterModel{
-				Organization: ptr("org"),
+				Organization: ptr(policy.Organization),
 			},
 		}, "nuodbaas_backuppolicy.pol").
 		WithBackupPoliciesDataSource("otherorg_policies", &BackupPoliciesDataSourceModel{
@@ -86,7 +86,7 @@ func TestBackupPolicy(t *testing.T) {
 		}, "nuodbaas_backuppolicy.pol").
 		WithBackupPoliciesDataSource("labelled_policies", &BackupPoliciesDataSourceModel{
 			Filter: &BackupPolicyFilterModel{
-				Organization: ptr("org"),
+				Organization: ptr(policy.Organization),
 				Labels:       []string{"rpo"},
 			},
 		}, "nuodbaas_backuppolicy.pol")

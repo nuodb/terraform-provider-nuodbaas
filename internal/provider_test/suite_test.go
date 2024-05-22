@@ -291,7 +291,7 @@ func (tf *TfHelper) Run(args ...string) ([]byte, error) {
 	// If an unexpected error occurred, return immediately
 	if err != nil {
 		// Negative testing may generate an ExitError
-		if exitErr := err.(*exec.ExitError); exitErr == nil {
+		if _, ok := err.(*exec.ExitError); !ok {
 			return out, err
 		}
 	}
