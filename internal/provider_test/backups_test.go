@@ -31,9 +31,6 @@ func newBackupPolicy() *BackupPolicyResourceModel {
 		Selector: openapi.SelectorModel{
 			Scope: orgName,
 		},
-		Retention: &openapi.RetentionModel{
-			Yearly: ptr(int32(3)),
-		},
 	}
 }
 
@@ -67,6 +64,9 @@ func TestBackupPolicy(t *testing.T) {
 	require.NoError(t, err)
 
 	policy := newBackupPolicy()
+	policy.Retention = &openapi.RetentionModel{
+		Yearly: ptr(int32(3)),
+	}
 	builder := NewTfConfigBuilder().WithProviderConfig("nuodbaas", &providerCfg).
 		WithBackupPolicyResource("pol", policy).
 		WithBackupPolicyDataSource("pol", &BackupPolicyNameModel{
