@@ -20,7 +20,7 @@ import (
 
 func CombineConfigs(t *testing.T, root string) string {
 	var combinedConfigs string
-	filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		require.NoError(t, err)
 		if !d.IsDir() && strings.HasSuffix(d.Name(), ".tf") {
 			configContent, err := os.ReadFile(path)
@@ -29,6 +29,7 @@ func CombineConfigs(t *testing.T, root string) string {
 		}
 		return nil
 	})
+	require.NoError(t, err)
 	return combinedConfigs
 }
 
