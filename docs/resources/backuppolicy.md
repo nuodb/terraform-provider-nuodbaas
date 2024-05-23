@@ -30,7 +30,8 @@ resource "nuodbaas_backuppolicy" "daily" {
   frequency    = "@daily"
   selector = {
     scope = "org"
-    slas  = ["prod"]
+    slas  = ["qa", "prod"]
+    tiers = ["n0.small", "n1.small"]
     labels = {
       "rpo" : "1d"
     }
