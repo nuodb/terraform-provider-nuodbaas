@@ -9,5 +9,5 @@ export NUODB_CP_URL_BASE="$DBAAS_API_ENDPOINT"
 export CONTAINER_SCHEDULING_ENABLED="true"
 export WEBHOOKS_ENABLED="true"
 export ORGANIZATION_BOUND_USER="true"
-export TESTARGS="-short -tags shared_env"
+export TESTARGS="-tags shared_env"
 EOF

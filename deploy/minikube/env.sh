@@ -9,7 +9,6 @@ cd "$(dirname "$0")"
 export KUBECONFIG
 cat <<EOF
 export KUBECONFIG="$KUBECONFIG"
-export TESTARGS="-short"
 EOF
 
 # Print common K8s environment variables

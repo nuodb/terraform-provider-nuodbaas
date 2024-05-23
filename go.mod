@@ -3,7 +3,6 @@ module github.com/nuodb/terraform-provider-nuodbaas
 go 1.19
 
 require (
-	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/deepmap/oapi-codegen/v2 v2.1.0
 	github.com/getkin/kin-openapi v0.123.0
 	github.com/hashicorp/terraform-plugin-docs v0.18.0
@@ -20,7 +19,6 @@ require (
 	github.com/hashicorp/go-hclog v1.6.2
 	github.com/hashicorp/hcl/v2 v2.20.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.32.0
-	github.com/hashicorp/terraform-plugin-testing v1.6.0
 	github.com/rogpeppe/go-internal v1.12.0
 	github.com/stretchr/testify v1.9.0
 	gotest.tools/gotestsum v1.11.0

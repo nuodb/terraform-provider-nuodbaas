@@ -1110,9 +1110,7 @@ func TestImmutableAttributeChange(t *testing.T) {
 			} else {
 				// Check that readiness check failed due to DBA password
 				require.Error(t, err)
-
-				// TODO: Figure out how to check error messages despite Terraform line wrapping
-				require.Contains(t, string(out), "DBA password for database "+vars.project.Organization+"/"+vars.project.Name+"/db")
+				require.Contains(t, string(out), "DBA password for database "+vars.project.Organization+"/"+vars.project.Name+"/db has not been updated")
 			}
 			require.Contains(t, string(out), "0 to add, 1 to change, 0 to destroy.")
 		})
@@ -1524,9 +1522,8 @@ func TestValidation(t *testing.T) {
 
 		vars := newTestVars(false)
 
-		// TODO: Another place where we cannot assert on full message due to annoying line wrapping
 		errorString := "Partial credentials"
-		errorDescription := "To use basic authentication, both user name and password"
+		errorDescription := "To use basic authentication, both user name and password should be provided"
 
 		// Test user without a password
 		vars.providerCfg.User = ptr("org/user")
