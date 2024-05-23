@@ -9,10 +9,13 @@ resource "nuodbaas_backuppolicy" "basic" {
 }
 
 # A backup policy with explicit configuration for various attributes
-resource "nuodbaas_backuppolicy" "daily" {
+resource "nuodbaas_backuppolicy" "pol" {
   organization = "org"
-  name         = "daily"
-  frequency    = "@daily"
+  name         = "pol"
+  labels = {
+    "provisioned-by" : "terraform"
+  }
+  frequency = "@daily"
   selector = {
     scope = "org"
     slas  = ["qa", "prod"]
@@ -29,4 +32,8 @@ resource "nuodbaas_backuppolicy" "daily" {
     yearly  = 3
   }
   suspended = false
+  properties = {
+    propagate_policy_labels   = true
+    propagate_database_labels = true
+  }
 }
