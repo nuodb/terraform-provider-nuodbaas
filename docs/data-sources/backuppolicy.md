@@ -17,6 +17,7 @@ Data source for exposing information about NuoDB backup policies created using t
 data "nuodbaas_backuppolicy" "policy_details" {
   organization = "org"
   name         = "pol"
+  depends_on   = [nuodbaas_backuppolicy.pol]
 }
 ```
 

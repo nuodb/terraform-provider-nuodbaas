@@ -2,4 +2,5 @@
 data "nuodbaas_backuppolicy" "policy_details" {
   organization = "org"
   name         = "pol"
+  depends_on   = [nuodbaas_backuppolicy.pol]
 }
