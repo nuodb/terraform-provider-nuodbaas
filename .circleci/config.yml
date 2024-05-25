@@ -73,11 +73,18 @@ jobs:
 
   functional_tests_kwok_dev:
     executor: ubuntu_vm
+    parameters:
+      use-tofu:
+        description: |
+          Whether to use OpenTofu.
+        type: boolean
+        default: false
     environment:
       IMG_REPO: nuodb/nuodb-control-plane
       IMG_TAG: latest
       NUODB_CP_IMAGE: nuodb/nuodb-control-plane:latest
       USING_LATEST_API: "true"
+      USE_TOFU: "<< parameters.use-tofu >>"
     steps:
       - checkout
       - add_ssh_keys:
@@ -122,6 +129,9 @@ jobs:
 workflows:
   test:
     jobs:
+      - functional_tests_kwok_dev:
+          name: Functional tests (KWOK, dev, OpenTofu)
+          use-tofu: true
       - functional_tests_kwok_dev:
           name: Functional tests (KWOK, dev)
       - functional_tests:

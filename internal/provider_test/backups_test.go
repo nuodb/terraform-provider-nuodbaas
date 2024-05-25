@@ -39,7 +39,7 @@ func skipIfBackupPoliciesNotSupported(t *testing.T, ctx context.Context, client 
 		ListAccessible: ptr(true),
 	})
 	// GET /backuppolicies?listAccessible=true should not return 404 if supported
-	if resp.StatusCode == http.StatusNotFound {
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
 		t.Skip("Server does not have /backuppolicies resource")
 	}
 	// Make sure some other error did not occur

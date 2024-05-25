@@ -896,7 +896,11 @@ func TestNegative(t *testing.T) {
 	// Try to import resource already being managed
 	out, err = tf.Run("import", "nuodbaas_database.db", vars.project.Organization+"/"+vars.project.Name+"/db")
 	require.Error(t, err)
-	require.Contains(t, string(out), "Resource already managed by Terraform")
+	tfName := "Terraform"
+	if USE_TOFU.IsTrue() {
+		tfName = "OpenTofu"
+	}
+	require.Contains(t, string(out), "Resource already managed by "+tfName)
 
 	t.Run("invalidProviderConfiguration", func(t *testing.T) {
 		// Clear any credentials set via environment variables

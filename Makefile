@@ -9,6 +9,7 @@ OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 
 TERRAFORM_VERSION ?= 1.7.3
+TOFU_VERSION ?= 1.7.1
 KUBECTL_VERSION ?= 1.28.3
 KWOKCTL_VERSION ?= 0.5.1
 HELM_VERSION ?= 3.14.3
@@ -19,6 +20,7 @@ GOTESTSUM := bin/gotestsum
 TFPLUGINDOCS := bin/tfplugindocs
 OAPI_CODEGEN := bin/oapi-codegen
 TERRAFORM := bin/terraform
+TOFU := bin/tofu
 KUBECTL := bin/kubectl
 KWOKCTL := bin/kwokctl
 HELM := bin/helm
@@ -60,6 +62,12 @@ $(TERRAFORM):
 	curl -L -s https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_$(OS)_$(ARCH).zip -o tmp/terraform.zip
 	cd tmp && unzip terraform.zip
 	mv tmp/terraform $(TERRAFORM)
+
+$(TOFU):
+	mkdir -p bin tmp
+	curl -L -s https://github.com/opentofu/opentofu/releases/download/v$(TOFU_VERSION)/tofu_$(TOFU_VERSION)_$(OS)_$(ARCH).zip -o tmp/tofu.zip
+	cd tmp && unzip tofu.zip tofu
+	mv tmp/tofu $(TOFU)
 
 $(KUBECTL):
 	mkdir -p bin
@@ -146,6 +154,9 @@ teardown-%: %-deps
 
 .PHONY: testacc
 testacc: $(GOTESTSUM) $(TERRAFORM) ## Run acceptance tests
+	@if [ "$$USE_TOFU" = true ]; then \
+		make $(TOFU) ;\
+	fi
 	mkdir -p $(TEST_RESULTS)
 	TF_ACC=1 $(GOTESTSUM) --junitfile $(TEST_RESULTS)/gotestsum-report.xml \
 		   --format testname -- -v -count=1 -p 1 -timeout 30m \
