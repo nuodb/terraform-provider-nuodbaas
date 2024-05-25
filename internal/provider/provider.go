@@ -14,6 +14,7 @@ import (
 
 	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
+	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/backup"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/backuppolicy"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/database"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/project"
@@ -249,6 +250,7 @@ func resources() []func() resource.Resource {
 		NewProjectResource,
 		NewDatabaseResource,
 		NewBackupPolicyResource,
+		NewBackupResource,
 	}
 }
 
@@ -260,6 +262,8 @@ func (p *NuoDbaasProvider) DataSources(ctx context.Context) []func() datasource.
 		NewDatabasesDataSource,
 		NewBackupPolicyDataSource,
 		NewBackupPoliciesDataSource,
+		NewBackupDataSource,
+		NewBackupsDataSource,
 	}
 }
 

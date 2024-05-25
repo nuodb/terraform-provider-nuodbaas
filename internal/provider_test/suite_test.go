@@ -22,6 +22,7 @@ import (
 
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider"
+	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/backup"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/backuppolicy"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/database"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/project"
@@ -88,76 +89,88 @@ func (b *TfConfigBuilder) WithoutDataSource(key string) *TfConfigBuilder {
 	return b
 }
 
+//
+// Helper functions for database resource and data sources
+//
+
 func (b *TfConfigBuilder) WithDatabaseResource(name string, database *DatabaseResourceModel, dependsOn ...string) *TfConfigBuilder {
 	return b.WithResource("nuodbaas_database."+name, database, dependsOn...)
-}
-
-func (b *TfConfigBuilder) WithProjectResource(name string, project *ProjectResourceModel, dependsOn ...string) *TfConfigBuilder {
-	return b.WithResource("nuodbaas_project."+name, project, dependsOn...)
-}
-
-func (b *TfConfigBuilder) WithBackupPolicyResource(name string, policy *BackupPolicyResourceModel, dependsOn ...string) *TfConfigBuilder {
-	return b.WithResource("nuodbaas_backuppolicy."+name, policy, dependsOn...)
 }
 
 func (b *TfConfigBuilder) WithDatabaseDataSource(name string, database *DatabaseNameModel, dependsOn ...string) *TfConfigBuilder {
 	return b.WithDataSource("nuodbaas_database."+name, database, dependsOn...)
 }
 
-func (b *TfConfigBuilder) WithProjectDataSource(name string, project *ProjectNameModel, dependsOn ...string) *TfConfigBuilder {
-	return b.WithDataSource("nuodbaas_project."+name, project, dependsOn...)
-}
-
-func (b *TfConfigBuilder) WithBackupPolicyDataSource(name string, policy *BackupPolicyNameModel, dependsOn ...string) *TfConfigBuilder {
-	return b.WithDataSource("nuodbaas_backuppolicy."+name, policy, dependsOn...)
-}
-
 func (b *TfConfigBuilder) WithDatabasesDataSource(name string, databases *DatabasesDataSourceModel, dependsOn ...string) *TfConfigBuilder {
 	return b.WithDataSource("nuodbaas_databases."+name, databases, dependsOn...)
-}
-
-func (b *TfConfigBuilder) WithProjectsDataSource(name string, projects *ProjectsDataSourceModel, dependsOn ...string) *TfConfigBuilder {
-	return b.WithDataSource("nuodbaas_projects."+name, projects, dependsOn...)
-}
-
-func (b *TfConfigBuilder) WithBackupPoliciesDataSource(name string, policies *BackupPoliciesDataSourceModel, dependsOn ...string) *TfConfigBuilder {
-	return b.WithDataSource("nuodbaas_backuppolicies."+name, policies, dependsOn...)
 }
 
 func (b *TfConfigBuilder) WithoutDatabaseResource(name string) *TfConfigBuilder {
 	return b.WithoutResource("nuodbaas_database." + name)
 }
 
+func (b *TfConfigBuilder) WithoutDatabasesDataSource(name string) *TfConfigBuilder {
+	return b.WithoutDataSource("nuodbaas_databases." + name)
+}
+
+//
+// Helper functions for project resource and data sources
+//
+
+func (b *TfConfigBuilder) WithProjectResource(name string, project *ProjectResourceModel, dependsOn ...string) *TfConfigBuilder {
+	return b.WithResource("nuodbaas_project."+name, project, dependsOn...)
+}
+
+func (b *TfConfigBuilder) WithProjectDataSource(name string, project *ProjectNameModel, dependsOn ...string) *TfConfigBuilder {
+	return b.WithDataSource("nuodbaas_project."+name, project, dependsOn...)
+}
+
+func (b *TfConfigBuilder) WithProjectsDataSource(name string, projects *ProjectsDataSourceModel, dependsOn ...string) *TfConfigBuilder {
+	return b.WithDataSource("nuodbaas_projects."+name, projects, dependsOn...)
+}
+
 func (b *TfConfigBuilder) WithoutProjectResource(name string) *TfConfigBuilder {
 	return b.WithoutResource("nuodbaas_project." + name)
-}
-
-func (b *TfConfigBuilder) WithoutBackupPolicyResource(name string) *TfConfigBuilder {
-	return b.WithoutResource("nuodbaas_backuppolicy." + name)
-}
-
-func (b *TfConfigBuilder) WithoutDatabaseDataSource(name string) *TfConfigBuilder {
-	return b.WithoutDataSource("nuodbaas_database." + name)
 }
 
 func (b *TfConfigBuilder) WithoutProjectDataSource(name string) *TfConfigBuilder {
 	return b.WithoutDataSource("nuodbaas_project." + name)
 }
 
-func (b *TfConfigBuilder) WithoutBackupPolicyDataSource(name string) *TfConfigBuilder {
-	return b.WithoutDataSource("nuodbaas_backuppolicy." + name)
-}
-
-func (b *TfConfigBuilder) WithoutDatabasesDataSource(name string) *TfConfigBuilder {
-	return b.WithoutDataSource("nuodbaas_databases." + name)
-}
-
 func (b *TfConfigBuilder) WithoutProjectsDataSource(name string) *TfConfigBuilder {
 	return b.WithoutDataSource("nuodbaas_projects." + name)
 }
 
-func (b *TfConfigBuilder) WithoutBackupPoliciesDataSource(name string) *TfConfigBuilder {
-	return b.WithoutDataSource("nuodbaas_backuppolicies." + name)
+//
+// Helper functions for backup policy resource and data sources
+//
+
+func (b *TfConfigBuilder) WithBackupPolicyResource(name string, policy *BackupPolicyResourceModel, dependsOn ...string) *TfConfigBuilder {
+	return b.WithResource("nuodbaas_backuppolicy."+name, policy, dependsOn...)
+}
+
+func (b *TfConfigBuilder) WithBackupPolicyDataSource(name string, policy *BackupPolicyNameModel, dependsOn ...string) *TfConfigBuilder {
+	return b.WithDataSource("nuodbaas_backuppolicy."+name, policy, dependsOn...)
+}
+
+func (b *TfConfigBuilder) WithBackupPoliciesDataSource(name string, policies *BackupPoliciesDataSourceModel, dependsOn ...string) *TfConfigBuilder {
+	return b.WithDataSource("nuodbaas_backuppolicies."+name, policies, dependsOn...)
+}
+
+//
+// Helper functions for backup resource and data sources
+//
+
+func (b *TfConfigBuilder) WithBackupResource(name string, backup *BackupResourceModel, dependsOn ...string) *TfConfigBuilder {
+	return b.WithResource("nuodbaas_backup."+name, backup, dependsOn...)
+}
+
+func (b *TfConfigBuilder) WithBackupDataSource(name string, backup *BackupNameModel, dependsOn ...string) *TfConfigBuilder {
+	return b.WithDataSource("nuodbaas_backup."+name, backup, dependsOn...)
+}
+
+func (b *TfConfigBuilder) WithBackupsDataSource(name string, backups *BackupsDataSourceModel, dependsOn ...string) *TfConfigBuilder {
+	return b.WithDataSource("nuodbaas_backups."+name, backups, dependsOn...)
 }
 
 func (b *TfConfigBuilder) Build() string {

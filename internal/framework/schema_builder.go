@@ -105,6 +105,13 @@ func (sb *SchemaBuilder) WithProjectScopeFilters(typeNamePlural string) *Attribu
 		WithOptionalStringAttribute("project", fmt.Sprintf("The project to filter %s on. If specified, the organization must also be specified.", typeNamePlural))
 }
 
+// WithDatabaseScopeFilters attaches schema information for the filter nested
+// attribute of a database-scoped resource in DBaaS.
+func (sb *SchemaBuilder) WithDatabaseScopeFilters(typeNamePlural string) *AttributeBuilder {
+	return sb.WithProjectScopeFilters(typeNamePlural).
+		WithOptionalStringAttribute("database", fmt.Sprintf("The database to filter %s on. If specified, the project must also be specified.", typeNamePlural))
+}
+
 // WithOrganizationScopeList attaches schema information for the list attribute
 // of the supplied type, which is organization-scoped (e.g. projects).
 func (sb *SchemaBuilder) WithOrganizationScopeList(typeName, typeNamePlural string) *AttributeBuilder {
@@ -115,9 +122,15 @@ func (sb *SchemaBuilder) WithOrganizationScopeList(typeName, typeNamePlural stri
 // WithProjectScopeList attaches schema information for the list attribute of
 // the supplied type, which is project-scoped (e.g. databases).
 func (sb *SchemaBuilder) WithProjectScopeList(typeName, typeNamePlural string) *AttributeBuilder {
-	return sb.WithNewListNestedAttribute(typeNamePlural, fmt.Sprintf("The list of %s that satisfy the filter requirements", typeNamePlural)).
-		WithComputedStringAttribute("organization", fmt.Sprintf("The organization the %s belongs to", typeName)).
+	return sb.WithOrganizationScopeList(typeName, typeNamePlural).
 		WithComputedStringAttribute("project", fmt.Sprintf("The project the %s belongs to", typeName))
+}
+
+// WithDatabaseScopeList attaches schema information for the list attribute of
+// the supplied type, which is database-scoped (e.g. backups).
+func (sb *SchemaBuilder) WithDatabaseScopeList(typeName, typeNamePlural string) *AttributeBuilder {
+	return sb.WithProjectScopeList(typeName, typeNamePlural).
+		WithComputedStringAttribute("database", fmt.Sprintf("The database the %s belongs to", typeName))
 }
 
 func (sb *SchemaBuilder) Build() *schema.Schema {
