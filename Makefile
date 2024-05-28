@@ -155,7 +155,7 @@ teardown-%: %-deps
 .PHONY: testacc
 testacc: $(GOTESTSUM) $(TERRAFORM) ## Run acceptance tests
 	@if [ "$$USE_TOFU" = true ]; then \
-		make $(TOFU) ;\
+		$(MAKE) $(TOFU) ;\
 	fi
 	mkdir -p $(TEST_RESULTS)
 	TF_ACC=1 $(GOTESTSUM) --junitfile $(TEST_RESULTS)/gotestsum-report.xml \
