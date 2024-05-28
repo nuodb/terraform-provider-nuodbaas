@@ -271,7 +271,10 @@ type TfHelper struct {
 // using `go test` (instrumentation of the provider binary does not seem to work
 // when Terraform is invoking it).
 func (tf *TfHelper) SetReattachConfig(config plugin.ReattachConfig) error {
-	encoded, err := json.Marshal(map[string]any{"registry.terraform.io/nuodb/nuodbaas": config})
+	encoded, err := json.Marshal(map[string]any{
+		"registry.terraform.io/nuodb/nuodbaas": config,
+		"registry.opentofu.org/nuodb/nuodbaas": config,
+	})
 	if err != nil {
 		return err
 	}
@@ -279,8 +282,23 @@ func (tf *TfHelper) SetReattachConfig(config plugin.ReattachConfig) error {
 	return nil
 }
 
+const (
+	TF_COMMAND TestOption = "TF_COMMAND"
+	USE_TOFU   TestOption = "USE_TOFU"
+)
+
+func GetTfCommand() string {
+	if value := TF_COMMAND.Get(); value != "" {
+		return value
+	}
+	if USE_TOFU.IsTrue() {
+		return "tofu"
+	}
+	return "terraform"
+}
+
 func (tf *TfHelper) Run(args ...string) ([]byte, error) {
-	cmd := exec.Command("terraform", args...)
+	cmd := exec.Command(GetTfCommand(), args...) //nolint:gosec // Allow user to supply terraform command
 	cmd.Dir = tf.WorkingDir
 	if tf.ReattachProvider != "" {
 		cmd.Env = append(os.Environ(), "TF_REATTACH_PROVIDERS="+tf.ReattachProvider)
@@ -295,9 +313,9 @@ func (tf *TfHelper) Run(args ...string) ([]byte, error) {
 			return out, err
 		}
 	}
-	if !tf.Silent {
+	if !tf.Silent || err != nil {
 		fmt.Println()
-		fmt.Printf("> terraform %s\n", strings.Join(args, " "))
+		fmt.Printf("> %s %s\n", GetTfCommand(), strings.Join(args, " "))
 		fmt.Printf("%s\n", out)
 	}
 	// Strip any ANSI color codes
