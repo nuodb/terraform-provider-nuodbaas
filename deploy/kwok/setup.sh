@@ -52,7 +52,11 @@ provisioner: nuodb.github.io/noop-provisioner
 EOF
 
 echo "Installing CRDs for DBaaS..."
-helm install nuodb-cp-crd nuodb-cp-crd --repo "$NUODB_CP_REPO" --version "$NUODB_CP_VERSION"
+if [ -n "$NUODB_CP_CRD_CHART" ]; then
+    helm install nuodb-cp-crd "$NUODB_CP_CRD_CHART"
+else
+    helm install nuodb-cp-crd nuodb-cp-crd --repo "$NUODB_CP_REPO" --version "$NUODB_CP_VERSION"
+fi
 
 # Create service tiers. The Helm features do not matter, since they are not
 # exposed in Terraform.

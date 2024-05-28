@@ -18,6 +18,10 @@ import (
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider"
 )
 
+const (
+	USING_LATEST_API TestOption = "USING_LATEST_API"
+)
+
 func CombineConfigs(t *testing.T, root string) string {
 	var combinedConfigs string
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
@@ -33,7 +37,7 @@ func CombineConfigs(t *testing.T, root string) string {
 	return combinedConfigs
 }
 
-func TestValidateExamples(t *testing.T) {
+func TestExamples(t *testing.T) {
 	// Create provider server that runs within test
 	ctx := context.Background()
 	reattachCfg, closeFn := CreateProviderServer(t, ctx)
@@ -57,7 +61,20 @@ func TestValidateExamples(t *testing.T) {
 	_, err = tf.Init()
 	require.NoError(t, err)
 
-	// Validate config
-	_, err = tf.Validate()
-	require.NoError(t, err)
+	if USING_LATEST_API.IsTrue() {
+		// Run `terraform apply` on config
+		_, err = tf.Apply()
+		defer tf.DestroySilently()
+		require.NoError(t, err)
+
+		// Run `terraform refresh` to update data sources
+		_, err = tf.Run("refresh")
+		require.NoError(t, err)
+	} else {
+		// The server may not support all resources and data sources, if
+		// it is running at all. Run `terraform validate` only, which
+		// does not require a server connection.
+		_, err = tf.Validate()
+		require.NoError(t, err)
+	}
 }

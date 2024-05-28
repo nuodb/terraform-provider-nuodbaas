@@ -2,4 +2,5 @@
 data "nuodbaas_project" "project_details" {
   organization = "org"
   name         = "proj"
+  depends_on   = [nuodbaas_project.proj]
 }

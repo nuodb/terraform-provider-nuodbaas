@@ -12,29 +12,22 @@ executors:
       image: ubuntu-2204:2023.10.1
     resource_class: medium
 
-jobs:
-  functional_tests:
+commands:
+  run_test:
     parameters:
       test-driver:
         description: |
           The test driver to use.
         type: string
-      nuodb-cp-version:
-        description: |
-          The version of the NuoDB Control Plane to test against.
-        type: string
-        default: 2.5.0
-    executor: ubuntu_vm
-    environment:
-      TEST_RESULTS: /tmp/test-results
-      OUTPUT_DIR: /tmp/test-artifacts
-      NUODB_CP_VERSION: << parameters.nuodb-cp-version >>
     steps:
-      - checkout
+      - run:
+          name: "Set environment variables"
+          command: |
+            echo "export TEST_RESULTS=/tmp/test-results" >> "$BASH_ENV"
+            echo "export OUTPUT_DIR=/tmp/test-artifacts" >> "$BASH_ENV"
       - run:
           name: "Setup environment"
           command: |
-            echo "Setting up << parameters.test-driver >> with NuoDB CP << parameters.nuodb-cp-version >>..."
             make setup-<< parameters.test-driver >>
             make env-<< parameters.test-driver >> >> "$BASH_ENV"
       - run:
@@ -57,6 +50,47 @@ jobs:
       - store_test_results:
           name: "Upload test results"
           path: /tmp/test-results
+
+jobs:
+  functional_tests:
+    parameters:
+      test-driver:
+        description: |
+          The test driver to use.
+        type: string
+      nuodb-cp-version:
+        description: |
+          The version of the NuoDB Control Plane to test against.
+        type: string
+        default: 2.5.0
+    executor: ubuntu_vm
+    environment:
+      NUODB_CP_VERSION: << parameters.nuodb-cp-version >>
+    steps:
+      - checkout
+      - run_test:
+          test-driver: << parameters.test-driver >>
+
+  functional_tests_kwok_dev:
+    executor: ubuntu_vm
+    environment:
+      IMG_REPO: nuodb/nuodb-control-plane
+      IMG_TAG: latest
+      NUODB_CP_IMAGE: nuodb/nuodb-control-plane:latest
+      USING_LATEST_API: "true"
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:b6Diu+dTKXL7N/Y8u3PElZ0sZxk4M+vK9Vb96O6X6ZM"
+      - run:
+          name: "Checkout NuoDB Control Plane repo and build image"
+          command: |
+            git clone git@github.com:nuodb/nuodb-control-plane.git
+            make -C nuodb-control-plane docker-build
+            echo "export NUODB_CP_CRD_CHART=$(pwd)/nuodb-control-plane/charts/nuodb-cp-crd" >> "$BASH_ENV"
+      - run_test:
+          test-driver: kwok
 
   check_quality:
     executor: go
@@ -88,6 +122,8 @@ jobs:
 workflows:
   test:
     jobs:
+      - functional_tests_kwok_dev:
+          name: Functional tests (KWOK, dev)
       - functional_tests:
           name: Functional tests (KWOK)
           test-driver: kwok
