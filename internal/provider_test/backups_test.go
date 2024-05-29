@@ -244,7 +244,7 @@ func TestBackup(t *testing.T) {
 	require.Contains(t, string(out), "nuodbaas_backup.backup: Modifying...")
 
 	// Check attributes in resource
-	tf.CheckStateResource(t, "data.nuodbaas_backup.backup").
+	tf.CheckStateResource(t, "nuodbaas_backup.backup").
 		HasAttributeValue("organization", backup.Organization).
 		HasAttributeValue("project", backup.Project).
 		HasAttributeValue("database", backup.Database).
@@ -348,7 +348,10 @@ func TestBackup(t *testing.T) {
 		backup.Name = original.Name
 
 		// Try to change immutable attribute `import_source.backup_handle`
-		backup.ImportSource.BackupHandle = "notbackup"
+		backup.ImportSource = &openapi.ImportSourceModel{
+			BackupHandle: "notbackup",
+			BackupPlugin: original.ImportSource.BackupPlugin,
+		}
 		tf.WriteConfigT(t, builder.Build())
 
 		// Run `terraform apply` and check that "Immutable Attribute Change" warning is shown
@@ -358,6 +361,49 @@ func TestBackup(t *testing.T) {
 		require.Contains(t, string(out), "A change has been made to the immutable attribute `import_source.backup_handle`, which may be rejected by the server or ignored. "+
 			"In order for an immutable attribute change to take effect, it is necessary to delete and re-create the resource, which may result in data loss.")
 		require.Contains(t, string(out), "Error response from Control Plane service: status='HTTP 409 Conflict', code=HTTP_ERROR, detail=[Backup import source cannot be updated: ")
+	})
+
+	t.Run("dataSourceFilterNegative", func(t *testing.T) {
+		var backupsNeg BackupsDataSourceModel
+		builder.WithBackupsDataSource("neg", &backupsNeg)
+		defer func() {
+			builder.WithoutBackupsDataSource("neg")
+			tf.WriteConfigT(t, builder.Build())
+		}()
+
+		// Specify invalid filter: project but no organization
+		backupsNeg.Filter = &BackupFilterModel{
+			Project: ptr("proj"),
+		}
+		tf.WriteConfigT(t, builder.Build())
+		// Run `terraform apply` and check that filter is rejected
+		out, err := tf.Apply()
+		require.Error(t, err)
+		require.Contains(t, string(out), "Error: Unable to read backups")
+		require.Contains(t, string(out), "Cannot specify project filter (proj) without organization")
+
+		// Specify invalid filter: database but no project
+		backupsNeg.Filter = &BackupFilterModel{
+			Organization: ptr("org"),
+			Database:     ptr("db"),
+		}
+		tf.WriteConfigT(t, builder.Build())
+		// Run `terraform apply` and check that filter is rejected
+		out, err = tf.Apply()
+		require.Error(t, err)
+		require.Contains(t, string(out), "Error: Unable to read backups")
+		require.Contains(t, string(out), "Cannot specify database filter (db) without project")
+
+		// Specify invalid filter: database but no organization/project
+		backupsNeg.Filter = &BackupFilterModel{
+			Database: ptr("db"),
+		}
+		tf.WriteConfigT(t, builder.Build())
+		// Run `terraform apply` and check that filter is rejected
+		out, err = tf.Apply()
+		require.Error(t, err)
+		require.Contains(t, string(out), "Error: Unable to read backups")
+		require.Contains(t, string(out), "Cannot specify database filter (db) without project")
 	})
 
 	// Run `terraform destroy` to delete policy
@@ -510,7 +556,7 @@ func TestBackupPolicy(t *testing.T) {
 	require.NoError(t, err)
 
 	// Check attributes in resource
-	tf.CheckStateResource(t, "data.nuodbaas_backuppolicy.pol").
+	tf.CheckStateResource(t, "nuodbaas_backuppolicy.pol").
 		HasAttributeValue("organization", policy.Organization).
 		HasAttributeValue("name", policy.Name).
 		HasAttributeValue("labels", map[string]any{}).
@@ -584,7 +630,7 @@ func TestBackupPolicy(t *testing.T) {
 	require.Contains(t, string(out), "nuodbaas_backuppolicy.pol: Modifying...")
 
 	// Check attributes in resource
-	tf.CheckStateResource(t, "data.nuodbaas_backuppolicy.pol").
+	tf.CheckStateResource(t, "nuodbaas_backuppolicy.pol").
 		HasAttributeValue("organization", policy.Organization).
 		HasAttributeValue("name", policy.Name).
 		HasAttributeValue("labels", map[string]interface{}{"purpose": "test", "rpo": "1d"}).

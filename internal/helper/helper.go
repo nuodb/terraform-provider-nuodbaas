@@ -115,15 +115,30 @@ func processListResponse(prefix string, resp *http.Response, err error) ([]strin
 	return names, nil
 }
 
-func GetBackups(ctx context.Context, client openapi.ClientInterface, organization, project, database string, labelFilter *string, listAccessible bool) ([]string, error) {
-	var prefix string
-	var resp *http.Response
-	var err error
+func checkBackupFilter(organization, project, database string) error {
 	if len(organization) == 0 {
 		// Make sure project was not specified without organization
 		if len(project) != 0 {
-			return nil, fmt.Errorf("Cannot specify project filter (%s) without organization", project)
+			return fmt.Errorf("Cannot specify project filter (%s) without organization", project)
 		}
+	}
+	if len(project) == 0 {
+		// Make sure database was not specified without project
+		if len(database) != 0 {
+			return fmt.Errorf("Cannot specify database filter (%s) without project", database)
+		}
+	}
+	return nil
+}
+
+func GetBackups(ctx context.Context, client openapi.ClientInterface, organization, project, database string, labelFilter *string, listAccessible bool) ([]string, error) {
+	err := checkBackupFilter(organization, project, database)
+	if err != nil {
+		return nil, err
+	}
+	var prefix string
+	var resp *http.Response
+	if len(organization) == 0 {
 		// List all backups
 		params := openapi.GetAllBackupsParams{
 			LabelFilter:    labelFilter,
@@ -131,10 +146,6 @@ func GetBackups(ctx context.Context, client openapi.ClientInterface, organizatio
 		}
 		resp, err = client.GetAllBackups(ctx, &params)
 	} else if len(project) == 0 {
-		// Make sure database was not specified without project
-		if len(database) != 0 {
-			return nil, fmt.Errorf("Cannot specify database filter (%s) without project", database)
-		}
 		// List all backups within organization
 		prefix = organization + "/"
 		params := openapi.GetOrganizationBackupsParams{

@@ -173,6 +173,10 @@ func (b *TfConfigBuilder) WithBackupsDataSource(name string, backups *BackupsDat
 	return b.WithDataSource("nuodbaas_backups."+name, backups, dependsOn...)
 }
 
+func (b *TfConfigBuilder) WithoutBackupsDataSource(name string) *TfConfigBuilder {
+	return b.WithoutDataSource("nuodbaas_backups." + name)
+}
+
 func (b *TfConfigBuilder) Build() string {
 	f := hclwrite.NewEmptyFile()
 	ForEachInOrder(b.providers, func(key string, value any) {
