@@ -90,22 +90,6 @@ func ParseResponse(resp *http.Response, dest any) error {
 	return nil
 }
 
-func GetDatabaseByName(ctx context.Context, client *openapi.Client, organization, project, name string, dest any) error {
-	resp, err := client.GetDatabase(ctx, organization, project, name)
-	if err != nil {
-		return err
-	}
-	return ParseResponse(resp, dest)
-}
-
-func DeleteDatabaseByName(ctx context.Context, client *openapi.Client, organization, project, name string) error {
-	resp, err := client.DeleteDatabase(ctx, organization, project, name, nil)
-	if err != nil {
-		return err
-	}
-	return ParseResponse(resp, nil)
-}
-
 func processListResponse(prefix string, resp *http.Response, err error) ([]string, error) {
 	// Make sure request was successful
 	if err != nil {
@@ -129,6 +113,64 @@ func processListResponse(prefix string, resp *http.Response, err error) ([]strin
 		}
 	}
 	return names, nil
+}
+
+func checkBackupFilter(organization, project, database string) error {
+	if len(organization) == 0 {
+		// Make sure project was not specified without organization
+		if len(project) != 0 {
+			return fmt.Errorf("Cannot specify project filter (%s) without organization", project)
+		}
+	}
+	if len(project) == 0 {
+		// Make sure database was not specified without project
+		if len(database) != 0 {
+			return fmt.Errorf("Cannot specify database filter (%s) without project", database)
+		}
+	}
+	return nil
+}
+
+func GetBackups(ctx context.Context, client openapi.ClientInterface, organization, project, database string, labelFilter *string, listAccessible bool) ([]string, error) {
+	err := checkBackupFilter(organization, project, database)
+	if err != nil {
+		return nil, err
+	}
+	var prefix string
+	var resp *http.Response
+	if len(organization) == 0 {
+		// List all backups
+		params := openapi.GetAllBackupsParams{
+			LabelFilter:    labelFilter,
+			ListAccessible: &listAccessible,
+		}
+		resp, err = client.GetAllBackups(ctx, &params)
+	} else if len(project) == 0 {
+		// List all backups within organization
+		prefix = organization + "/"
+		params := openapi.GetOrganizationBackupsParams{
+			LabelFilter:    labelFilter,
+			ListAccessible: &listAccessible,
+		}
+		resp, err = client.GetOrganizationBackups(ctx, organization, &params)
+	} else if len(database) == 0 {
+		// List all backups within project
+		prefix = organization + "/" + project + "/"
+		params := openapi.GetProjectBackupsParams{
+			LabelFilter:    labelFilter,
+			ListAccessible: &listAccessible,
+		}
+		resp, err = client.GetProjectBackups(ctx, organization, project, &params)
+	} else {
+		// List all backups within database
+		prefix = organization + "/" + project + "/" + database + "/"
+		params := openapi.GetBackupsParams{
+			LabelFilter:    labelFilter,
+			ListAccessible: &listAccessible,
+		}
+		resp, err = client.GetBackups(ctx, organization, project, database, &params)
+	}
+	return processListResponse(prefix, resp, err)
 }
 
 func GetDatabases(ctx context.Context, client openapi.ClientInterface, organization, project string, labelFilter *string, listAccessible bool) ([]string, error) {
@@ -164,22 +206,6 @@ func GetDatabases(ctx context.Context, client openapi.ClientInterface, organizat
 		resp, err = client.GetDatabases(ctx, organization, project, &params)
 	}
 	return processListResponse(prefix, resp, err)
-}
-
-func GetProjectByName(ctx context.Context, client *openapi.Client, organization, name string, dest any) error {
-	resp, err := client.GetProject(ctx, organization, name)
-	if err != nil {
-		return err
-	}
-	return ParseResponse(resp, dest)
-}
-
-func DeleteProjectByName(ctx context.Context, client *openapi.Client, organization, name string) error {
-	resp, err := client.DeleteProject(ctx, organization, name, nil)
-	if err != nil {
-		return err
-	}
-	return ParseResponse(resp, nil)
 }
 
 func GetProjects(ctx context.Context, client openapi.ClientInterface, organization string, labelFilter *string, listAccessible bool) ([]string, error) {

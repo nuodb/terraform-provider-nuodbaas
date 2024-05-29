@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	. "github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider"
 )
 
@@ -43,11 +44,20 @@ func TestExamples(t *testing.T) {
 	reattachCfg, closeFn := CreateProviderServer(t, ctx)
 	defer closeFn()
 
+	// Disable readiness check for backup resource so that backup controller does not have to be enabled
+	var providerCfg NuoDbaasProviderModel
+	providerCfg.Timeouts = map[string]OperationTimeouts{
+		"backup": {
+			Create: ptr("0"),
+			Update: ptr("0"),
+		},
+	}
+
 	// Combine all example resource and data source configs
 	projectRoot := GetProjectRoot(t)
 	resourcesDir := filepath.Join(projectRoot, "examples", "resources")
 	dataSourcesDir := filepath.Join(projectRoot, "examples", "data-sources")
-	configContent := NewTfConfigBuilder().WithProviderConfig("nuodbaas", &NuoDbaasProviderModel{}).Build()
+	configContent := NewTfConfigBuilder().WithProviderConfig("nuodbaas", &providerCfg).Build()
 	configContent += CombineConfigs(t, resourcesDir)
 	configContent += "\n" + CombineConfigs(t, dataSourcesDir)
 

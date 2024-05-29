@@ -119,7 +119,7 @@ func IsSensitiveAttribute(oas *openapi3.Schema) bool {
 }
 
 func IsImmutableAttribute(oas *openapi3.Schema) bool {
-	return IsExtensionSet(oas, "x-immutable")
+	return IsExtensionSet(oas, "x-immutable") || IsIdentifierAttribute(oas)
 }
 
 func GetStringValidators(oas *openapi3.Schema) []validator.String {

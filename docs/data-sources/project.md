@@ -15,9 +15,8 @@ Data source for exposing information about NuoDB projects created using the DBaa
 ```terraform
 # Data source that returns the attributes of a specific project
 data "nuodbaas_project" "project_details" {
-  organization = "org"
-  name         = "proj"
-  depends_on   = [nuodbaas_project.proj]
+  organization = nuodbaas_project.proj.organization
+  name         = nuodbaas_project.proj.name
 }
 ```
 
