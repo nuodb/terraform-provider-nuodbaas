@@ -42,7 +42,7 @@ func newBackupPolicy() *BackupPolicyResourceModel {
 	return &BackupPolicyResourceModel{
 		Organization: orgName,
 		Name:         policyName,
-		Frequency:    "@daily",
+		Frequency:    "@hourly",
 		Selector: openapi.SelectorModel{
 			Scope: orgName,
 		},
@@ -607,13 +607,13 @@ func TestBackupPolicy(t *testing.T) {
 
 	// Update backup policy resource
 	policy.Labels = &map[string]string{
-		"rpo":     "1d",
+		"rpo":     "1h",
 		"purpose": "test",
 	}
 	policy.Selector.Slas = &[]string{"dev", "qa", "prod"}
 	policy.Selector.Tiers = &[]string{"n0.nano", "n0.small", "n1.small"}
 	policy.Selector.Labels = &map[string]string{
-		"backup-schedule": "daily",
+		"backup-schedule": "hourly",
 	}
 	policy.Retention = &openapi.RetentionModel{
 		Hourly:  ptr(int32(24)),
@@ -633,12 +633,12 @@ func TestBackupPolicy(t *testing.T) {
 	tf.CheckStateResource(t, "nuodbaas_backuppolicy.pol").
 		HasAttributeValue("organization", policy.Organization).
 		HasAttributeValue("name", policy.Name).
-		HasAttributeValue("labels", map[string]interface{}{"purpose": "test", "rpo": "1d"}).
+		HasAttributeValue("labels", map[string]interface{}{"purpose": "test", "rpo": "1h"}).
 		HasAttributeValue("frequency", policy.Frequency).
 		HasAttributeValue("selector.scope", policy.Selector.Scope).
 		HasAttributeValue("selector.slas", []any{"dev", "qa", "prod"}).
 		HasAttributeValue("selector.tiers", []any{"n0.nano", "n0.small", "n1.small"}).
-		HasAttributeValue("selector.labels", map[string]any{"backup-schedule": "daily"}).
+		HasAttributeValue("selector.labels", map[string]any{"backup-schedule": "hourly"}).
 		HasAttributeValue("retention.hourly", float64(24)).
 		HasAttributeValue("retention.daily", float64(7)).
 		HasAttributeValue("retention.weekly", float64(4)).
@@ -649,12 +649,12 @@ func TestBackupPolicy(t *testing.T) {
 	tf.CheckStateResource(t, "data.nuodbaas_backuppolicy.pol").
 		HasAttributeValue("organization", policy.Organization).
 		HasAttributeValue("name", policy.Name).
-		HasAttributeValue("labels", map[string]interface{}{"purpose": "test", "rpo": "1d"}).
+		HasAttributeValue("labels", map[string]interface{}{"purpose": "test", "rpo": "1h"}).
 		HasAttributeValue("frequency", policy.Frequency).
 		HasAttributeValue("selector.scope", policy.Selector.Scope).
 		HasAttributeValue("selector.slas", []any{"dev", "qa", "prod"}).
 		HasAttributeValue("selector.tiers", []any{"n0.nano", "n0.small", "n1.small"}).
-		HasAttributeValue("selector.labels", map[string]any{"backup-schedule": "daily"}).
+		HasAttributeValue("selector.labels", map[string]any{"backup-schedule": "hourly"}).
 		HasAttributeValue("retention.hourly", float64(24)).
 		HasAttributeValue("retention.daily", float64(7)).
 		HasAttributeValue("retention.weekly", float64(4)).
