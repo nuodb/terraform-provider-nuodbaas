@@ -33,7 +33,7 @@ var (
 	// enable scraping of the version when running `make package`.
 	//
 	// For more information on GoReleaser, see https://goreleaser.com/cookbooks/using-main.version/
-	version string = "1.1.0" // {{version}}
+	version string = "1.2.0" // {{version}}
 )
 
 func main() {
