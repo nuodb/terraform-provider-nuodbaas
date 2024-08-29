@@ -32,6 +32,9 @@ const (
 	CONTAINER_SCHEDULING_ENABLED TestOption = "CONTAINER_SCHEDULING_ENABLED"
 	WEBHOOKS_ENABLED             TestOption = "WEBHOOKS_ENABLED"
 	ORGANIZATION_BOUND_USER      TestOption = "ORGANIZATION_BOUND_USER"
+	RESOURCE_CREATE_TIMEOUT      TestOption = "RESOURCE_CREATE_TIMEOUT"
+	RESOURCE_UPDATE_TIMEOUT      TestOption = "RESOURCE_UPDATE_TIMEOUT"
+	RESOURCE_DELETE_TIMEOUT      TestOption = "RESOURCE_DELETE_TIMEOUT"
 )
 
 func (option TestOption) Get() string {
@@ -88,6 +91,22 @@ func withRandomSuffix(name string) string {
 	return fmt.Sprintf("%s%d", name, suffix)
 }
 
+func setDefaultResourceTimeouts(providerCfg *NuoDbaasProviderModel) {
+	var timeouts framework.OperationTimeouts
+	if timeout := RESOURCE_CREATE_TIMEOUT.Get(); timeout != "" {
+		timeouts.Create = &timeout
+	}
+	if timeout := RESOURCE_UPDATE_TIMEOUT.Get(); timeout != "" {
+		timeouts.Update = &timeout
+	}
+	if timeout := RESOURCE_DELETE_TIMEOUT.Get(); timeout != "" {
+		timeouts.Delete = &timeout
+	}
+	providerCfg.Timeouts = map[string]framework.OperationTimeouts{
+		framework.DEFAULT_RESOURCE: timeouts,
+	}
+}
+
 type testVars struct {
 	providerCfg NuoDbaasProviderModel
 	project     ProjectResourceModel
@@ -98,6 +117,7 @@ type testVars struct {
 func (vars *testVars) resetVars() {
 	dbaPassword := "dba"
 	vars.providerCfg = NuoDbaasProviderModel{}
+	setDefaultResourceTimeouts(&vars.providerCfg)
 	// Get organization from user name
 	orgName := getOrganization()
 	// Generate a random project name to avoid collisions
