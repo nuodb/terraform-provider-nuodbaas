@@ -144,27 +144,23 @@ func GetStringValidators(oas *openapi3.Schema) []validator.String {
 	return validators
 }
 
+// GetTerraformType returns the primitive type appearing in the supplied schema.
+// Types "array" and "object" are ignored and should be handled by using
+// ToResourceSchema() or ToDataSourceSchema().
 func GetTerraformType(schemaRef *openapi3.SchemaRef) attr.Type {
-	if schemaRef == nil {
-		return nil
+	if schemaRef != nil && schemaRef.Value != nil {
+		switch schemaRef.Value.Type {
+		case "boolean":
+			return types.BoolType
+		case "integer":
+			return types.Int64Type
+		case "number":
+			return types.NumberType
+		case "string":
+			return types.StringType
+		}
 	}
-	if schemaRef.Value == nil {
-		return types.ObjectType{}
-	}
-	switch schemaRef.Value.Type {
-	case "array":
-		return types.ListType{}
-	case "boolean":
-		return types.BoolType
-	case "integer":
-		return types.Int64Type
-	case "object":
-		return types.ObjectType{}
-	case "string":
-		return types.StringType
-	default:
-		return nil
-	}
+	return nil
 }
 
 func appendNonNil[T any](arr []T, elems ...T) []T {
@@ -238,6 +234,21 @@ func ToResourceAttribute(oas *openapi3.Schema, required, readOnly bool) (string,
 	// the Terraform API...
 	switch oas.Type {
 	case "array":
+		// If array contains objects, use ListNestedAttribute to attach nested object schema
+		if oas.Items.Value != nil && oas.Items.Value.Type == "object" {
+			return name, &resource.ListNestedAttribute{
+				Description:         oas.Description,
+				MarkdownDescription: oas.Description,
+				Required:            required,
+				Optional:            optional,
+				Computed:            computed,
+				Sensitive:           sensitive,
+				PlanModifiers:       appendNonNil([]planmodifier.List{}, planmodifier.List(useStateForUnknown), planmodifier.List(requiresReplace)),
+				NestedObject: resource.NestedAttributeObject{
+					Attributes: ToResourceSchema(oas.Items.Value, readOnly),
+				},
+			}
+		}
 		return name, &resource.ListAttribute{
 			Description:         oas.Description,
 			MarkdownDescription: oas.Description,
@@ -270,6 +281,21 @@ func ToResourceAttribute(oas *openapi3.Schema, required, readOnly bool) (string,
 		}
 	case "object":
 		if oas.AdditionalProperties.Schema != nil {
+			// If map values are objects, use MapNestedAttribute to attach nested object schema
+			if oas.AdditionalProperties.Schema.Value != nil && oas.AdditionalProperties.Schema.Value.Type == "object" {
+				return name, &resource.MapNestedAttribute{
+					Description:         oas.Description,
+					MarkdownDescription: oas.Description,
+					Required:            required,
+					Optional:            optional,
+					Computed:            computed,
+					Sensitive:           sensitive,
+					NestedObject: resource.NestedAttributeObject{
+						Attributes: ToResourceSchema(oas.AdditionalProperties.Schema.Value, readOnly),
+					},
+					PlanModifiers: appendNonNil([]planmodifier.Map{}, planmodifier.Map(useStateForUnknown), planmodifier.Map(requiresReplace)),
+				}
+			}
 			return name, &resource.MapAttribute{
 				Description:         oas.Description,
 				MarkdownDescription: oas.Description,
@@ -343,6 +369,19 @@ func ToDataSourceAttribute(oas *openapi3.Schema) (string, datasource.Attribute) 
 	// the Terraform API...
 	switch oas.Type {
 	case "array":
+		// If array contains objects, use ListNestedAttribute to attach nested object schema
+		if oas.Items.Value != nil && oas.Items.Value.Type == "object" {
+			return name, &datasource.ListNestedAttribute{
+				Description:         oas.Description,
+				MarkdownDescription: oas.Description,
+				Required:            required,
+				Computed:            computed,
+				Sensitive:           sensitive,
+				NestedObject: datasource.NestedAttributeObject{
+					Attributes: ToDataSourceSchema(oas.Items.Value),
+				},
+			}
+		}
 		return name, &datasource.ListAttribute{
 			Description:         oas.Description,
 			MarkdownDescription: oas.Description,
@@ -369,6 +408,19 @@ func ToDataSourceAttribute(oas *openapi3.Schema) (string, datasource.Attribute) 
 		}
 	case "object":
 		if oas.AdditionalProperties.Schema != nil {
+			// If map values are objects, use MapNestedAttribute to attach nested object schema
+			if oas.AdditionalProperties.Schema.Value != nil && oas.AdditionalProperties.Schema.Value.Type == "object" {
+				return name, &datasource.MapNestedAttribute{
+					Description:         oas.Description,
+					MarkdownDescription: oas.Description,
+					Required:            required,
+					Computed:            computed,
+					Sensitive:           sensitive,
+					NestedObject: datasource.NestedAttributeObject{
+						Attributes: ToDataSourceSchema(oas.AdditionalProperties.Schema.Value),
+					},
+				}
+			}
 			return name, &datasource.MapAttribute{
 				Description:         oas.Description,
 				MarkdownDescription: oas.Description,

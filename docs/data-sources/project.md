@@ -50,7 +50,7 @@ Read-Only:
 
 Read-Only:
 
-- `product_version` (String) The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb-ce/tags. If omitted, the project version will be resolved based on the SLA and cluster configuration.
+- `product_version` (String) The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb/tags. If omitted, the project version will be resolved based on the SLA and cluster configuration.
 - `tier_parameters` (Map of String) Opaque parameters supplied to project service tier.
 
 
@@ -72,3 +72,4 @@ Read-Only:
   * `Expired` - The project and its databases have expired
   * `Failed` - The project has failed to achieve a usable state
   * `Deleting` - The project has been marked for deletion, which is in progress
+  * `RotatingCertificates` - TLS certificates rotation is in progress for this domain

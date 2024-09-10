@@ -23,17 +23,27 @@ const (
 	BackupStatusModelStateSucceeded BackupStatusModelState = "Succeeded"
 )
 
+// Defines values for BackupStatusModelRetainedAs.
+const (
+	Daily   BackupStatusModelRetainedAs = "daily"
+	Hourly  BackupStatusModelRetainedAs = "hourly"
+	Monthly BackupStatusModelRetainedAs = "monthly"
+	Weekly  BackupStatusModelRetainedAs = "weekly"
+	Yearly  BackupStatusModelRetainedAs = "yearly"
+)
+
 // Defines values for DatabaseStatusModelState.
 const (
-	DatabaseStatusModelStateAvailable DatabaseStatusModelState = "Available"
-	DatabaseStatusModelStateCreating  DatabaseStatusModelState = "Creating"
-	DatabaseStatusModelStateDeleting  DatabaseStatusModelState = "Deleting"
-	DatabaseStatusModelStateExpired   DatabaseStatusModelState = "Expired"
-	DatabaseStatusModelStateFailed    DatabaseStatusModelState = "Failed"
-	DatabaseStatusModelStateModifying DatabaseStatusModelState = "Modifying"
-	DatabaseStatusModelStateRestoring DatabaseStatusModelState = "Restoring"
-	DatabaseStatusModelStateStopped   DatabaseStatusModelState = "Stopped"
-	DatabaseStatusModelStateStopping  DatabaseStatusModelState = "Stopping"
+	DatabaseStatusModelStateAvailable            DatabaseStatusModelState = "Available"
+	DatabaseStatusModelStateCreating             DatabaseStatusModelState = "Creating"
+	DatabaseStatusModelStateDeleting             DatabaseStatusModelState = "Deleting"
+	DatabaseStatusModelStateExpired              DatabaseStatusModelState = "Expired"
+	DatabaseStatusModelStateFailed               DatabaseStatusModelState = "Failed"
+	DatabaseStatusModelStateModifying            DatabaseStatusModelState = "Modifying"
+	DatabaseStatusModelStateRestoring            DatabaseStatusModelState = "Restoring"
+	DatabaseStatusModelStateRotatingCertificates DatabaseStatusModelState = "RotatingCertificates"
+	DatabaseStatusModelStateStopped              DatabaseStatusModelState = "Stopped"
+	DatabaseStatusModelStateStopping             DatabaseStatusModelState = "Stopping"
 )
 
 // Defines values for ErrorContentCode.
@@ -55,14 +65,42 @@ const (
 
 // Defines values for ProjectStatusModelState.
 const (
-	ProjectStatusModelStateAvailable ProjectStatusModelState = "Available"
-	ProjectStatusModelStateCreating  ProjectStatusModelState = "Creating"
-	ProjectStatusModelStateDeleting  ProjectStatusModelState = "Deleting"
-	ProjectStatusModelStateExpired   ProjectStatusModelState = "Expired"
-	ProjectStatusModelStateFailed    ProjectStatusModelState = "Failed"
-	ProjectStatusModelStateModifying ProjectStatusModelState = "Modifying"
-	ProjectStatusModelStateStopped   ProjectStatusModelState = "Stopped"
-	ProjectStatusModelStateStopping  ProjectStatusModelState = "Stopping"
+	ProjectStatusModelStateAvailable            ProjectStatusModelState = "Available"
+	ProjectStatusModelStateCreating             ProjectStatusModelState = "Creating"
+	ProjectStatusModelStateDeleting             ProjectStatusModelState = "Deleting"
+	ProjectStatusModelStateExpired              ProjectStatusModelState = "Expired"
+	ProjectStatusModelStateFailed               ProjectStatusModelState = "Failed"
+	ProjectStatusModelStateModifying            ProjectStatusModelState = "Modifying"
+	ProjectStatusModelStateRotatingCertificates ProjectStatusModelState = "RotatingCertificates"
+	ProjectStatusModelStateStopped              ProjectStatusModelState = "Stopped"
+	ProjectStatusModelStateStopping             ProjectStatusModelState = "Stopping"
+)
+
+// Defines values for RotationSettingsModelDayOfWeek.
+const (
+	FRIDAY    RotationSettingsModelDayOfWeek = "FRIDAY"
+	MONDAY    RotationSettingsModelDayOfWeek = "MONDAY"
+	SATURDAY  RotationSettingsModelDayOfWeek = "SATURDAY"
+	SUNDAY    RotationSettingsModelDayOfWeek = "SUNDAY"
+	THURSDAY  RotationSettingsModelDayOfWeek = "THURSDAY"
+	TUESDAY   RotationSettingsModelDayOfWeek = "TUESDAY"
+	WEDNESDAY RotationSettingsModelDayOfWeek = "WEDNESDAY"
+)
+
+// Defines values for RotationSettingsModelMonth.
+const (
+	APRIL     RotationSettingsModelMonth = "APRIL"
+	AUGUST    RotationSettingsModelMonth = "AUGUST"
+	DECEMBER  RotationSettingsModelMonth = "DECEMBER"
+	FEBRUARY  RotationSettingsModelMonth = "FEBRUARY"
+	JANUARY   RotationSettingsModelMonth = "JANUARY"
+	JULY      RotationSettingsModelMonth = "JULY"
+	JUNE      RotationSettingsModelMonth = "JUNE"
+	MARCH     RotationSettingsModelMonth = "MARCH"
+	MAY       RotationSettingsModelMonth = "MAY"
+	NOVEMBER  RotationSettingsModelMonth = "NOVEMBER"
+	OCTOBER   RotationSettingsModelMonth = "OCTOBER"
+	SEPTEMBER RotationSettingsModelMonth = "SEPTEMBER"
 )
 
 // BackupCreateModel defines model for BackupCreateModel.
@@ -101,6 +139,21 @@ type BackupModel struct {
 	ResourceVersion *string            `json:"resourceVersion,omitempty" tfsdk:"-"`
 	ImportSource    *ImportSourceModel `cty:"import_source" hcl:"import_source" json:"importSource,omitempty" tfsdk:"import_source"`
 	Status          *BackupStatusModel `cty:"status" hcl:"status" json:"status,omitempty" tfsdk:"status"`
+}
+
+// BackupPolicyMissedBackup defines model for BackupPolicyMissedBackup.
+type BackupPolicyMissedBackup struct {
+	// MissedTime The time that a backup was missed by this policy
+	MissedTime *string `cty:"missed_time" hcl:"missed_time" json:"missedTime,omitempty" tfsdk:"missed_time"`
+
+	// Database The fully-qualified database name for which a backup was missed by this policy
+	Database *string `cty:"database" hcl:"database" json:"database,omitempty" tfsdk:"database"`
+
+	// Reason A programmatic identifier indicating the reason for missing a backup by this policy
+	Reason *string `cty:"reason" hcl:"reason" json:"reason,omitempty" tfsdk:"reason"`
+
+	// Message A human readable message indicating details about the missed backup by this policy
+	Message *string `cty:"message" hcl:"message" json:"message,omitempty" tfsdk:"message"`
 }
 
 // BackupPolicyModel defines model for BackupPolicyModel.
@@ -147,6 +200,9 @@ type BackupPolicyStatusModel struct {
 
 	// NextScheduleTime The time that backups are next scheduled by this policy
 	NextScheduleTime *string `cty:"next_schedule_time" hcl:"next_schedule_time" json:"nextScheduleTime,omitempty" tfsdk:"next_schedule_time"`
+
+	// LastMissedBackups The last database backups that were not scheduled by this policy
+	LastMissedBackups *[]BackupPolicyMissedBackup `cty:"last_missed_backups" hcl:"last_missed_backups" json:"lastMissedBackups,omitempty" tfsdk:"last_missed_backups"`
 }
 
 // BackupStatusModel defines model for BackupStatusModel.
@@ -175,6 +231,9 @@ type BackupStatusModel struct {
 
 	// CreatedByPolicy The fully-qualified name of the backup policy that the backup was created by
 	CreatedByPolicy *string `cty:"created_by_policy" hcl:"created_by_policy" json:"createdByPolicy,omitempty" tfsdk:"created_by_policy"`
+
+	// RetainedAs The matching retention cycles by this backup
+	RetainedAs *[]BackupStatusModelRetainedAs `cty:"retained_as" hcl:"retained_as" json:"retainedAs,omitempty" tfsdk:"retained_as"`
 }
 
 // BackupStatusModelState The state of the backup:
@@ -183,6 +242,9 @@ type BackupStatusModel struct {
 //   - `Failed` - The backup failed and is unusable
 //   - `Deleting` - The backup has been marked for deletion, which is in progress
 type BackupStatusModelState string
+
+// BackupStatusModelRetainedAs defines model for BackupStatusModel.RetainedAs.
+type BackupStatusModelRetainedAs string
 
 // DatabaseCreateUpdateModel defines model for DatabaseCreateUpdateModel.
 type DatabaseCreateUpdateModel struct {
@@ -251,7 +313,7 @@ type DatabasePropertiesModel struct {
 	// InheritTierParameters Whether to inherit tier parameters from the project if the database service tier matches the project.
 	InheritTierParameters *bool `json:"inheritTierParameters,omitempty" tfsdk:"-"`
 
-	// ProductVersion The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb-ce/tags. If omitted, the database version will be inherited from the project.
+	// ProductVersion The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb/tags. If omitted, the database version will be inherited from the project.
 	ProductVersion *string `cty:"product_version" hcl:"product_version" json:"productVersion,omitempty" tfsdk:"product_version"`
 }
 
@@ -282,6 +344,7 @@ type DatabaseStatusModel struct {
 	//   * `Failed` - The database has failed to achieve a usable state
 	//   * `Deleting` - The database has been marked for deletion, which is in progress
 	//   * `Restoring` - Restore from backup is in progress for this database
+	//   * `RotatingCertificates` - TLS certificates rotation is in progress for this database
 	State *DatabaseStatusModelState `cty:"state" hcl:"state" json:"state,omitempty" tfsdk:"state"`
 }
 
@@ -295,6 +358,7 @@ type DatabaseStatusModel struct {
 //   - `Failed` - The database has failed to achieve a usable state
 //   - `Deleting` - The database has been marked for deletion, which is in progress
 //   - `Restoring` - Restore from backup is in progress for this database
+//   - `RotatingCertificates` - TLS certificates rotation is in progress for this database
 type DatabaseStatusModelState string
 
 // ErrorContent defines model for ErrorContent.
@@ -428,7 +492,7 @@ type ProjectPropertiesModel struct {
 	// TierParameters Opaque parameters supplied to project service tier.
 	TierParameters *map[string]string `cty:"tier_parameters" hcl:"tier_parameters" json:"tierParameters,omitempty" tfsdk:"tier_parameters"`
 
-	// ProductVersion The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb-ce/tags. If omitted, the project version will be resolved based on the SLA and cluster configuration.
+	// ProductVersion The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb/tags. If omitted, the project version will be resolved based on the SLA and cluster configuration.
 	ProductVersion *string `cty:"product_version" hcl:"product_version" json:"productVersion,omitempty" tfsdk:"product_version"`
 }
 
@@ -455,6 +519,7 @@ type ProjectStatusModel struct {
 	//   * `Expired` - The project and its databases have expired
 	//   * `Failed` - The project has failed to achieve a usable state
 	//   * `Deleting` - The project has been marked for deletion, which is in progress
+	//   * `RotatingCertificates` - TLS certificates rotation is in progress for this domain
 	State *ProjectStatusModelState `cty:"state" hcl:"state" json:"state,omitempty" tfsdk:"state"`
 }
 
@@ -467,6 +532,7 @@ type ProjectStatusModel struct {
 //   - `Expired` - The project and its databases have expired
 //   - `Failed` - The project has failed to achieve a usable state
 //   - `Deleting` - The project has been marked for deletion, which is in progress
+//   - `RotatingCertificates` - TLS certificates rotation is in progress for this domain
 type ProjectStatusModelState string
 
 // RestoreFromModel defines model for RestoreFromModel.
@@ -490,8 +556,36 @@ type RetentionModel struct {
 	Monthly *int32 `cty:"monthly" hcl:"monthly" json:"monthly,omitempty" tfsdk:"monthly"`
 
 	// Yearly The number of yearly backups to retain
-	Yearly *int32 `cty:"yearly" hcl:"yearly" json:"yearly,omitempty" tfsdk:"yearly"`
+	Yearly   *int32                 `cty:"yearly" hcl:"yearly" json:"yearly,omitempty" tfsdk:"yearly"`
+	Settings *RotationSettingsModel `cty:"settings" hcl:"settings" json:"settings,omitempty" tfsdk:"settings"`
 }
+
+// RotationSettingsModel defines model for RotationSettingsModel.
+type RotationSettingsModel struct {
+	// DayOfWeek The day of the week used to promote backup to weekly
+	DayOfWeek *RotationSettingsModelDayOfWeek `cty:"day_of_week" hcl:"day_of_week" json:"dayOfWeek,omitempty" tfsdk:"day_of_week"`
+
+	// Month The month of the year used to promote backup to yearly
+	Month *RotationSettingsModelMonth `cty:"month" hcl:"month" json:"month,omitempty" tfsdk:"month"`
+
+	// RelativeToLast Whether to apply the backup rotation scheme relative to the last successful backup instead to the current time
+	RelativeToLast *bool `cty:"relative_to_last" hcl:"relative_to_last" json:"relativeToLast,omitempty" tfsdk:"relative_to_last"`
+
+	// PromoteLatestToHourly Whether to promote the latest backup within the hour if multiple backups exist for that hour
+	PromoteLatestToHourly *bool `cty:"promote_latest_to_hourly" hcl:"promote_latest_to_hourly" json:"promoteLatestToHourly,omitempty" tfsdk:"promote_latest_to_hourly"`
+
+	// PromoteLatestToDaily Whether to promote the latest backup within the day if multiple backups exist for that day
+	PromoteLatestToDaily *bool `cty:"promote_latest_to_daily" hcl:"promote_latest_to_daily" json:"promoteLatestToDaily,omitempty" tfsdk:"promote_latest_to_daily"`
+
+	// PromoteLatestToMonthly Whether to promote the latest backup within the month if multiple backups exist for that month
+	PromoteLatestToMonthly *bool `cty:"promote_latest_to_monthly" hcl:"promote_latest_to_monthly" json:"promoteLatestToMonthly,omitempty" tfsdk:"promote_latest_to_monthly"`
+}
+
+// RotationSettingsModelDayOfWeek The day of the week used to promote backup to weekly
+type RotationSettingsModelDayOfWeek string
+
+// RotationSettingsModelMonth The month of the year used to promote backup to yearly
+type RotationSettingsModelMonth string
 
 // SelectorModel defines model for SelectorModel.
 type SelectorModel struct {
@@ -531,7 +625,7 @@ type GetAllBackupPoliciesParams struct {
 	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression>` is supplied, then the JSONPath expression is used to resolve the user-supplied field.
 	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
 
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
@@ -556,7 +650,7 @@ type GetBackupPoliciesParams struct {
 	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression>` is supplied, then the JSONPath expression is used to resolve the user-supplied field.
 	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
 
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
@@ -590,7 +684,7 @@ type GetBackupsFromPolicyParams struct {
 	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression>` is supplied, then the JSONPath expression is used to resolve the user-supplied field.
 	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
 
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
@@ -615,7 +709,7 @@ type GetMatchingDatabasesParams struct {
 	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression>` is supplied, then the JSONPath expression is used to resolve the user-supplied field.
 	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
 
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
@@ -640,7 +734,7 @@ type GetAllBackupsParams struct {
 	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression>` is supplied, then the JSONPath expression is used to resolve the user-supplied field.
 	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
 
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
@@ -665,7 +759,7 @@ type GetOrganizationBackupsParams struct {
 	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression>` is supplied, then the JSONPath expression is used to resolve the user-supplied field.
 	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
 
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
@@ -690,7 +784,7 @@ type GetProjectBackupsParams struct {
 	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression>` is supplied, then the JSONPath expression is used to resolve the user-supplied field.
 	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
 
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
@@ -715,7 +809,7 @@ type GetBackupsParams struct {
 	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression>` is supplied, then the JSONPath expression is used to resolve the user-supplied field.
 	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
 
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
@@ -749,7 +843,7 @@ type GetAllDatabasesParams struct {
 	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression>` is supplied, then the JSONPath expression is used to resolve the user-supplied field.
 	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
 
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
@@ -774,7 +868,7 @@ type GetOrganizationDatabasesParams struct {
 	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression>` is supplied, then the JSONPath expression is used to resolve the user-supplied field.
 	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
 
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
@@ -799,7 +893,7 @@ type GetDatabasesParams struct {
 	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression>` is supplied, then the JSONPath expression is used to resolve the user-supplied field.
 	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
 
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
@@ -839,7 +933,7 @@ type GetAllProjectsParams struct {
 	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression>` is supplied, then the JSONPath expression is used to resolve the user-supplied field.
 	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
 
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
@@ -864,7 +958,7 @@ type GetProjectsParams struct {
 	// Limit The number of items to return. If payload expansion was enabled and `limit` was not specified, the default of 20 is used. Otherwise, the default is 0 to indicate that all items should be returned.
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression> is supplied, then the JSONPath expression is used to resolve the user-supplied field.
+	// Expand Whether to expand payload fields. If `expand=true`, then all payload fields are expanded. If `expand=<field>,...` is supplied, then the value is interpreted as a comma-separated list of top-level fields to expand. If `expand.<field>=<JSONPath expression>` is supplied, then the JSONPath expression is used to resolve the user-supplied field.
 	Expand *string `form:"expand,omitempty" json:"expand,omitempty"`
 
 	// LabelFilter Comma-separated list of filters to apply based on labels, which are composed using `AND`. Acceptable filter expressions are:
