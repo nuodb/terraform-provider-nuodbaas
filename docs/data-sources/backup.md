@@ -58,6 +58,7 @@ Read-Only:
 - `creation_time` (String) The time that the backup was taken
 - `message` (String) Message summarizing the state of the backup
 - `ready_to_use` (Boolean) Whether the backup is ready to be used to restore a database
+- `retained_as` (List of String) The matching retention cycles by this backup
 - `state` (String) The state of the backup:
   * `Pending` - The backup is pending completion
   * `Succeeded` - The backup completed successfully and is available for use

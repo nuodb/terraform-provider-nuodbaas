@@ -54,7 +54,7 @@ Read-Only:
 
 - `archive_disk_size` (String) The size of the archive volumes for the database. Can be only updated to increase the volume size.
 - `journal_disk_size` (String) The size of the journal volumes for the database. Can be only updated to increase the volume size.
-- `product_version` (String) The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb-ce/tags. If omitted, the database version will be inherited from the project.
+- `product_version` (String) The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb/tags. If omitted, the database version will be inherited from the project.
 - `tier_parameters` (Map of String) Opaque parameters supplied to database service tier.
 
 
@@ -86,3 +86,4 @@ Read-Only:
   * `Failed` - The database has failed to achieve a usable state
   * `Deleting` - The database has been marked for deletion, which is in progress
   * `Restoring` - Restore from backup is in progress for this database
+  * `RotatingCertificates` - TLS certificates rotation is in progress for this database
