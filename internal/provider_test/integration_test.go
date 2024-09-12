@@ -1112,30 +1112,38 @@ func TestImmutableAttributeChange(t *testing.T) {
 			require.Error(t, err)
 			require.Contains(t, string(out), "Configured DBA password was changed")
 		})
-	} else {
+	} else if CONTAINER_SCHEDULING_ENABLED.IsTrue() {
 		require.NoError(t, err)
 		t.Run("dbaPasswordChange", func(t *testing.T) {
 			// Change DBA password and run `terraform apply`
 			vars.database.DbaPassword = ptr("updated")
+			tf.WriteConfigT(t, vars.builder.Build())
+			out, err := tf.Apply()
+			// Check that DBA password change succeeded
+			require.NoError(t, err)
+			require.Contains(t, string(out), "0 to add, 1 to change, 0 to destroy.")
+		})
+	} else {
+		require.NoError(t, err)
+		t.Run("dbaPasswordChangeTimeout", func(t *testing.T) {
+			// Change DBA password and run `terraform apply`
+			vars.database.DbaPassword = ptr("updated")
 			// Expect readiness check to fail due to DBA password
 			// not being updated and specify small timeout
-			if vars.providerCfg.Timeouts == nil {
-				vars.providerCfg.Timeouts = map[string]framework.OperationTimeouts{
-					"database": {
-						Update: ptr("2s"),
-					},
-				}
+			timeouts := vars.providerCfg.Timeouts
+			defer func() {
+				vars.providerCfg.Timeouts = timeouts
+			}()
+			vars.providerCfg.Timeouts = map[string]framework.OperationTimeouts{
+				"database": {
+					Update: ptr("2s"),
+				},
 			}
 			tf.WriteConfigT(t, vars.builder.Build())
 			out, err := tf.Apply()
-			if CONTAINER_SCHEDULING_ENABLED.IsTrue() {
-				// E2E tests disable readiness check completely
-				require.NoError(t, err)
-			} else {
-				// Check that readiness check failed due to DBA password
-				require.Error(t, err)
-				require.Contains(t, string(out), "DBA password for database "+vars.project.Organization+"/"+vars.project.Name+"/db has not been updated")
-			}
+			// Check that readiness check failed due to DBA password
+			require.Error(t, err)
+			require.Contains(t, string(out), "DBA password for database "+vars.project.Organization+"/"+vars.project.Name+"/db has not been updated")
 			require.Contains(t, string(out), "0 to add, 1 to change, 0 to destroy.")
 		})
 	}

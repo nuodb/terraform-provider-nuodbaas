@@ -106,8 +106,22 @@ Optional:
 - `daily` (Number) The number of daily backups to retain
 - `hourly` (Number) The number of hourly backups to retain
 - `monthly` (Number) The number of monthly backups to retain
+- `settings` (Attributes) (see [below for nested schema](#nestedatt--retention--settings))
 - `weekly` (Number) The number of weekly backups to retain
 - `yearly` (Number) The number of yearly backups to retain
+
+<a id="nestedatt--retention--settings"></a>
+### Nested Schema for `retention.settings`
+
+Optional:
+
+- `day_of_week` (String) The day of the week used to promote backup to weekly
+- `month` (String) The month of the year used to promote backup to yearly
+- `promote_latest_to_daily` (Boolean) Whether to promote the latest backup within the day if multiple backups exist for that day
+- `promote_latest_to_hourly` (Boolean) Whether to promote the latest backup within the hour if multiple backups exist for that hour
+- `promote_latest_to_monthly` (Boolean) Whether to promote the latest backup within the month if multiple backups exist for that month
+- `relative_to_last` (Boolean) Whether to apply the backup rotation scheme relative to the last successful backup instead to the current time
+
 
 
 <a id="nestedatt--status"></a>
@@ -115,9 +129,20 @@ Optional:
 
 Read-Only:
 
+- `last_missed_backups` (Attributes List) The last database backups that were not scheduled by this policy (see [below for nested schema](#nestedatt--status--last_missed_backups))
 - `last_missed_schedule_time` (String) The time that backups were last missed by this policy
 - `last_schedule_time` (String) The time that backups were last taken by this policy
 - `next_schedule_time` (String) The time that backups are next scheduled by this policy
+
+<a id="nestedatt--status--last_missed_backups"></a>
+### Nested Schema for `status.last_missed_backups`
+
+Read-Only:
+
+- `database` (String) The fully-qualified database name for which a backup was missed by this policy
+- `message` (String) A human readable message indicating details about the missed backup by this policy
+- `missed_time` (String) The time that a backup was missed by this policy
+- `reason` (String) A programmatic identifier indicating the reason for missing a backup by this policy
 
 ## Import
 
