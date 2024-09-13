@@ -48,7 +48,17 @@ func (state *DatabaseResourceModel) CheckReady(ctx context.Context, client opena
 	if state.Maintenance != nil && state.Maintenance.IsDisabled != nil && *state.Maintenance.IsDisabled {
 		expectedState = openapi.DatabaseStatusModelStateStopped
 	}
-	if *state.Status.State != expectedState {
+	switch *state.Status.State {
+	case expectedState:
+		break
+	case openapi.DatabaseStatusModelStateFailed:
+		message := "unknown reason"
+		if state.Status.Message != nil {
+			message = *state.Status.Message
+		}
+		return framework.ResourceFailed("Database %s/%s/%s failed: %s",
+			state.Organization, state.Project, state.Name, message)
+	default:
 		return fmt.Errorf("Database %s/%s/%s has an unexpected state: expected=%s, found=%s",
 			state.Organization, state.Project, state.Name, expectedState, *state.Status.State)
 	}

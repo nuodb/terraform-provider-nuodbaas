@@ -34,12 +34,21 @@ func (state *BackupResourceModel) CheckReady(ctx context.Context, client openapi
 		return fmt.Errorf("Backup %s/%s/%s/%s has no status information",
 			state.Organization, state.Project, state.Database, state.Name)
 	}
-	if *state.Status.State != openapi.BackupStatusModelStateSucceeded {
+	switch *state.Status.State {
+	case openapi.BackupStatusModelStateSucceeded:
+		return nil
+	case openapi.BackupStatusModelStateFailed:
+		message := "unknown reason"
+		if state.Status.Message != nil {
+			message = *state.Status.Message
+		}
+		return framework.ResourceFailed("Backup %s/%s/%s/%s failed: %s",
+			state.Organization, state.Project, state.Database, state.Name, message)
+	default:
 		return fmt.Errorf("Backup %s/%s/%s/%s has an unexpected state: expected=%s, found=%s",
 			state.Organization, state.Project, state.Database, state.Name,
 			openapi.BackupStatusModelStateSucceeded, *state.Status.State)
 	}
-	return nil
 }
 
 func (state *BackupResourceModel) Create(ctx context.Context, client openapi.ClientInterface) error {

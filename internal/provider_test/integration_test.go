@@ -21,6 +21,7 @@ import (
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/project"
 	"github.com/nuodb/terraform-provider-nuodbaas/openapi"
 
+	semver "github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,6 +36,7 @@ const (
 	RESOURCE_CREATE_TIMEOUT      TestOption = "RESOURCE_CREATE_TIMEOUT"
 	RESOURCE_UPDATE_TIMEOUT      TestOption = "RESOURCE_UPDATE_TIMEOUT"
 	RESOURCE_DELETE_TIMEOUT      TestOption = "RESOURCE_DELETE_TIMEOUT"
+	NUODB_CP_VERSION             TestOption = "NUODB_CP_VERSION"
 )
 
 func (option TestOption) Get() string {
@@ -47,6 +49,19 @@ func (option TestOption) IsTrue() bool {
 
 func (option TestOption) IsFalse() bool {
 	return option.Get() == "false"
+}
+
+func (option TestOption) GetSemver() (*semver.Version, error) {
+	return semver.NewVersion(option.Get())
+}
+
+func (option TestOption) IsVersionLessThan(version string) bool {
+	thisVersion, err := option.GetSemver()
+	if err != nil {
+		return false
+	}
+	suppliedVersion, err := semver.NewVersion(version)
+	return err == nil && thisVersion.LessThan(suppliedVersion)
 }
 
 func PauseOperator(t *testing.T) {
@@ -1034,8 +1049,30 @@ func TestNegative(t *testing.T) {
 		require.Contains(t, string(out), "409 Conflict")
 	})
 
+	if WEBHOOKS_ENABLED.IsFalse() && !NUODB_CP_VERSION.IsVersionLessThan("2.5.0") {
+		t.Run("failedProjectAndDatabase", func(t *testing.T) {
+			// Specify non-existent project tier and check that it goes into failed state
+			vars.project.Tier = "n5.huge"
+			tf.WriteConfigT(t, vars.builder.Build())
+			out, err = tf.Apply()
+			require.Error(t, err)
+			require.Contains(t, string(out), fmt.Sprintf("Project %s/%s failed: ", vars.project.Organization, vars.project.Name))
+
+			// Specify non-existent database tier and check that it goes into failed state
+			vars.project.Tier = "n0.nano"
+			vars.database.Tier = ptr("n5.huge")
+			tf.WriteConfigT(t, vars.builder.Build())
+			out, err = tf.Apply()
+			require.Error(t, err)
+			require.Contains(t, string(out), fmt.Sprintf("Database %s/%s/%s failed: ", vars.database.Organization, vars.database.Project, vars.database.Name))
+			// Revert tier change
+			vars.database.Tier = nil
+		})
+	}
+
 	// Run `terraform destroy` again, which should succeed now that
 	// unmanaged database has been deleted
+	tf.WriteConfigT(t, vars.builder.Build())
 	out, err = tf.Destroy()
 	require.NoError(t, err)
 }

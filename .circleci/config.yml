@@ -34,6 +34,7 @@ commands:
           name: "Run tests"
           command: |
             make testacc
+          no_output_timeout: 30m
       - run:
           name: "Generate coverage report"
           command: |
@@ -66,6 +67,8 @@ jobs:
     executor: ubuntu_vm
     environment:
       NUODB_CP_VERSION: << parameters.nuodb-cp-version >>
+      TF_LOG: DEBUG
+      TF_LOG_PATH: /tmp/test-artifacts/tf-debug.log
     steps:
       - checkout
       - run_test:
@@ -85,6 +88,8 @@ jobs:
       NUODB_CP_IMAGE: nuodb/nuodb-control-plane:latest
       USING_LATEST_API: "true"
       USE_TOFU: "<< parameters.use-tofu >>"
+      TF_LOG: DEBUG
+      TF_LOG_PATH: /tmp/test-artifacts/tf-debug.log
     steps:
       - checkout
       - add_ssh_keys:
