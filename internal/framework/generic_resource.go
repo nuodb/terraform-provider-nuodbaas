@@ -232,9 +232,9 @@ func (r *GenericResource) ImportState(ctx context.Context, req resource.ImportSt
 }
 
 const (
-	READINESS_TIMEOUT = 5 * time.Minute
+	READINESS_TIMEOUT = 10 * time.Minute
 	DELETION_TIMEOUT  = 1 * time.Minute
-	POLLING_INTERVAL  = 1 * time.Second
+	POLLING_INTERVAL  = 5 * time.Second
 	DEFAULT_RESOURCE  = "default"
 	CREATE_OPERATION  = "create"
 	UPDATE_OPERATION  = "update"
