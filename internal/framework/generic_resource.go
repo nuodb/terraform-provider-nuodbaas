@@ -9,6 +9,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -235,6 +237,7 @@ const (
 	READINESS_TIMEOUT = 10 * time.Minute
 	DELETION_TIMEOUT  = 1 * time.Minute
 	POLLING_INTERVAL  = 5 * time.Second
+	FAILURE_THRESHOLD = 3
 	DEFAULT_RESOURCE  = "default"
 	CREATE_OPERATION  = "create"
 	UPDATE_OPERATION  = "update"
@@ -310,6 +313,26 @@ func (r *GenericResource) GetTimeout(operation string, defaultTimeout time.Durat
 	return defaultTimeout
 }
 
+type resourceFailedError struct {
+	message string
+}
+
+func ResourceFailed(format string, args ...any) error {
+	return &resourceFailedError{message: fmt.Sprintf(format, args...)}
+}
+
+func (err *resourceFailedError) Error() string {
+	return err.message
+}
+
+func isNetworkError(err error) bool {
+	if errors.Is(err, io.ErrUnexpectedEOF) {
+		return true
+	}
+	urlErr, ok := err.(*url.Error)
+	return ok && urlErr.Temporary()
+}
+
 func (r *GenericResource) AwaitReady(ctx context.Context, state ResourceState, operation string) error {
 	timeout := r.GetTimeout(operation, READINESS_TIMEOUT)
 	if timeout == 0 {
@@ -317,6 +340,7 @@ func (r *GenericResource) AwaitReady(ctx context.Context, state ResourceState, o
 			map[string]any{"resourceType": r.TypeName, "operation": operation})
 		return nil
 	}
+	consecutiveFailed := 0
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	for {
@@ -324,6 +348,15 @@ func (r *GenericResource) AwaitReady(ctx context.Context, state ResourceState, o
 		readyErr := state.CheckReady(ctx, r.client.Client)
 		if readyErr == nil {
 			return nil
+		}
+		// Return early if resource in failed state for several iterations
+		if _, ok := readyErr.(*resourceFailedError); ok {
+			consecutiveFailed++
+			if consecutiveFailed >= FAILURE_THRESHOLD {
+				return readyErr
+			}
+		} else {
+			consecutiveFailed = 0
 		}
 		time.Sleep(POLLING_INTERVAL)
 
@@ -333,8 +366,13 @@ func (r *GenericResource) AwaitReady(ctx context.Context, state ResourceState, o
 			if os.IsTimeout(err) && ctx.Err() == context.DeadlineExceeded {
 				return fmt.Errorf("Timed out after %s: %s", timeout, readyErr.Error())
 			}
-			// Return verbatim error if not timeout
-			return err
+			// Suppress network errors, which may be transient and retriable
+			if isNetworkError(err) {
+				tflog.Info(ctx, "Suppressing network error while awaiting readiness",
+					map[string]any{"resourceType": r.TypeName, "error": err.Error()})
+			} else {
+				return err
+			}
 		}
 	}
 }
@@ -356,7 +394,16 @@ func (r *GenericResource) AwaitDeleted(ctx context.Context, state ResourceState)
 			if helper.IsNotFound(err) {
 				return nil
 			}
-			return err
+			if os.IsTimeout(err) && ctx.Err() == context.DeadlineExceeded {
+				return fmt.Errorf("Timed out after %s", timeout)
+			}
+			// Suppress network errors, which may be transient and retriable
+			if isNetworkError(err) {
+				tflog.Info(ctx, "Suppressing network error while awaiting deletion",
+					map[string]any{"resourceType": r.TypeName, "error": err.Error()})
+			} else {
+				return err
+			}
 		}
 
 		time.Sleep(POLLING_INTERVAL)

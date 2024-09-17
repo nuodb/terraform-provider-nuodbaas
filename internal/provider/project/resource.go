@@ -37,11 +37,20 @@ func (state *ProjectResourceModel) CheckReady(ctx context.Context, client openap
 	if state.Maintenance != nil && state.Maintenance.IsDisabled != nil && *state.Maintenance.IsDisabled {
 		expectedState = openapi.ProjectStatusModelStateStopped
 	}
-	if *state.Status.State != expectedState {
+	switch *state.Status.State {
+	case expectedState:
+		return nil
+	case openapi.ProjectStatusModelStateFailed:
+		message := "unknown reason"
+		if state.Status.Message != nil {
+			message = *state.Status.Message
+		}
+		return framework.ResourceFailed("Project %s/%s failed: %s",
+			state.Organization, state.Name, message)
+	default:
 		return fmt.Errorf("Project %s/%s has an unexpected state: expected=%s, found=%s",
 			state.Organization, state.Name, expectedState, *state.Status.State)
 	}
-	return nil
 }
 
 func (state *ProjectResourceModel) Create(ctx context.Context, client openapi.ClientInterface) error {
