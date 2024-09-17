@@ -313,15 +313,15 @@ func (r *GenericResource) GetTimeout(operation string, defaultTimeout time.Durat
 	return defaultTimeout
 }
 
-type resourceFailed struct {
+type resourceFailedError struct {
 	message string
 }
 
 func ResourceFailed(format string, args ...any) error {
-	return &resourceFailed{message: fmt.Sprintf(format, args...)}
+	return &resourceFailedError{message: fmt.Sprintf(format, args...)}
 }
 
-func (err *resourceFailed) Error() string {
+func (err *resourceFailedError) Error() string {
 	return err.message
 }
 
@@ -350,7 +350,7 @@ func (r *GenericResource) AwaitReady(ctx context.Context, state ResourceState, o
 			return nil
 		}
 		// Return early if resource in failed state for several iterations
-		if _, ok := readyErr.(*resourceFailed); ok {
+		if _, ok := readyErr.(*resourceFailedError); ok {
 			consecutiveFailed++
 			if consecutiveFailed >= FAILURE_THRESHOLD {
 				return readyErr
