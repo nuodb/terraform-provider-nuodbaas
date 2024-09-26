@@ -78,29 +78,29 @@ const (
 
 // Defines values for RotationSettingsModelDayOfWeek.
 const (
-	FRIDAY    RotationSettingsModelDayOfWeek = "FRIDAY"
-	MONDAY    RotationSettingsModelDayOfWeek = "MONDAY"
-	SATURDAY  RotationSettingsModelDayOfWeek = "SATURDAY"
-	SUNDAY    RotationSettingsModelDayOfWeek = "SUNDAY"
-	THURSDAY  RotationSettingsModelDayOfWeek = "THURSDAY"
-	TUESDAY   RotationSettingsModelDayOfWeek = "TUESDAY"
-	WEDNESDAY RotationSettingsModelDayOfWeek = "WEDNESDAY"
+	Friday    RotationSettingsModelDayOfWeek = "Friday"
+	Monday    RotationSettingsModelDayOfWeek = "Monday"
+	Saturday  RotationSettingsModelDayOfWeek = "Saturday"
+	Sunday    RotationSettingsModelDayOfWeek = "Sunday"
+	Thursday  RotationSettingsModelDayOfWeek = "Thursday"
+	Tuesday   RotationSettingsModelDayOfWeek = "Tuesday"
+	Wednesday RotationSettingsModelDayOfWeek = "Wednesday"
 )
 
 // Defines values for RotationSettingsModelMonth.
 const (
-	APRIL     RotationSettingsModelMonth = "APRIL"
-	AUGUST    RotationSettingsModelMonth = "AUGUST"
-	DECEMBER  RotationSettingsModelMonth = "DECEMBER"
-	FEBRUARY  RotationSettingsModelMonth = "FEBRUARY"
-	JANUARY   RotationSettingsModelMonth = "JANUARY"
-	JULY      RotationSettingsModelMonth = "JULY"
-	JUNE      RotationSettingsModelMonth = "JUNE"
-	MARCH     RotationSettingsModelMonth = "MARCH"
-	MAY       RotationSettingsModelMonth = "MAY"
-	NOVEMBER  RotationSettingsModelMonth = "NOVEMBER"
-	OCTOBER   RotationSettingsModelMonth = "OCTOBER"
-	SEPTEMBER RotationSettingsModelMonth = "SEPTEMBER"
+	April     RotationSettingsModelMonth = "April"
+	August    RotationSettingsModelMonth = "August"
+	December  RotationSettingsModelMonth = "December"
+	February  RotationSettingsModelMonth = "February"
+	January   RotationSettingsModelMonth = "January"
+	July      RotationSettingsModelMonth = "July"
+	June      RotationSettingsModelMonth = "June"
+	March     RotationSettingsModelMonth = "March"
+	May       RotationSettingsModelMonth = "May"
+	November  RotationSettingsModelMonth = "November"
+	October   RotationSettingsModelMonth = "October"
+	September RotationSettingsModelMonth = "September"
 )
 
 // BackupCreateModel defines model for BackupCreateModel.
