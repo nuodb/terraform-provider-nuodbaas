@@ -92,7 +92,7 @@ func (state *ProjectResourceModel) Update(ctx context.Context, client openapi.Cl
 			return nil
 		}
 		// If error is not retriable (code=CONCURRENT_UPDATE), fail fast
-		if apiError, ok := err.(*helper.ApiError); !ok || apiError.GetCode() != openapi.CONCURRENTUPDATE {
+		if apiError, ok := err.(*helper.ApiError); !ok || apiError.GetCode() != openapi.ErrorContentCodeCONCURRENTUPDATE {
 			return err
 		}
 		// Re-fetch project and get resourceVersion

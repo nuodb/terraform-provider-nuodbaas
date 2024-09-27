@@ -72,7 +72,7 @@ func (state *BackupPolicyResourceModel) Update(ctx context.Context, client opena
 			return nil
 		}
 		// If error is not retriable (code=CONCURRENT_UPDATE), fail fast
-		if apiError, ok := err.(*helper.ApiError); !ok || apiError.GetCode() != openapi.CONCURRENTUPDATE {
+		if apiError, ok := err.(*helper.ApiError); !ok || apiError.GetCode() != openapi.ErrorContentCodeCONCURRENTUPDATE {
 			return err
 		}
 		// Re-fetch policy and get resourceVersion
