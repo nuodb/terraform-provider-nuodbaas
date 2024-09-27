@@ -30,10 +30,8 @@ NUODB_CP := bin/nuodb-cp
 
 # For actual releases, GoReleaser uses the Git tag to obtain the version and
 # not this variable, but this is used by the `make package` target which is
-# invoked by the e2e app test. Scrape the value from the main.go file, which is
-# also overridden by the Git tag, so that we do not specify the same value in
-# multiple places.
-PUBLISH_VERSION ?= $(shell sed -n 's|^\t*version string *= "\([^"]*\)" // {{version}}|\1|p' main.go)
+# invoked by the e2e app test.
+PUBLISH_VERSION ?= $(shell ./get-version.sh)
 PUBLISH_DIR ?= $(PROJECT_DIR)/dist
 
 IGNORE_NOT_FOUND ?= true
@@ -108,6 +106,11 @@ install-tools: ## Install tools declared as dependencies in tools.go
 check-no-changes: ## Check that there are no uncommitted changes
 	$(eval GIT_STATUS := $(shell git status --porcelain))
 	@[ "$(GIT_STATUS)" = "" ] || ( echo "There are uncommitted changes:\n$(GIT_STATUS)"; exit 1; )
+
+.PHONY: check-version
+check-version: ## Check that Git tag matches version in code
+	$(eval FROM_HEAD := $(shell git tag --points-at=HEAD | sed -n 's/^v//p'))
+	@[ -z "$(FROM_HEAD)" ] || [ "$(FROM_HEAD)" = "$(PUBLISH_VERSION)" ] || ( echo "Tag version ($(FROM_HEAD)) does not match code version ($(PUBLISH_VERSION))"; exit 1; )
 
 .PHONY: generate
 generate: $(TFPLUGINDOCS) $(OAPI_CODEGEN) $(TERRAFORM) ## Generate Golang client for the NuoDB REST API and Terraform provider documentation
