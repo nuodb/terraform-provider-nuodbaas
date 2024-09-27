@@ -25,11 +25,11 @@ const (
 
 // Defines values for BackupStatusModelRetainedAs.
 const (
-	Daily   BackupStatusModelRetainedAs = "daily"
-	Hourly  BackupStatusModelRetainedAs = "hourly"
-	Monthly BackupStatusModelRetainedAs = "monthly"
-	Weekly  BackupStatusModelRetainedAs = "weekly"
-	Yearly  BackupStatusModelRetainedAs = "yearly"
+	BackupStatusModelRetainedAsDaily   BackupStatusModelRetainedAs = "daily"
+	BackupStatusModelRetainedAsHourly  BackupStatusModelRetainedAs = "hourly"
+	BackupStatusModelRetainedAsMonthly BackupStatusModelRetainedAs = "monthly"
+	BackupStatusModelRetainedAsWeekly  BackupStatusModelRetainedAs = "weekly"
+	BackupStatusModelRetainedAsYearly  BackupStatusModelRetainedAs = "yearly"
 )
 
 // Defines values for DatabaseStatusModelState.
@@ -48,19 +48,19 @@ const (
 
 // Defines values for ErrorContentCode.
 const (
-	CONCURRENTUPDATE ErrorContentCode = "CONCURRENT_UPDATE"
-	HTTPERROR        ErrorContentCode = "HTTP_ERROR"
-	UNKNOWNREQUEST   ErrorContentCode = "UNKNOWN_REQUEST"
+	ErrorContentCodeCONCURRENTUPDATE ErrorContentCode = "CONCURRENT_UPDATE"
+	ErrorContentCodeHTTPERROR        ErrorContentCode = "HTTP_ERROR"
+	ErrorContentCodeUNKNOWNREQUEST   ErrorContentCode = "UNKNOWN_REQUEST"
 )
 
 // Defines values for JsonPatchOperationOp.
 const (
-	Add     JsonPatchOperationOp = "add"
-	Copy    JsonPatchOperationOp = "copy"
-	Move    JsonPatchOperationOp = "move"
-	Remove  JsonPatchOperationOp = "remove"
-	Replace JsonPatchOperationOp = "replace"
-	Test    JsonPatchOperationOp = "test"
+	JsonPatchOperationOpAdd     JsonPatchOperationOp = "add"
+	JsonPatchOperationOpCopy    JsonPatchOperationOp = "copy"
+	JsonPatchOperationOpMove    JsonPatchOperationOp = "move"
+	JsonPatchOperationOpRemove  JsonPatchOperationOp = "remove"
+	JsonPatchOperationOpReplace JsonPatchOperationOp = "replace"
+	JsonPatchOperationOpTest    JsonPatchOperationOp = "test"
 )
 
 // Defines values for ProjectStatusModelState.
@@ -78,29 +78,29 @@ const (
 
 // Defines values for RotationSettingsModelDayOfWeek.
 const (
-	Friday    RotationSettingsModelDayOfWeek = "Friday"
-	Monday    RotationSettingsModelDayOfWeek = "Monday"
-	Saturday  RotationSettingsModelDayOfWeek = "Saturday"
-	Sunday    RotationSettingsModelDayOfWeek = "Sunday"
-	Thursday  RotationSettingsModelDayOfWeek = "Thursday"
-	Tuesday   RotationSettingsModelDayOfWeek = "Tuesday"
-	Wednesday RotationSettingsModelDayOfWeek = "Wednesday"
+	RotationSettingsModelDayOfWeekFriday    RotationSettingsModelDayOfWeek = "Friday"
+	RotationSettingsModelDayOfWeekMonday    RotationSettingsModelDayOfWeek = "Monday"
+	RotationSettingsModelDayOfWeekSaturday  RotationSettingsModelDayOfWeek = "Saturday"
+	RotationSettingsModelDayOfWeekSunday    RotationSettingsModelDayOfWeek = "Sunday"
+	RotationSettingsModelDayOfWeekThursday  RotationSettingsModelDayOfWeek = "Thursday"
+	RotationSettingsModelDayOfWeekTuesday   RotationSettingsModelDayOfWeek = "Tuesday"
+	RotationSettingsModelDayOfWeekWednesday RotationSettingsModelDayOfWeek = "Wednesday"
 )
 
 // Defines values for RotationSettingsModelMonth.
 const (
-	April     RotationSettingsModelMonth = "April"
-	August    RotationSettingsModelMonth = "August"
-	December  RotationSettingsModelMonth = "December"
-	February  RotationSettingsModelMonth = "February"
-	January   RotationSettingsModelMonth = "January"
-	July      RotationSettingsModelMonth = "July"
-	June      RotationSettingsModelMonth = "June"
-	March     RotationSettingsModelMonth = "March"
-	May       RotationSettingsModelMonth = "May"
-	November  RotationSettingsModelMonth = "November"
-	October   RotationSettingsModelMonth = "October"
-	September RotationSettingsModelMonth = "September"
+	RotationSettingsModelMonthApril     RotationSettingsModelMonth = "April"
+	RotationSettingsModelMonthAugust    RotationSettingsModelMonth = "August"
+	RotationSettingsModelMonthDecember  RotationSettingsModelMonth = "December"
+	RotationSettingsModelMonthFebruary  RotationSettingsModelMonth = "February"
+	RotationSettingsModelMonthJanuary   RotationSettingsModelMonth = "January"
+	RotationSettingsModelMonthJuly      RotationSettingsModelMonth = "July"
+	RotationSettingsModelMonthJune      RotationSettingsModelMonth = "June"
+	RotationSettingsModelMonthMarch     RotationSettingsModelMonth = "March"
+	RotationSettingsModelMonthMay       RotationSettingsModelMonth = "May"
+	RotationSettingsModelMonthNovember  RotationSettingsModelMonth = "November"
+	RotationSettingsModelMonthOctober   RotationSettingsModelMonth = "October"
+	RotationSettingsModelMonthSeptember RotationSettingsModelMonth = "September"
 )
 
 // BackupCreateModel defines model for BackupCreateModel.

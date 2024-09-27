@@ -169,7 +169,7 @@ func (state *DatabaseResourceModel) Update(ctx context.Context, client openapi.C
 			return nil
 		}
 		// If error is not retriable (code=CONCURRENT_UPDATE), fail fast
-		if apiError, ok := err.(*helper.ApiError); !ok || apiError.GetCode() != openapi.CONCURRENTUPDATE {
+		if apiError, ok := err.(*helper.ApiError); !ok || apiError.GetCode() != openapi.ErrorContentCodeCONCURRENTUPDATE {
 			return err
 		}
 		// Re-fetch database and get resourceVersion

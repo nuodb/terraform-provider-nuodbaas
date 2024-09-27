@@ -1,0 +1,9 @@
+package: openapi
+compatibility:
+  always-prefix-enum-values: true
+output-options:
+  include-tags:
+  - backups
+  - backuppolicies
+  - databases
+  - projects
