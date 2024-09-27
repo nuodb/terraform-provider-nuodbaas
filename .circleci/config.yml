@@ -63,7 +63,7 @@ jobs:
         description: |
           The version of the NuoDB Control Plane to test against.
         type: string
-        default: 2.6.0
+        default: 2.7.0
     executor: ubuntu_vm
     environment:
       NUODB_CP_VERSION: << parameters.nuodb-cp-version >>

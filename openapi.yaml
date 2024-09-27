@@ -9,7 +9,7 @@ info:
     email: NuoDB.Support@3ds.com
   version: 2.7.0
 servers:
-- url: "{{ .Values.cpDoc.serverUrl }}"
+- url: https://example.nuodb.com
 paths:
   /backuppolicies:
     get:
@@ -6617,15 +6617,15 @@ components:
         dayOfWeek:
           type: string
           description: The day of the week used to promote backup to weekly
-          default: SUNDAY
+          default: Sunday
           enum:
-          - MONDAY
-          - TUESDAY
-          - WEDNESDAY
-          - THURSDAY
-          - FRIDAY
-          - SATURDAY
-          - SUNDAY
+          - Monday
+          - Tuesday
+          - Wednesday
+          - Thursday
+          - Friday
+          - Saturday
+          - Sunday
           x-tf-name: day_of_week
           x-oapi-codegen-extra-tags:
             cty: day_of_week
@@ -6635,20 +6635,20 @@ components:
         month:
           type: string
           description: The month of the year used to promote backup to yearly
-          default: JANUARY
+          default: January
           enum:
-          - JANUARY
-          - FEBRUARY
-          - MARCH
-          - APRIL
-          - MAY
-          - JUNE
-          - JULY
-          - AUGUST
-          - SEPTEMBER
-          - OCTOBER
-          - NOVEMBER
-          - DECEMBER
+          - January
+          - February
+          - March
+          - April
+          - May
+          - June
+          - July
+          - August
+          - September
+          - October
+          - November
+          - December
           x-tf-name: month
           x-oapi-codegen-extra-tags:
             cty: month
