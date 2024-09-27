@@ -5,6 +5,7 @@ before:
     # Make sure generated code is up-to-date before publishing.
     - make generate
     - make check-no-changes
+    - make check-version
 builds:
 - env:
     # goreleaser does not work with CGO, it could also complicate

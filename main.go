@@ -20,6 +20,9 @@ import (
 //go:generate bin/oapi-codegen -config oapi-codegen.yaml -generate client -o openapi/client.go openapi.yaml
 //go:generate bin/oapi-codegen -config oapi-codegen.yaml -generate spec -o openapi/spec.go openapi.yaml
 
+// Inject current version into examples:
+//go:generate ./inject-version.sh
+
 // Format Terraform examples:
 //go:generate bin/terraform fmt -recursive ./examples/
 
@@ -27,12 +30,13 @@ import (
 //go:generate bin/tfplugindocs generate --provider-name nuodbaas
 
 var (
-	// This will be overridden by the version from the Git tag when GoReleaser
-	// creates an actual release. `{{version}}` in the comment is a marker to
-	// enable scraping of the version when running `make package`.
+	// The version from the Git tag is used by GoReleaser when publishing a
+	// release, but the release job is conditionalized on the Git tag matching
+	// the version in the code. `{{version}}` in the comment is a marker to
+	// enable scraping of the version.
 	//
 	// For more information on GoReleaser, see https://goreleaser.com/cookbooks/using-main.version/
-	version string = "1.2.0" // {{version}}
+	version string = "1.3.0" // {{version}}
 )
 
 func main() {
