@@ -22,7 +22,7 @@ var (
 // interactions with the Terraform API and delegates interaction with the
 // provider API to DataSourceState.
 type GenericDataSource struct {
-	client                  *ClientWithOptions
+	client                  *ProviderClient
 	TypeName                string
 	Description             string
 	GetDataSourceAttributes func() (map[string]schema.Attribute, error)

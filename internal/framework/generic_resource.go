@@ -7,12 +7,14 @@ package framework
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/helper"
@@ -25,6 +27,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/tmaxmax/go-sse"
 )
 
 var (
@@ -32,20 +35,45 @@ var (
 	_ resource.ResourceWithImportState = &GenericResource{}
 )
 
-type ClientWithOptions struct {
-	Client   openapi.ClientInterface
-	timeouts map[string]map[string]time.Duration
+type ProviderConfig interface {
+	// GetUser returns the user name in the provider configuration.
+	GetUser() string
+
+	// GetPassword returns the password for the user.
+	GetPassword() string
+
+	// GetToken returns the authentication token.
+	GetToken() string
+
+	// GetUrlBase returns the URL base.
+	GetUrlBase() string
+
+	// GetSkipVerify returns whether certificate verification should be skipped.
+	GetSkipVerify() bool
+
+	// CreateClient creates a REST API client.
+	CreateClient() (openapi.ClientInterface, error)
+
+	// CreateEventStream creates an SSE connection and consume all events
+	// using callback until connection is closed.
+	ConsumeEvents(ctx context.Context, path string, callback func(sse.Event)) error
 }
 
-func NewClientWithOptions(client openapi.ClientInterface, timeouts map[string]map[string]time.Duration) *ClientWithOptions {
-	return &ClientWithOptions{Client: client, timeouts: timeouts}
+type ProviderClient struct {
+	ProviderConfig ProviderConfig
+	Client         openapi.ClientInterface
+	timeouts       map[string]map[string]time.Duration
+}
+
+func NewProviderClient(providerConfig ProviderConfig, client openapi.ClientInterface, timeouts map[string]map[string]time.Duration) *ProviderClient {
+	return &ProviderClient{ProviderConfig: providerConfig, Client: client, timeouts: timeouts}
 }
 
 // GenericResource is a Resource implementation that handles all interactions
 // with the Terraform API and delegates interaction with the provider API to
 // ResourceState.
 type GenericResource struct {
-	client                *ClientWithOptions
+	client                *ProviderClient
 	TypeName              string
 	Description           string
 	GetResourceAttributes func() (map[string]schema.Attribute, error)
@@ -84,8 +112,11 @@ type ResourceState interface {
 	// cleaned up.
 	Delete(ctx context.Context, client openapi.ClientInterface) error
 
-	// Deserialize the resource ID
+	// Populate the local state with the resource ID.
 	SetId(id string) error
+
+	// Get the path to obtain an event stream for the resource.
+	GetEventPath() string
 }
 
 func (r *GenericResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -106,15 +137,15 @@ func (r *GenericResource) Schema(ctx context.Context, req resource.SchemaRequest
 	}
 }
 
-func getClient(diags *diag.Diagnostics, providerData any) *ClientWithOptions {
+func getClient(diags *diag.Diagnostics, providerData any) *ProviderClient {
 	if providerData == nil {
 		return nil
 	}
-	client, ok := providerData.(*ClientWithOptions)
+	client, ok := providerData.(*ProviderClient)
 	if !ok {
 		diags.AddError("Unexpected Resource Configure Type",
 			fmt.Sprintf("Expected %T, got: %T. Please report this issue to NuoDB.Support@3ds.com",
-				&ClientWithOptions{}, providerData))
+				&ProviderClient{}, providerData))
 	}
 	return client
 }
@@ -236,8 +267,8 @@ func (r *GenericResource) ImportState(ctx context.Context, req resource.ImportSt
 const (
 	READINESS_TIMEOUT = 10 * time.Minute
 	DELETION_TIMEOUT  = 1 * time.Minute
-	POLLING_INTERVAL  = 5 * time.Second
-	FAILURE_THRESHOLD = 3
+	POLLING_INTERVAL  = 10 * time.Second
+	FAILURE_THRESHOLD = POLLING_INTERVAL + 1*time.Second
 	DEFAULT_RESOURCE  = "default"
 	CREATE_OPERATION  = "create"
 	UPDATE_OPERATION  = "update"
@@ -333,6 +364,116 @@ func isNetworkError(err error) bool {
 	return ok && urlErr.Temporary()
 }
 
+const (
+	SSE_EVENT_RESYNC     = "RESYNC"
+	SSE_EVENT_CREATED    = "CREATED"
+	SSE_EVENT_UPDATED    = "UPDATED"
+	SSE_EVENT_DELETED    = "DELETED"
+	SSE_EVENT_HEARTBEAT  = "HEARTBEAT"
+	SSE_DATA_NO_RESOURCE = "null"
+)
+
+type eventStream struct {
+	wg   sync.WaitGroup
+	lock sync.Mutex
+	// eventChannel is used to signal events on the resource. Each value
+	// consumed from the channel indicates whether the resource existed when
+	// the event was generated, in which case, its state can be observed in
+	// the ResourceState that data is deserialized to.
+	eventChannel chan bool
+	// errChannel is used to notify the consumer about errors encountered
+	// during event processing.
+	errChannel chan error
+}
+
+func (stream *eventStream) withLock(fn func() error) error {
+	stream.lock.Lock()
+	defer stream.lock.Unlock()
+	return fn()
+}
+
+func (stream *eventStream) sendEvent(ctx context.Context, exists bool) {
+	select {
+	case stream.eventChannel <- exists:
+	case <-ctx.Done():
+		tflog.Debug(ctx, "Cancelling send because context is done", map[string]any{"exists": exists})
+	}
+}
+
+func (stream *eventStream) sendError(ctx context.Context, err error) {
+	select {
+	case stream.errChannel <- err:
+	case <-ctx.Done():
+		tflog.Debug(ctx, "Cancelling send because context is done", map[string]any{"error": err})
+	}
+}
+
+func (r *GenericResource) stream(ctx context.Context, state ResourceState) *eventStream {
+	stream := eventStream{
+		eventChannel: make(chan bool),
+		errChannel:   make(chan error),
+	}
+	stream.wg.Add(1)
+	go func() {
+		defer stream.wg.Done()
+		// Try to use SSE to stream events on resource
+		err := r.client.ProviderConfig.ConsumeEvents(ctx, state.GetEventPath(), func(event sse.Event) {
+			// Do nothing on heartbeat messages
+			if event.Type == SSE_EVENT_HEARTBEAT {
+				return
+			}
+			// If event is DELETED or has no data, notify that the resource was deleted
+			if event.Type == SSE_EVENT_DELETED || event.Data == SSE_DATA_NO_RESOURCE {
+				stream.sendEvent(ctx, false)
+			} else {
+				// Deserialize message and notify event
+				err := stream.withLock(func() error {
+					tflog.Debug(ctx, "Unmarshalling data from SSE message",
+						map[string]any{"event": event.Type, "data": event.Data})
+					return json.Unmarshal([]byte(event.Data), state)
+				})
+				if err == nil {
+					stream.sendEvent(ctx, true)
+				} else {
+					stream.sendError(ctx, err)
+				}
+			}
+		})
+		// If context is not done, there was an error consuming SSE messages
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			tflog.Info(ctx, "Downgrading from SSE to polling", map[string]any{"error": err})
+		}
+		// Use polling to generate resource events
+		for {
+			err := stream.withLock(func() error {
+				return state.Read(ctx, r.client.Client)
+			})
+			if err == nil {
+				stream.sendEvent(ctx, true)
+			} else if helper.IsNotFound(err) {
+				stream.sendEvent(ctx, false)
+			} else if isNetworkError(err) {
+				// Suppress network errors, which may be transient and retriable
+				tflog.Info(ctx, "Suppressing network error while awaiting readiness",
+					map[string]any{"resourceType": r.TypeName, "error": err.Error()})
+			} else {
+				stream.sendError(ctx, err)
+			}
+			// Wait for polling interval or until context is done
+			select {
+			case <-time.After(POLLING_INTERVAL):
+				continue
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	return &stream
+}
+
 func (r *GenericResource) AwaitReady(ctx context.Context, state ResourceState, operation string) error {
 	timeout := r.GetTimeout(operation, READINESS_TIMEOUT)
 	if timeout == 0 {
@@ -340,39 +481,58 @@ func (r *GenericResource) AwaitReady(ctx context.Context, state ResourceState, o
 			map[string]any{"resourceType": r.TypeName, "operation": operation})
 		return nil
 	}
-	consecutiveFailed := 0
 	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
+	stream := r.stream(ctx, state)
+	defer func() {
+		cancel()
+		stream.wg.Wait()
+	}()
+	var readyErr error
+	var failedSince time.Time
 	for {
+		var err error
+		done := false
+		select {
+		case exists := <-stream.eventChannel:
+			// Check that resource still exists
+			if !exists {
+				return errors.New("Resource no longer exists")
+			}
+		case <-time.After(FAILURE_THRESHOLD):
+			// Check readiness periodically even if not triggered by channel
+		case err = <-stream.errChannel:
+			// Check error encountered on channel
+		case <-ctx.Done():
+			// Check that timeout has not expired
+			done = true
+		}
+		// If error was encountered on channel or timeout expired, return error
+		if err != nil || done {
+			if done || os.IsTimeout(err) && ctx.Err() == context.DeadlineExceeded {
+				if readyErr != nil {
+					return fmt.Errorf("Timed out after %s: %s", timeout, readyErr.Error())
+				} else {
+					return fmt.Errorf("Timed out after %s", timeout)
+				}
+			}
+			return err
+		}
 		// Check if resource is ready
-		readyErr := state.CheckReady(ctx, r.client.Client)
+		readyErr = stream.withLock(func() error {
+			return state.CheckReady(ctx, r.client.Client)
+		})
 		if readyErr == nil {
 			return nil
 		}
-		// Return early if resource in failed state for several iterations
+		// Return early if resource in failed state for some time
 		if _, ok := readyErr.(*resourceFailedError); ok {
-			consecutiveFailed++
-			if consecutiveFailed >= FAILURE_THRESHOLD {
+			if failedSince.IsZero() {
+				failedSince = time.Now()
+			} else if failedSince.Add(FAILURE_THRESHOLD).Before(time.Now()) {
 				return readyErr
 			}
 		} else {
-			consecutiveFailed = 0
-		}
-		time.Sleep(POLLING_INTERVAL)
-
-		// Re-read resource state and check for timeout error
-		err := state.Read(ctx, r.client.Client)
-		if err != nil {
-			if os.IsTimeout(err) && ctx.Err() == context.DeadlineExceeded {
-				return fmt.Errorf("Timed out after %s: %s", timeout, readyErr.Error())
-			}
-			// Suppress network errors, which may be transient and retriable
-			if isNetworkError(err) {
-				tflog.Info(ctx, "Suppressing network error while awaiting readiness",
-					map[string]any{"resourceType": r.TypeName, "error": err.Error()})
-			} else {
-				return err
-			}
+			failedSince = time.Time{}
 		}
 	}
 }
@@ -385,28 +545,33 @@ func (r *GenericResource) AwaitDeleted(ctx context.Context, state ResourceState)
 		return nil
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
+	stream := r.stream(ctx, state)
+	defer func() {
+		cancel()
+		stream.wg.Wait()
+	}()
 	for {
-		// Try to read resource state and check that "404 Not Found"
-		// error is returned
-		err := state.Read(ctx, r.client.Client)
-		if err != nil {
-			if helper.IsNotFound(err) {
+		var err error
+		done := false
+		select {
+		case exists := <-stream.eventChannel:
+			// Check if resource does not exist
+			if !exists {
 				return nil
 			}
-			if os.IsTimeout(err) && ctx.Err() == context.DeadlineExceeded {
+		case err = <-stream.errChannel:
+			// Check error encountered on channel
+		case <-ctx.Done():
+			// Check that timeout has not expired
+			done = true
+		}
+		// If error was encountered on channel or timeout expired, return error
+		if err != nil || done {
+			if done || os.IsTimeout(err) && ctx.Err() == context.DeadlineExceeded {
 				return fmt.Errorf("Timed out after %s", timeout)
 			}
-			// Suppress network errors, which may be transient and retriable
-			if isNetworkError(err) {
-				tflog.Info(ctx, "Suppressing network error while awaiting deletion",
-					map[string]any{"resourceType": r.TypeName, "error": err.Error()})
-			} else {
-				return err
-			}
+			return err
 		}
-
-		time.Sleep(POLLING_INTERVAL)
 	}
 }
 

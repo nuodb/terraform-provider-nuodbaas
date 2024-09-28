@@ -121,6 +121,10 @@ func (state *ProjectResourceModel) SetId(id string) error {
 	return nil
 }
 
+func (state *ProjectResourceModel) GetEventPath() string {
+	return fmt.Sprintf("events/projects/%s/%s", state.Organization, state.Name)
+}
+
 func GetProjectResourceAttributes() (map[string]schema.Attribute, error) {
 	return framework.GetResourceAttributes("ProjectModel")
 }

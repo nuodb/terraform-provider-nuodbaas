@@ -101,6 +101,10 @@ func (state *BackupPolicyResourceModel) SetId(id string) error {
 	return nil
 }
 
+func (state *BackupPolicyResourceModel) GetEventPath() string {
+	return fmt.Sprintf("events/backuppolicies/%s/%s", state.Organization, state.Name)
+}
+
 func GetBackupPolicyResourceAttributes() (map[string]schema.Attribute, error) {
 	return framework.GetResourceAttributes("BackupPolicyModel")
 }
