@@ -4,13 +4,13 @@ set -e
 cd "$(dirname "$0")"
 ./check.sh
 
-: ${NUODB_CP_VERSION:="2.5.0"}
+: ${NUODB_CP_VERSION:="2.7.0"}
 : ${NUODB_CP_REPO:="https://nuodb.github.io/nuodb-cp-releases/charts"}
 
-: ${CERT_MANAGER_VERSION:="1.13.3"}
+: ${CERT_MANAGER_VERSION:="1.15.3"}
 : ${CERT_MANAGER_REPO:="https://charts.jetstack.io"}
 
-: ${NGINX_INGRESS_VERSION:="4.7.1"}
+: ${NGINX_INGRESS_VERSION:="4.11.2"}
 : ${NGINX_INGRESS_REPO:="https://kubernetes.github.io/ingress-nginx"}
 
 helm upgrade --install cert-manager cert-manager \

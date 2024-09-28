@@ -8,12 +8,12 @@ export OUTPUT_DIR ?= $(TMP_DIR)/test-artifacts
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 
-TERRAFORM_VERSION ?= 1.7.3
-TOFU_VERSION ?= 1.7.1
-KUBECTL_VERSION ?= 1.28.3
-KWOKCTL_VERSION ?= 0.5.1
-HELM_VERSION ?= 3.14.3
-MINIKUBE_VERSION ?= 1.32.0
+TERRAFORM_VERSION ?= 1.9.6
+TOFU_VERSION ?= 1.8.2
+KUBECTL_VERSION ?= 1.31.1
+KWOKCTL_VERSION ?= 0.6.0
+HELM_VERSION ?= 3.16.1
+MINIKUBE_VERSION ?= 1.34.0
 NUODB_CP_VERSION ?= 2.7.0
 
 GOTESTSUM := bin/gotestsum
@@ -69,7 +69,7 @@ $(TOFU):
 
 $(KUBECTL):
 	mkdir -p bin
-	curl -L -s https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/$(OS)/$(ARCH)/kubectl -o $(KUBECTL)
+	curl -L -s https://dl.k8s.io/release/v$(KUBECTL_VERSION)/bin/$(OS)/$(ARCH)/kubectl -o $(KUBECTL)
 	chmod +x $(KUBECTL)
 
 $(KWOKCTL):

@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -135,7 +136,7 @@ func (state *DatabaseResourceModel) Update(ctx context.Context, client openapi.C
 	if !state.DbaPasswordMatches(currentDatabase) {
 		resp, err := currentDatabase.UpdateDbaPassword(ctx, client, state.DbaPassword)
 		if IsDbaPasswordUpdateUnsupportedError(resp, err) {
-			return fmt.Errorf(DBA_PASSWORD_CHANGE_UNSUPPORTED_MSG)
+			return errors.New(DBA_PASSWORD_CHANGE_UNSUPPORTED_MSG)
 		}
 		if err != nil {
 			return err
