@@ -50,6 +50,8 @@ type NuoDbaasProviderModel struct {
 	Timeouts   map[string]framework.OperationTimeouts `tfsdk:"timeouts" hcl:"timeouts" cty:"timeouts"`
 }
 
+var _ framework.ProviderConfig = &NuoDbaasProviderModel{}
+
 const (
 	NUODB_CP_USER        = "NUODB_CP_USER"
 	NUODB_CP_PASSWORD    = "NUODB_CP_PASSWORD" //nolint:gosec // This is not a hardcoded password
@@ -93,7 +95,7 @@ func (pm *NuoDbaasProviderModel) GetSkipVerify() bool {
 	return os.Getenv(NUODB_CP_SKIP_VERIFY) == "true"
 }
 
-func (pm *NuoDbaasProviderModel) CreateClient() (*openapi.Client, error) {
+func (pm *NuoDbaasProviderModel) CreateClient() (openapi.ClientInterface, error) {
 	return nuodbaas_client.NewApiClient(pm.GetUrlBase(), pm.GetUser(), pm.GetPassword(), pm.GetToken(), pm.GetSkipVerify())
 }
 
@@ -176,9 +178,9 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 	}
 
 	// Pass client as opaque data
-	clientWithOptions := framework.NewClientWithOptions(client, timeouts)
-	resp.DataSourceData = clientWithOptions
-	resp.ResourceData = clientWithOptions
+	providerClient := framework.NewProviderClient(&config, client, timeouts)
+	resp.DataSourceData = providerClient
+	resp.ResourceData = providerClient
 }
 
 func parseAndValidate(ctx context.Context, rawConfig tfsdk.Config, diags *diag.Diagnostics) (NuoDbaasProviderModel, map[string]map[string]time.Duration) {

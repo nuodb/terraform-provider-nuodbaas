@@ -32,20 +32,41 @@ var (
 	_ resource.ResourceWithImportState = &GenericResource{}
 )
 
-type ClientWithOptions struct {
-	Client   openapi.ClientInterface
-	timeouts map[string]map[string]time.Duration
+type ProviderConfig interface {
+	// GetUser returns the user name in the provider configuration.
+	GetUser() string
+
+	// GetPassword returns the password for the user.
+	GetPassword() string
+
+	// GetToken returns the authentication token.
+	GetToken() string
+
+	// GetUrlBase returns the URL base.
+	GetUrlBase() string
+
+	// GetSkipVerify returns whether certificate verification should be skipped.
+	GetSkipVerify() bool
+
+	// CreateClient creates a REST API client.
+	CreateClient() (openapi.ClientInterface, error)
 }
 
-func NewClientWithOptions(client openapi.ClientInterface, timeouts map[string]map[string]time.Duration) *ClientWithOptions {
-	return &ClientWithOptions{Client: client, timeouts: timeouts}
+type ProviderClient struct {
+	ProviderConfig ProviderConfig
+	Client         openapi.ClientInterface
+	timeouts       map[string]map[string]time.Duration
+}
+
+func NewProviderClient(providerConfig ProviderConfig, client openapi.ClientInterface, timeouts map[string]map[string]time.Duration) *ProviderClient {
+	return &ProviderClient{ProviderConfig: providerConfig, Client: client, timeouts: timeouts}
 }
 
 // GenericResource is a Resource implementation that handles all interactions
 // with the Terraform API and delegates interaction with the provider API to
 // ResourceState.
 type GenericResource struct {
-	client                *ClientWithOptions
+	client                *ProviderClient
 	TypeName              string
 	Description           string
 	GetResourceAttributes func() (map[string]schema.Attribute, error)
@@ -106,15 +127,15 @@ func (r *GenericResource) Schema(ctx context.Context, req resource.SchemaRequest
 	}
 }
 
-func getClient(diags *diag.Diagnostics, providerData any) *ClientWithOptions {
+func getClient(diags *diag.Diagnostics, providerData any) *ProviderClient {
 	if providerData == nil {
 		return nil
 	}
-	client, ok := providerData.(*ClientWithOptions)
+	client, ok := providerData.(*ProviderClient)
 	if !ok {
 		diags.AddError("Unexpected Resource Configure Type",
 			fmt.Sprintf("Expected %T, got: %T. Please report this issue to NuoDB.Support@3ds.com",
-				&ClientWithOptions{}, providerData))
+				&ProviderClient{}, providerData))
 	}
 	return client
 }
