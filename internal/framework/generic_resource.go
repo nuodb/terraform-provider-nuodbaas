@@ -392,19 +392,11 @@ func (stream *eventStream) withLock(fn func() error) error {
 	return fn()
 }
 
-func (stream *eventStream) sendEvent(ctx context.Context, exists bool) {
+func sendToChannel[T any](ctx context.Context, ch chan T, v T) {
 	select {
-	case stream.eventChannel <- exists:
+	case ch <- v:
 	case <-ctx.Done():
-		tflog.Debug(ctx, "Cancelling send because context is done", map[string]any{"exists": exists})
-	}
-}
-
-func (stream *eventStream) sendError(ctx context.Context, err error) {
-	select {
-	case stream.errChannel <- err:
-	case <-ctx.Done():
-		tflog.Debug(ctx, "Cancelling send because context is done", map[string]any{"error": err})
+		tflog.Debug(ctx, "Cancelling send because context is done")
 	}
 }
 
@@ -424,7 +416,7 @@ func (r *GenericResource) stream(ctx context.Context, state ResourceState) *even
 			}
 			// If event is DELETED or has no data, notify that the resource was deleted
 			if event.Type == SSE_EVENT_DELETED || event.Data == SSE_DATA_NO_RESOURCE {
-				stream.sendEvent(ctx, false)
+				sendToChannel(ctx, stream.eventChannel, false)
 			} else {
 				// Deserialize message and notify event
 				err := stream.withLock(func() error {
@@ -433,9 +425,9 @@ func (r *GenericResource) stream(ctx context.Context, state ResourceState) *even
 					return json.Unmarshal([]byte(event.Data), state)
 				})
 				if err == nil {
-					stream.sendEvent(ctx, true)
+					sendToChannel(ctx, stream.eventChannel, true)
 				} else {
-					stream.sendError(ctx, err)
+					sendToChannel(ctx, stream.errChannel, err)
 				}
 			}
 		})
@@ -452,15 +444,15 @@ func (r *GenericResource) stream(ctx context.Context, state ResourceState) *even
 				return state.Read(ctx, r.client.Client)
 			})
 			if err == nil {
-				stream.sendEvent(ctx, true)
+				sendToChannel(ctx, stream.eventChannel, true)
 			} else if helper.IsNotFound(err) {
-				stream.sendEvent(ctx, false)
+				sendToChannel(ctx, stream.eventChannel, false)
 			} else if isNetworkError(err) {
 				// Suppress network errors, which may be transient and retriable
 				tflog.Info(ctx, "Suppressing network error while awaiting readiness",
 					map[string]any{"resourceType": r.TypeName, "error": err.Error()})
 			} else {
-				stream.sendError(ctx, err)
+				sendToChannel(ctx, stream.errChannel, err)
 			}
 			// Wait for polling interval or until context is done
 			select {

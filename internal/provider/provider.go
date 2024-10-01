@@ -9,10 +9,12 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
@@ -152,17 +154,30 @@ func (pm *NuoDbaasProviderModel) createSseClient(ctx context.Context) *sse.Clien
 	// Copy default SSE client and replace HTTP client
 	sseClient := *sse.DefaultClient
 	sseClient.HTTPClient = pm.getHttpClient()
-	// Intercept response and add callback to context that closes reader
+	// Register callback on context cancellation to close response reader.
+	// This unblocks any concurrent read to allow the goroutine dispatching
+	// SSE messages to terminate.
+	var readerRef atomic.Value
+	context.AfterFunc(ctx, func() {
+		if reader, ok := readerRef.Load().(io.Closer); ok {
+			tflog.Debug(ctx, "Closing SSE message reader")
+			_ = reader.Close()
+		}
+	})
+	// Use response validator to set or update reader
 	sseClient.ResponseValidator = func(resp *http.Response) error {
 		err := sse.DefaultValidator(resp)
 		if err == nil {
-			context.AfterFunc(ctx, func() {
-				tflog.Debug(ctx, "Closing response reader")
-				_ = resp.Body.Close()
-			})
+			readerRef.Store(resp.Body)
+			// If context is already done, close reader
+			if ctx.Err() != nil {
+				resp.Body.Close()
+			}
 		}
 		return err
 	}
+	// Set max backoff interval for reconnects to polling interval
+	sseClient.Backoff.MaxInterval = framework.POLLING_INTERVAL
 	return &sseClient
 }
 
