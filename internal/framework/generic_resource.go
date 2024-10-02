@@ -54,8 +54,8 @@ type ProviderConfig interface {
 	// CreateClient creates a REST API client.
 	CreateClient() (openapi.ClientInterface, error)
 
-	// CreateEventStream creates an SSE connection and consume all events
-	// using callback until connection is closed.
+	// ConsumeEvents creates an SSE connection and consumes events using the
+	// supplied callback until the connection is closed.
 	ConsumeEvents(ctx context.Context, path string, callback func(sse.Event)) error
 }
 

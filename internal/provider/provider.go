@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -152,7 +153,7 @@ func (pm *NuoDbaasProviderModel) buildSseRequest(ctx context.Context, path strin
 
 func (pm *NuoDbaasProviderModel) createSseClient(ctx context.Context) *sse.Client {
 	// Copy default SSE client and replace HTTP client
-	sseClient := *sse.DefaultClient
+	var sseClient sse.Client
 	sseClient.HTTPClient = pm.getHttpClient()
 	// Register callback on context cancellation to close response reader.
 	// This unblocks any concurrent read to allow the goroutine dispatching
@@ -176,8 +177,13 @@ func (pm *NuoDbaasProviderModel) createSseClient(ctx context.Context) *sse.Clien
 		}
 		return err
 	}
-	// Set max backoff interval for reconnects to polling interval
-	sseClient.Backoff.MaxInterval = framework.POLLING_INTERVAL
+	// Configure reconnect backoff
+	sseClient.Backoff = sse.Backoff{
+		InitialInterval: time.Millisecond * 500,
+		Multiplier:      1.5,
+		Jitter:          0.5,
+		MaxInterval:     framework.POLLING_INTERVAL,
+	}
 	return &sseClient
 }
 
@@ -191,9 +197,13 @@ func (pm *NuoDbaasProviderModel) ConsumeEvents(ctx context.Context, path string,
 	sseClient := pm.createSseClient(ctx)
 	sseConnection := sseClient.NewConnection(req)
 	// Register callback and consume SSE messages synchronously until a
-	// non-retriable error occurs
+	// non-retriable error occurs. Suppress error due to context being
+	// cancelled.
 	sseConnection.SubscribeToAll(callback)
-	return sseConnection.Connect()
+	if err := sseConnection.Connect(); !errors.Is(err, context.Canceled) {
+		return err
+	}
+	return nil
 }
 
 func (p *NuoDbaasProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
