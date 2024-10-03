@@ -156,7 +156,10 @@ func (pm *NuoDbaasProviderModel) createSseClient(ctx context.Context) *sse.Clien
 	var sseClient sse.Client
 	sseClient.HTTPClient = pm.getHttpClient()
 	sseClient.OnRetry = func(err error, delay time.Duration) {
-		tflog.Info(ctx, "Scheduling SSE reconnection after error", map[string]any{"error": err, "reconnectDelay": delay})
+		if ctx.Err() == nil {
+			tflog.Info(ctx, "Scheduling SSE reconnection after error",
+				map[string]any{"error": err, "reconnectDelay": delay})
+		}
 	}
 	// Register callback on context cancellation to close response reader.
 	// This unblocks any concurrent read to allow the goroutine dispatching

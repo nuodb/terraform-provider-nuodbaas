@@ -431,14 +431,11 @@ func (r *GenericResource) stream(ctx context.Context, state ResourceState) *even
 				}
 			}
 		})
-		// If context is not done, there was an error consuming SSE messages
-		select {
-		case <-ctx.Done():
+		// If context is done, return early, otherwise downgrade to polling
+		if ctx.Err() != nil {
 			return
-		default:
-			tflog.Info(ctx, "Downgrading from SSE to polling", map[string]any{"error": err})
 		}
-		// Use polling to generate resource events
+		tflog.Info(ctx, "Downgrading from SSE to polling", map[string]any{"error": err})
 		for {
 			err := stream.withLock(func() error {
 				return state.Read(ctx, r.client.Client)
