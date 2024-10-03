@@ -3,7 +3,7 @@
 set -e
 cd "$(dirname "$0")"
 
-: ${KUBERNETES_VERSION:="1.28.3"}
+: ${KUBERNETES_VERSION:="1.31.1"}
 : ${TMP_DIR:="/tmp"}
 : ${KUBECONFIG:="$TMP_DIR/kubeconfig.yaml"}
 export KUBECONFIG

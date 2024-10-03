@@ -4,12 +4,12 @@ executors:
   go:
     # Check https://circleci.com/developer/images/image/cimg/go for more details
     docker:
-      - image: cimg/go:1.22.0
+      - image: cimg/go:1.23.1
     resource_class: small
 
   ubuntu_vm:
     machine:
-      image: ubuntu-2204:2023.10.1
+      image: ubuntu-2404:2024.05.1
     resource_class: medium
 
 commands:
@@ -146,13 +146,13 @@ workflows:
           name: Functional tests (Minikube)
           test-driver: minikube
       - functional_tests:
-          name: Functional tests (KWOK, 2.4.1)
+          name: Functional tests (KWOK, 2.5.0)
           test-driver: kwok
-          nuodb-cp-version: 2.4.1
+          nuodb-cp-version: 2.5.0
       - functional_tests:
-          name: Functional tests (Minikube, 2.4.1)
+          name: Functional tests (Minikube, 2.5.0)
           test-driver: minikube
-          nuodb-cp-version: 2.4.1
+          nuodb-cp-version: 2.5.0
       - functional_tests:
           name: Functional tests (External DBaaS)
           test-driver: external

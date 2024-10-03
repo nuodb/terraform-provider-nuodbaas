@@ -144,12 +144,23 @@ func GetStringValidators(oas *openapi3.Schema) []validator.String {
 	return validators
 }
 
+// getType returns the schema type as a string, which in practice is how the
+// type attribute is always serialized. If the type attribute is absent or
+// serialized as an array that does not contain exactly one element, then the
+// empty string is returned.
+func getType(schema *openapi3.Schema) string {
+	if schema == nil || schema.Type == nil || len(schema.Type.Slice()) != 1 {
+		return ""
+	}
+	return schema.Type.Slice()[0]
+}
+
 // GetTerraformType returns the primitive type appearing in the supplied schema.
 // Types "array" and "object" are ignored and should be handled by using
 // ToResourceSchema() or ToDataSourceSchema().
 func GetTerraformType(schemaRef *openapi3.SchemaRef) attr.Type {
 	if schemaRef != nil && schemaRef.Value != nil {
-		switch schemaRef.Value.Type {
+		switch getType(schemaRef.Value) {
 		case "boolean":
 			return types.BoolType
 		case "integer":
@@ -232,10 +243,10 @@ func ToResourceAttribute(oas *openapi3.Schema, required, readOnly bool) (string,
 	}
 	// Here comes the code duplication, required in order to interact with
 	// the Terraform API...
-	switch oas.Type {
+	switch getType(oas) {
 	case "array":
 		// If array contains objects, use ListNestedAttribute to attach nested object schema
-		if oas.Items.Value != nil && oas.Items.Value.Type == "object" {
+		if getType(oas.Items.Value) == "object" {
 			return name, &resource.ListNestedAttribute{
 				Description:         oas.Description,
 				MarkdownDescription: oas.Description,
@@ -282,7 +293,7 @@ func ToResourceAttribute(oas *openapi3.Schema, required, readOnly bool) (string,
 	case "object":
 		if oas.AdditionalProperties.Schema != nil {
 			// If map values are objects, use MapNestedAttribute to attach nested object schema
-			if oas.AdditionalProperties.Schema.Value != nil && oas.AdditionalProperties.Schema.Value.Type == "object" {
+			if getType(oas.AdditionalProperties.Schema.Value) == "object" {
 				return name, &resource.MapNestedAttribute{
 					Description:         oas.Description,
 					MarkdownDescription: oas.Description,
@@ -367,10 +378,10 @@ func ToDataSourceAttribute(oas *openapi3.Schema) (string, datasource.Attribute) 
 	sensitive := IsSensitiveAttribute(oas)
 	// Here comes the code duplication, required in order to interact with
 	// the Terraform API...
-	switch oas.Type {
+	switch getType(oas) {
 	case "array":
 		// If array contains objects, use ListNestedAttribute to attach nested object schema
-		if oas.Items.Value != nil && oas.Items.Value.Type == "object" {
+		if getType(oas.Items.Value) == "object" {
 			return name, &datasource.ListNestedAttribute{
 				Description:         oas.Description,
 				MarkdownDescription: oas.Description,
@@ -409,7 +420,7 @@ func ToDataSourceAttribute(oas *openapi3.Schema) (string, datasource.Attribute) 
 	case "object":
 		if oas.AdditionalProperties.Schema != nil {
 			// If map values are objects, use MapNestedAttribute to attach nested object schema
-			if oas.AdditionalProperties.Schema.Value != nil && oas.AdditionalProperties.Schema.Value.Type == "object" {
+			if getType(oas.AdditionalProperties.Schema.Value) == "object" {
 				return name, &datasource.MapNestedAttribute{
 					Description:         oas.Description,
 					MarkdownDescription: oas.Description,
