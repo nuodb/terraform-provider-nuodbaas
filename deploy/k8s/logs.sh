@@ -5,12 +5,11 @@ if [ -d "$OUTPUT_DIR" ]; then
     kubectl cluster-info dump -A --output-directory="$OUTPUT_DIR/cluster-info"
 
     # For any containers that have restarted, collect the exited container output
-    ns="$(kubectl get serviceaccounts -o jsonpath='{.items[0].metadata.namespace}')"
     (
-        kubectl get pod -o jsonpath="{range .items[*]}{.metadata.name}{' '}{.status.containerStatuses[?(.restartCount > 0)].name}{'\n'}{end}"
-    ) | while read pod containers; do
+        kubectl get pod -A -o jsonpath="{range .items[*]}{.metadata.namespace}{' '}{.metadata.name}{' '}{.status.containerStatuses[?(.restartCount > 0)].name}{'\n'}{end}"
+    ) | while read ns pod containers; do
         for container in $containers; do
-            kubectl logs "$pod" -c "$container" > "$OUTPUT_DIR/cluster-info/$ns/$pod/$container-previous.txt"
+            kubectl logs -n "$ns" "$pod" -c "$container" --previous > "$OUTPUT_DIR/cluster-info/$ns/$pod/logs-$container-previous.txt"
         done
     done
 else
