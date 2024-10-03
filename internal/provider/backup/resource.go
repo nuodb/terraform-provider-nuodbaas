@@ -123,6 +123,10 @@ func (state *BackupResourceModel) SetId(id string) error {
 	return nil
 }
 
+func (state *BackupResourceModel) GetEventPath() string {
+	return fmt.Sprintf("events/backups/%s/%s/%s/%s", state.Organization, state.Project, state.Database, state.Name)
+}
+
 func GetBackupResourceAttributes() (map[string]schema.Attribute, error) {
 	return framework.GetResourceAttributes("BackupModel")
 }

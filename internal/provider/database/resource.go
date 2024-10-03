@@ -200,6 +200,10 @@ func (state *DatabaseResourceModel) SetId(id string) error {
 	return nil
 }
 
+func (state *DatabaseResourceModel) GetEventPath() string {
+	return fmt.Sprintf("events/databases/%s/%s/%s", state.Organization, state.Project, state.Name)
+}
+
 func GetDatabaseResourceAttributes() (map[string]schema.Attribute, error) {
 	return framework.GetResourceAttributes("DatabaseCreateUpdateModel",
 		framework.WithDescription("dbaPassword", "The password for the DBA user"))

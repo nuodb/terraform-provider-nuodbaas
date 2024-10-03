@@ -592,6 +592,8 @@ github.com/timakin/bodyclose v0.0.0-20240125160201-f835fa56326a h1:A6uKudFIfAEpo
 github.com/timakin/bodyclose v0.0.0-20240125160201-f835fa56326a/go.mod h1:mkjARE7Yr8qU23YcGMSALbIxTQ9r9QBVahQOBRfU460=
 github.com/timonwong/loggercheck v0.9.4 h1:HKKhqrjcVj8sxL7K77beXh0adEm6DLjV/QOGeMXEVi4=
 github.com/timonwong/loggercheck v0.9.4/go.mod h1:caz4zlPcgvpEkXgVnAJGowHAMW2NwHaNlpS8xDbVhTg=
+github.com/tmaxmax/go-sse v0.8.0 h1:pPpTgyyi1r7vG2o6icebnpGEh3ebcnBXqDWkb7aTofs=
+github.com/tmaxmax/go-sse v0.8.0/go.mod h1:HLoxqxdH+7oSUItjtnpxjzJedfr/+Rrm/dNWBcTxJFM=
 github.com/tomarrell/wrapcheck/v2 v2.9.0 h1:801U2YCAjLhdN8zhZ/7tdjB3EnAoRlJHt/s+9hijLQ4=
 github.com/tomarrell/wrapcheck/v2 v2.9.0/go.mod h1:g9vNIyhb5/9TQgumxQyOEqDHsmGYcGsVMOx/xGkqdMo=
 github.com/tommy-muehle/go-mnd/v2 v2.5.1 h1:NowYhSdyE/1zwK9QCLeRb6USWdoif80Ie+v+yU8u1Zw=

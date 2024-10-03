@@ -7,12 +7,17 @@ package provider
 
 import (
 	"context"
+	"crypto/tls"
+	"encoding/base64"
+	"errors"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
-	nuodbaas_client "github.com/nuodb/terraform-provider-nuodbaas/internal/client"
 	"github.com/nuodb/terraform-provider-nuodbaas/internal/framework"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/backup"
 	. "github.com/nuodb/terraform-provider-nuodbaas/internal/provider/backuppolicy"
@@ -27,6 +32,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/tmaxmax/go-sse"
 )
 
 // Ensure NuoDbaasProvider satisfies various provider interfaces.
@@ -49,6 +56,8 @@ type NuoDbaasProviderModel struct {
 	SkipVerify *bool                                  `tfsdk:"skip_verify" hcl:"skip_verify" cty:"skip_verify"`
 	Timeouts   map[string]framework.OperationTimeouts `tfsdk:"timeouts" hcl:"timeouts" cty:"timeouts"`
 }
+
+var _ framework.ProviderConfig = &NuoDbaasProviderModel{}
 
 const (
 	NUODB_CP_USER        = "NUODB_CP_USER"
@@ -93,8 +102,114 @@ func (pm *NuoDbaasProviderModel) GetSkipVerify() bool {
 	return os.Getenv(NUODB_CP_SKIP_VERIFY) == "true"
 }
 
-func (pm *NuoDbaasProviderModel) CreateClient() (*openapi.Client, error) {
-	return nuodbaas_client.NewApiClient(pm.GetUrlBase(), pm.GetUser(), pm.GetPassword(), pm.GetToken(), pm.GetSkipVerify())
+func (pm *NuoDbaasProviderModel) getHttpClient() *http.Client {
+	client := &http.Client{}
+	if pm.GetSkipVerify() {
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true, //nolint:gosec // Reduced security at the demand of the user.
+			},
+		}
+	}
+	return client
+}
+
+func (pm *NuoDbaasProviderModel) getAuthHeader() string {
+	if pm.GetToken() != "" {
+		return "Bearer " + pm.GetToken()
+	} else if pm.GetUser() != "" {
+		auth := pm.GetUser() + ":" + pm.GetPassword()
+		return "Basic " + base64.StdEncoding.EncodeToString([]byte(auth))
+	}
+	return ""
+}
+
+func (pm *NuoDbaasProviderModel) prepareRequest(req *http.Request) {
+	if req.Header.Get("Authorization") == "" {
+		if authHeader := pm.getAuthHeader(); authHeader != "" {
+			req.Header.Set("Authorization", authHeader)
+		}
+	}
+}
+
+func (pm *NuoDbaasProviderModel) CreateClient() (openapi.ClientInterface, error) {
+	return openapi.NewClient(pm.GetUrlBase(),
+		openapi.WithHTTPClient(pm.getHttpClient()),
+		openapi.WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
+			pm.prepareRequest(req)
+			return nil
+		}))
+}
+
+func (pm *NuoDbaasProviderModel) buildSseRequest(ctx context.Context, path string) (*http.Request, error) {
+	url := strings.TrimSuffix(pm.GetUrlBase(), "/") + "/" + strings.TrimPrefix(path, "/")
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+	if err != nil {
+		return nil, err
+	}
+	pm.prepareRequest(req)
+	return req, nil
+}
+
+func (pm *NuoDbaasProviderModel) createSseClient(ctx context.Context) *sse.Client {
+	// Create SSE client with HTTP client from provider config
+	var sseClient sse.Client
+	sseClient.HTTPClient = pm.getHttpClient()
+	sseClient.OnRetry = func(err error, delay time.Duration) {
+		if ctx.Err() == nil {
+			tflog.Info(ctx, "Scheduling SSE reconnection after error",
+				map[string]any{"error": err, "reconnectDelay": delay})
+		}
+	}
+	// Register callback on context cancellation to close response reader.
+	// This unblocks any concurrent read to allow the goroutine dispatching
+	// SSE messages to terminate.
+	var readerRef atomic.Value
+	context.AfterFunc(ctx, func() {
+		if reader, ok := readerRef.Load().(io.Closer); ok {
+			tflog.Debug(ctx, "Closing SSE message reader")
+			_ = reader.Close()
+		}
+	})
+	// Use response validator to set or update reader
+	sseClient.ResponseValidator = func(resp *http.Response) error {
+		err := sse.DefaultValidator(resp)
+		if err == nil {
+			readerRef.Store(resp.Body)
+			// If context is already done, close reader
+			if ctx.Err() != nil {
+				resp.Body.Close()
+			}
+		}
+		return err
+	}
+	// Configure reconnect backoff
+	sseClient.Backoff = sse.Backoff{
+		InitialInterval: time.Millisecond * 500,
+		Multiplier:      1.5,
+		Jitter:          0.5,
+		MaxInterval:     framework.POLLING_INTERVAL,
+	}
+	return &sseClient
+}
+
+func (pm *NuoDbaasProviderModel) ConsumeEvents(ctx context.Context, path string, callback func(sse.Event)) error {
+	// Build SSE request
+	req, err := pm.buildSseRequest(ctx, path)
+	if err != nil {
+		return err
+	}
+	// Create SSE client and connection
+	sseClient := pm.createSseClient(ctx)
+	sseConnection := sseClient.NewConnection(req)
+	// Register callback and consume SSE messages synchronously until a
+	// non-retriable error occurs. Suppress error due to context being
+	// cancelled.
+	sseConnection.SubscribeToAll(callback)
+	if err := sseConnection.Connect(); !errors.Is(err, context.Canceled) {
+		return err
+	}
+	return nil
 }
 
 func (p *NuoDbaasProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -176,9 +291,9 @@ func (p *NuoDbaasProvider) Configure(ctx context.Context, req provider.Configure
 	}
 
 	// Pass client as opaque data
-	clientWithOptions := framework.NewClientWithOptions(client, timeouts)
-	resp.DataSourceData = clientWithOptions
-	resp.ResourceData = clientWithOptions
+	providerClient := framework.NewProviderClient(&config, client, timeouts)
+	resp.DataSourceData = providerClient
+	resp.ResourceData = providerClient
 }
 
 func parseAndValidate(ctx context.Context, rawConfig tfsdk.Config, diags *diag.Diagnostics) (NuoDbaasProviderModel, map[string]map[string]time.Duration) {
