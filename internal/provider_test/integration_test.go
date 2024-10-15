@@ -1737,7 +1737,7 @@ func TestValidation(t *testing.T) {
 		require.Contains(t, string(out), errorDescription)
 	})
 
-	t.Run("Validate url and timeout", func(t *testing.T) {
+	t.Run("validate url and timeout", func(t *testing.T) {
 		// There is more extensive testing in TestNegative so only test that
 		// they are checked by `terraform validate`
 		vars := newTestVars(false)
@@ -1762,5 +1762,29 @@ func TestValidation(t *testing.T) {
 		out, err = tf.Validate()
 		require.Error(t, err)
 		require.Contains(t, string(out), "No scheme found in URL")
+	})
+
+	t.Run("validate restore_from.backup", func(t *testing.T) {
+		vars := newTestVars(false)
+
+		// Specify a partial backup name
+		vars.database.RestoreFrom = &openapi.RestoreFromModel{
+			Backup: ptr("backup"),
+		}
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err := tf.Validate()
+		require.Error(t, err)
+		require.Contains(t, string(out), "Attribute restore_from.backup must match pattern:")
+		vars.providerCfg.Timeouts = nil
+
+		// Specify fully-qualified backup name
+		vars.database.RestoreFrom.Backup = ptr("org/proj/db/backup")
+		tf.WriteConfigT(t, vars.builder.Build())
+
+		// Run `terraform validate`
+		out, err = tf.Validate()
+		require.NoError(t, err)
 	})
 }

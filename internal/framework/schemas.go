@@ -40,17 +40,33 @@ type SchemaOverride = func(*openapi3.Schema)
 // WithDescription returns a SchemaOverride that overrides the description of
 // the property at the specified path.
 func WithDescription(path, description string) SchemaOverride {
+	return SchemaOverrideForPath(path, func(propertySchema *openapi3.Schema) {
+		propertySchema.Description = description
+	})
+}
+
+// WithPattern returns a SchemaOverride that overrides the pattern constraint of
+// the property at the specified path.
+func WithPattern(path, pattern string) SchemaOverride {
+	return SchemaOverrideForPath(path, func(propertySchema *openapi3.Schema) {
+		propertySchema.Pattern = pattern
+	})
+}
+
+// SchemaOverrideForPath returns a SchemaOverride that applies an override to
+// the property at the specified path.
+func SchemaOverrideForPath(path string, override SchemaOverride) SchemaOverride {
 	return func(oas *openapi3.Schema) {
 		// Split the path into name and remaining
 		parts := strings.SplitN(path, ".", 2)
 		property, ok := oas.Properties[parts[0]]
 		if ok && property != nil && property.Value != nil {
 			if len(parts) == 1 {
-				// Property has been found, so override its description
-				property.Value.Description = description
+				// Property has been found, so apply override
+				override(property.Value)
 			} else {
 				// Property is nested, so invoke override on nested schema
-				WithDescription(parts[1], description)(property.Value)
+				SchemaOverrideForPath(parts[1], override)(property.Value)
 			}
 		}
 	}
