@@ -1784,7 +1784,7 @@ func TestValidation(t *testing.T) {
 		tf.WriteConfigT(t, vars.builder.Build())
 
 		// Run `terraform validate`
-		out, err = tf.Validate()
+		_, err = tf.Validate()
 		require.NoError(t, err)
 	})
 }
