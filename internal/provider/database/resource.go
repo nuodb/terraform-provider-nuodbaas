@@ -206,7 +206,12 @@ func (state *DatabaseResourceModel) GetEventPath() string {
 
 func GetDatabaseResourceAttributes() (map[string]schema.Attribute, error) {
 	return framework.GetResourceAttributes("DatabaseCreateUpdateModel",
-		framework.WithDescription("dbaPassword", "The password for the DBA user"))
+		// DBA password can be updated from configuration, so remove note about it only being accepted on create
+		framework.WithDescription("dbaPassword", "The password for the DBA user"),
+		// Require fully-qualified backup name to prevent normalization from causing Terraform to fail due to change in attribute value
+		framework.WithDescription("restoreFrom.backup", "The fully-qualified name of the backup to restore the database from"),
+		framework.WithPattern("restoreFrom.backup", "([a-z][a-z0-9]*/){3}([0-9]+|[a-z][a-z0-9]*)"),
+	)
 }
 
 func NewDatabaseResourceState() framework.ResourceState {

@@ -88,7 +88,7 @@ Optional:
 
 Optional:
 
-- `backup` (String) The name of the backup to restore the database from. If a fully-qualified name is not supplied, then the organization, project, or name of the database being created is assumed.
+- `backup` (String) The fully-qualified name of the backup to restore the database from
 
 
 <a id="nestedatt--status"></a>
