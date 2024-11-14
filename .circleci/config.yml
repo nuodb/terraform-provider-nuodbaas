@@ -43,7 +43,7 @@ commands:
           name: "Collect logging"
           command: |
             make logs-<< parameters.test-driver >>
-          when: always
+          when: true
       - store_artifacts:
           name: "Upload test artifacts"
           path: /tmp/test-artifacts
