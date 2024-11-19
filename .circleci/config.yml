@@ -5,12 +5,22 @@ executors:
     # Check https://circleci.com/developer/images/image/cimg/go for more details
     docker:
       - image: cimg/go:1.23.1
-    resource_class: small
+    resource_class: << parameters.resource_class >>
+    parameters:
+      resource_class:
+        default: small
+        description: The resource class for this executor
+        type: string
 
   ubuntu_vm:
     machine:
       image: ubuntu-2404:2024.05.1
-    resource_class: medium
+    resource_class: << parameters.resource_class >>
+    parameters:
+      resource_class:
+        default: medium
+        description: The resource class for this executor
+        type: string
 
 commands:
   run_test:
@@ -64,7 +74,19 @@ jobs:
           The version of the NuoDB Control Plane to test against.
         type: string
         default: 2.7.0
-    executor: ubuntu_vm
+      executor-name:
+        description: |
+          The name of the executor.
+        type: string
+        default: ubuntu_vm
+      executor-resource-class:
+        description: |
+          The executor resource class
+        type: string
+        default: medium
+    executor: 
+      name: << parameters.executor-name >>
+      resource_class: << parameters.executor-resource-class >>
     environment:
       NUODB_CP_VERSION: << parameters.nuodb-cp-version >>
       TF_LOG: DEBUG
@@ -119,9 +141,16 @@ jobs:
           command: make lint
 
   deploy_test:
-    executor: ubuntu_vm
+    executor: 
+      name: go
+      resource_class: nuodb/orca-internal
     steps:
      - checkout
+     - run:
+        name: Install dependencies
+        command: |
+          sudo apt-get update \
+            && sudo apt-get install python3 python3-venv python3-pip
      - run:
         name: "Run end to end deployment test"
         command: |
@@ -156,6 +185,8 @@ workflows:
       - functional_tests:
           name: Functional tests (External DBaaS)
           test-driver: external
+          executor-name: go
+          executor-resource-class: nuodb/orca-internal
       - check_quality:
           name: Static code checks
       - deploy_test:
