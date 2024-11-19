@@ -27,6 +27,7 @@ website/node_modules
 *.iml
 **/variable.tf
 test-results/
+test/app/.venv
 
 website/vendor
 

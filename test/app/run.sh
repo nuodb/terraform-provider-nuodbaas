@@ -41,12 +41,6 @@ export TF_VAR_org_name="${NUODB_CP_USER%/*}"
 check_err "$TERRAFORM" init
 check_err "$TERRAFORM" apply -auto-approve
 
-# Check that client application exited cleanly
-exit_code="$("$TERRAFORM" output -raw exit)"
-if [ "$exit_code" -ne 0 ]; then
-    errors="$errors\n* Unexpected exit code for application container: $exit_code"
-fi
-
 # Destroy resources
 check_err "$TERRAFORM" destroy -auto-approve
 

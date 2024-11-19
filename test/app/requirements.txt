@@ -1,0 +1,3 @@
+ipaddress==1.0.23
+pynuodb==3.0.0
+pytz==2024.2
