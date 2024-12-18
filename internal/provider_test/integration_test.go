@@ -1316,13 +1316,6 @@ func TestImport(t *testing.T) {
 	reattachCfg, closeFn := CreateProviderServer(t, ctx)
 	defer closeFn()
 
-	// Remove DBA password from configuration, which is not needed because
-	// the database is already created. The presence of the dba_password
-	// attribute would trigger an unnecessary update or replace because it
-	// is not in state after `terraform import`, which is populated by a
-	// `GET /databases` response.
-	vars.database.DbaPassword = nil
-
 	// Create Terraform workspace and initialize it with config
 	tf := CreateTerraformWorkspace(t)
 	err = tf.SetReattachConfig(reattachCfg)
@@ -1364,6 +1357,20 @@ func TestImport(t *testing.T) {
 		HasAttributeValue("name", "db").
 		HasAttributeValue("tier", "n0.nano").
 		HasAttributeValue("labels", map[string]any{"color": "blue"})
+
+	// Run `terraform apply` and verify that it fails due to the DBA
+	// password being in the configuration. The presence of the dba_password
+	// attribute triggers an unnecessary update because it is not in state
+	// after `terraform import`, which is populated by a `GET /databases`
+	// response.
+	out, err = tf.Apply()
+	require.Error(t, err)
+	require.Contains(t, string(out), "Cannot update DBA password on database "+vars.project.Organization+"/"+vars.project.Name+"/db since current password is unknown")
+
+	// Remove DBA password from configuration, which is not needed because
+	// the database is already created
+	vars.database.DbaPassword = nil
+	tf.WriteConfigT(t, vars.builder.Build())
 
 	// Run `terraform apply` and verify that there is nothing to do
 	out, err = tf.Apply()
