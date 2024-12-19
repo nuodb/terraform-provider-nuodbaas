@@ -63,6 +63,10 @@ func (state *DatabaseResourceModel) CheckReady(ctx context.Context, client opena
 		return fmt.Errorf("Database %s/%s/%s has an unexpected state: expected=%s, found=%s",
 			state.Organization, state.Project, state.Name, expectedState, *state.Status.State)
 	}
+	// Skip DBA password check if DBA password was not specified
+	if state.DbaPassword == nil {
+		return nil
+	}
 	// Check that DBA password is up-to-date if password update is supported
 	resp, err := state.UpdateDbaPassword(ctx, client, nil)
 	if IsDbaPasswordUpdateUnsupportedError(resp, err) {
@@ -106,7 +110,7 @@ const (
 )
 
 func IsDbaPasswordUpdateUnsupportedError(resp *http.Response, err error) bool {
-	if err != nil {
+	if err != nil && resp != nil {
 		// "404 Not Found" is returned with no "detail" message if /dbaPassword	sub-resource is not supported
 		if resp.StatusCode == http.StatusNotFound {
 			if apiError, ok := err.(*helper.ApiError); !ok || apiError.GetDetail() == "" {
@@ -118,6 +122,10 @@ func IsDbaPasswordUpdateUnsupportedError(resp *http.Response, err error) bool {
 }
 
 func (state *DatabaseResourceModel) UpdateDbaPassword(ctx context.Context, client openapi.ClientInterface, target *string) (*http.Response, error) {
+	if state.DbaPassword == nil {
+		return nil, fmt.Errorf("Cannot update DBA password on database %s/%s/%s since current password is unknown",
+			state.Organization, state.Project, state.Name)
+	}
 	request := openapi.UpdateDbaPasswordModel{
 		Current: *state.DbaPassword,
 		Target:  target,
