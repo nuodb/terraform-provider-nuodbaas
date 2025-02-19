@@ -67,6 +67,7 @@ Read-Only:
 - `backup_plugin` (String) The plugin used to manage the backup
 - `created_by_policy` (String) The fully-qualified name of the backup policy that the backup was created by
 - `creation_time` (String) The time that the backup was taken
+- `database_product_version` (String) The product version of the database that the backup belongs to
 - `message` (String) Message summarizing the state of the backup
 - `ready_to_use` (Boolean) Whether the backup is ready to be used to restore a database
 - `retained_as` (List of String) The matching retention cycles by this backup

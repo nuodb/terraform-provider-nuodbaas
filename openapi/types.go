@@ -234,6 +234,9 @@ type BackupStatusModel struct {
 
 	// RetainedAs The matching retention cycles by this backup
 	RetainedAs *[]BackupStatusModelRetainedAs `cty:"retained_as" hcl:"retained_as" json:"retainedAs,omitempty" tfsdk:"retained_as"`
+
+	// DatabaseProductVersion The product version of the database that the backup belongs to
+	DatabaseProductVersion *string `cty:"database_product_version" hcl:"database_product_version" json:"databaseProductVersion,omitempty" tfsdk:"database_product_version"`
 }
 
 // BackupStatusModelState The state of the backup:
@@ -413,6 +416,9 @@ type ItemList struct {
 
 	// Next The URL to obtain the next list of items, if `limit` was specified and more items are available. The absence of the `next` field indicates that all items have been returned.
 	Next *string `json:"next,omitempty"`
+
+	// Total The total number of items available.
+	Total *int32 `json:"total,omitempty"`
 }
 
 // ItemListItems0 defines model for .
@@ -635,6 +641,13 @@ type GetAllBackupPoliciesParams struct {
 	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
 	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
 
+	// FieldFilter Comma-separated list of filters to apply based on fields, which are composed using `AND`. Acceptable filter expressions are:
+	// * `fieldPath` - Only return resources that have a non-`null` value at the specified field path
+	// * `fieldPath=value` - Only return resources that have a matching value at the specified field path
+	// * `!fieldPath` - Only return resources that do have a `null` value at the specified field path
+	// * `fieldPath!=value` - Only return resources that do _not_ have a matching value at the specified field path
+	FieldFilter *string `form:"fieldFilter,omitempty" json:"fieldFilter,omitempty"`
+
 	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
 	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
 }
@@ -659,6 +672,13 @@ type GetBackupPoliciesParams struct {
 	// * `!key` - Only return resources that do _not_ have label with specified key
 	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
 	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
+
+	// FieldFilter Comma-separated list of filters to apply based on fields, which are composed using `AND`. Acceptable filter expressions are:
+	// * `fieldPath` - Only return resources that have a non-`null` value at the specified field path
+	// * `fieldPath=value` - Only return resources that have a matching value at the specified field path
+	// * `!fieldPath` - Only return resources that do have a `null` value at the specified field path
+	// * `fieldPath!=value` - Only return resources that do _not_ have a matching value at the specified field path
+	FieldFilter *string `form:"fieldFilter,omitempty" json:"fieldFilter,omitempty"`
 
 	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
 	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
@@ -694,6 +714,13 @@ type GetBackupsFromPolicyParams struct {
 	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
 	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
 
+	// FieldFilter Comma-separated list of filters to apply based on fields, which are composed using `AND`. Acceptable filter expressions are:
+	// * `fieldPath` - Only return resources that have a non-`null` value at the specified field path
+	// * `fieldPath=value` - Only return resources that have a matching value at the specified field path
+	// * `!fieldPath` - Only return resources that do have a `null` value at the specified field path
+	// * `fieldPath!=value` - Only return resources that do _not_ have a matching value at the specified field path
+	FieldFilter *string `form:"fieldFilter,omitempty" json:"fieldFilter,omitempty"`
+
 	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
 	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
 }
@@ -718,6 +745,13 @@ type GetMatchingDatabasesParams struct {
 	// * `!key` - Only return resources that do _not_ have label with specified key
 	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
 	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
+
+	// FieldFilter Comma-separated list of filters to apply based on fields, which are composed using `AND`. Acceptable filter expressions are:
+	// * `fieldPath` - Only return resources that have a non-`null` value at the specified field path
+	// * `fieldPath=value` - Only return resources that have a matching value at the specified field path
+	// * `!fieldPath` - Only return resources that do have a `null` value at the specified field path
+	// * `fieldPath!=value` - Only return resources that do _not_ have a matching value at the specified field path
+	FieldFilter *string `form:"fieldFilter,omitempty" json:"fieldFilter,omitempty"`
 
 	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
 	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
@@ -744,6 +778,13 @@ type GetAllBackupsParams struct {
 	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
 	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
 
+	// FieldFilter Comma-separated list of filters to apply based on fields, which are composed using `AND`. Acceptable filter expressions are:
+	// * `fieldPath` - Only return resources that have a non-`null` value at the specified field path
+	// * `fieldPath=value` - Only return resources that have a matching value at the specified field path
+	// * `!fieldPath` - Only return resources that do have a `null` value at the specified field path
+	// * `fieldPath!=value` - Only return resources that do _not_ have a matching value at the specified field path
+	FieldFilter *string `form:"fieldFilter,omitempty" json:"fieldFilter,omitempty"`
+
 	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
 	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
 }
@@ -768,6 +809,13 @@ type GetOrganizationBackupsParams struct {
 	// * `!key` - Only return resources that do _not_ have label with specified key
 	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
 	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
+
+	// FieldFilter Comma-separated list of filters to apply based on fields, which are composed using `AND`. Acceptable filter expressions are:
+	// * `fieldPath` - Only return resources that have a non-`null` value at the specified field path
+	// * `fieldPath=value` - Only return resources that have a matching value at the specified field path
+	// * `!fieldPath` - Only return resources that do have a `null` value at the specified field path
+	// * `fieldPath!=value` - Only return resources that do _not_ have a matching value at the specified field path
+	FieldFilter *string `form:"fieldFilter,omitempty" json:"fieldFilter,omitempty"`
 
 	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
 	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
@@ -794,6 +842,13 @@ type GetProjectBackupsParams struct {
 	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
 	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
 
+	// FieldFilter Comma-separated list of filters to apply based on fields, which are composed using `AND`. Acceptable filter expressions are:
+	// * `fieldPath` - Only return resources that have a non-`null` value at the specified field path
+	// * `fieldPath=value` - Only return resources that have a matching value at the specified field path
+	// * `!fieldPath` - Only return resources that do have a `null` value at the specified field path
+	// * `fieldPath!=value` - Only return resources that do _not_ have a matching value at the specified field path
+	FieldFilter *string `form:"fieldFilter,omitempty" json:"fieldFilter,omitempty"`
+
 	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
 	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
 }
@@ -818,6 +873,13 @@ type GetBackupsParams struct {
 	// * `!key` - Only return resources that do _not_ have label with specified key
 	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
 	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
+
+	// FieldFilter Comma-separated list of filters to apply based on fields, which are composed using `AND`. Acceptable filter expressions are:
+	// * `fieldPath` - Only return resources that have a non-`null` value at the specified field path
+	// * `fieldPath=value` - Only return resources that have a matching value at the specified field path
+	// * `!fieldPath` - Only return resources that do have a `null` value at the specified field path
+	// * `fieldPath!=value` - Only return resources that do _not_ have a matching value at the specified field path
+	FieldFilter *string `form:"fieldFilter,omitempty" json:"fieldFilter,omitempty"`
 
 	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
 	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
@@ -853,6 +915,13 @@ type GetAllDatabasesParams struct {
 	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
 	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
 
+	// FieldFilter Comma-separated list of filters to apply based on fields, which are composed using `AND`. Acceptable filter expressions are:
+	// * `fieldPath` - Only return resources that have a non-`null` value at the specified field path
+	// * `fieldPath=value` - Only return resources that have a matching value at the specified field path
+	// * `!fieldPath` - Only return resources that do have a `null` value at the specified field path
+	// * `fieldPath!=value` - Only return resources that do _not_ have a matching value at the specified field path
+	FieldFilter *string `form:"fieldFilter,omitempty" json:"fieldFilter,omitempty"`
+
 	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
 	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
 }
@@ -878,6 +947,13 @@ type GetOrganizationDatabasesParams struct {
 	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
 	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
 
+	// FieldFilter Comma-separated list of filters to apply based on fields, which are composed using `AND`. Acceptable filter expressions are:
+	// * `fieldPath` - Only return resources that have a non-`null` value at the specified field path
+	// * `fieldPath=value` - Only return resources that have a matching value at the specified field path
+	// * `!fieldPath` - Only return resources that do have a `null` value at the specified field path
+	// * `fieldPath!=value` - Only return resources that do _not_ have a matching value at the specified field path
+	FieldFilter *string `form:"fieldFilter,omitempty" json:"fieldFilter,omitempty"`
+
 	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
 	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
 }
@@ -902,6 +978,13 @@ type GetDatabasesParams struct {
 	// * `!key` - Only return resources that do _not_ have label with specified key
 	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
 	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
+
+	// FieldFilter Comma-separated list of filters to apply based on fields, which are composed using `AND`. Acceptable filter expressions are:
+	// * `fieldPath` - Only return resources that have a non-`null` value at the specified field path
+	// * `fieldPath=value` - Only return resources that have a matching value at the specified field path
+	// * `!fieldPath` - Only return resources that do have a `null` value at the specified field path
+	// * `fieldPath!=value` - Only return resources that do _not_ have a matching value at the specified field path
+	FieldFilter *string `form:"fieldFilter,omitempty" json:"fieldFilter,omitempty"`
 
 	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
 	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
@@ -943,6 +1026,13 @@ type GetAllProjectsParams struct {
 	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
 	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
 
+	// FieldFilter Comma-separated list of filters to apply based on fields, which are composed using `AND`. Acceptable filter expressions are:
+	// * `fieldPath` - Only return resources that have a non-`null` value at the specified field path
+	// * `fieldPath=value` - Only return resources that have a matching value at the specified field path
+	// * `!fieldPath` - Only return resources that do have a `null` value at the specified field path
+	// * `fieldPath!=value` - Only return resources that do _not_ have a matching value at the specified field path
+	FieldFilter *string `form:"fieldFilter,omitempty" json:"fieldFilter,omitempty"`
+
 	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
 	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
 }
@@ -967,6 +1057,13 @@ type GetProjectsParams struct {
 	// * `!key` - Only return resources that do _not_ have label with specified key
 	// * `key!=value` - Only return resources that do _not_ have label with specified key set to value
 	LabelFilter *string `form:"labelFilter,omitempty" json:"labelFilter,omitempty"`
+
+	// FieldFilter Comma-separated list of filters to apply based on fields, which are composed using `AND`. Acceptable filter expressions are:
+	// * `fieldPath` - Only return resources that have a non-`null` value at the specified field path
+	// * `fieldPath=value` - Only return resources that have a matching value at the specified field path
+	// * `!fieldPath` - Only return resources that do have a `null` value at the specified field path
+	// * `fieldPath!=value` - Only return resources that do _not_ have a matching value at the specified field path
+	FieldFilter *string `form:"fieldFilter,omitempty" json:"fieldFilter,omitempty"`
 
 	// ListAccessible Whether to return any accessible sub-resources even if the current user does not have access privileges to list all resources at this level
 	ListAccessible *bool `form:"listAccessible,omitempty" json:"listAccessible,omitempty"`
