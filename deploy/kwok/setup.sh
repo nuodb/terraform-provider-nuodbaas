@@ -14,7 +14,7 @@ export KUBECONFIG
 : ${PROVISIONER_IMAGE:="ghcr.io/adriansuarez/noop-provisioner:latest"}
 
 : ${NUODB_CP_REPO:="https://nuodb.github.io/nuodb-cp-releases/charts"}
-: ${NUODB_CP_VERSION:="2.7.0"}
+: ${NUODB_CP_VERSION:="2.8.0"}
 : ${NUODB_CP_IMAGE:="ghcr.io/nuodb/nuodb-cp-images:$NUODB_CP_VERSION"}
 : ${NUODB_CP_USER:="system/admin"}
 : ${NUODB_CP_PASSWORD:="changeIt"}

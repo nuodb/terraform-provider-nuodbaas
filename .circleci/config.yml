@@ -175,13 +175,13 @@ workflows:
           name: Functional tests (Minikube)
           test-driver: minikube
       - functional_tests:
-          name: Functional tests (KWOK, 2.5.0)
+          name: Functional tests (KWOK, 2.6.1)
           test-driver: kwok
-          nuodb-cp-version: 2.5.0
-      - functional_tests:
-          name: Functional tests (Minikube, 2.6.1)
-          test-driver: minikube
           nuodb-cp-version: 2.6.1
+      - functional_tests:
+          name: Functional tests (Minikube, 2.7.0)
+          test-driver: minikube
+          nuodb-cp-version: 2.7.0
       - functional_tests:
           name: Functional tests (External DBaaS)
           test-driver: external
