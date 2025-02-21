@@ -797,6 +797,22 @@ func NewGetAllBackupPoliciesRequest(server string, params *GetAllBackupPoliciesP
 
 		}
 
+		if params.FieldFilter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "fieldFilter", runtime.ParamLocationQuery, *params.FieldFilter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.ListAccessible != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "listAccessible", runtime.ParamLocationQuery, *params.ListAccessible); err != nil {
@@ -920,6 +936,22 @@ func NewGetBackupPoliciesRequest(server string, organization string, params *Get
 		if params.LabelFilter != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "labelFilter", runtime.ParamLocationQuery, *params.LabelFilter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FieldFilter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "fieldFilter", runtime.ParamLocationQuery, *params.FieldFilter); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -1288,6 +1320,22 @@ func NewGetBackupsFromPolicyRequest(server string, organization string, policy s
 
 		}
 
+		if params.FieldFilter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "fieldFilter", runtime.ParamLocationQuery, *params.FieldFilter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.ListAccessible != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "listAccessible", runtime.ParamLocationQuery, *params.ListAccessible); err != nil {
@@ -1431,6 +1479,22 @@ func NewGetMatchingDatabasesRequest(server string, organization string, policy s
 
 		}
 
+		if params.FieldFilter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "fieldFilter", runtime.ParamLocationQuery, *params.FieldFilter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.ListAccessible != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "listAccessible", runtime.ParamLocationQuery, *params.ListAccessible); err != nil {
@@ -1547,6 +1611,22 @@ func NewGetAllBackupsRequest(server string, params *GetAllBackupsParams) (*http.
 		if params.LabelFilter != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "labelFilter", runtime.ParamLocationQuery, *params.LabelFilter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FieldFilter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "fieldFilter", runtime.ParamLocationQuery, *params.FieldFilter); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -1683,6 +1763,22 @@ func NewGetOrganizationBackupsRequest(server string, organization string, params
 		if params.LabelFilter != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "labelFilter", runtime.ParamLocationQuery, *params.LabelFilter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FieldFilter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "fieldFilter", runtime.ParamLocationQuery, *params.FieldFilter); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -1839,6 +1935,22 @@ func NewGetProjectBackupsRequest(server string, organization string, project str
 
 		}
 
+		if params.FieldFilter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "fieldFilter", runtime.ParamLocationQuery, *params.FieldFilter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.ListAccessible != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "listAccessible", runtime.ParamLocationQuery, *params.ListAccessible); err != nil {
@@ -1976,6 +2088,22 @@ func NewGetBackupsRequest(server string, organization string, project string, da
 		if params.LabelFilter != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "labelFilter", runtime.ParamLocationQuery, *params.LabelFilter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FieldFilter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "fieldFilter", runtime.ParamLocationQuery, *params.FieldFilter); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -2447,6 +2575,22 @@ func NewGetAllDatabasesRequest(server string, params *GetAllDatabasesParams) (*h
 
 		}
 
+		if params.FieldFilter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "fieldFilter", runtime.ParamLocationQuery, *params.FieldFilter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.ListAccessible != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "listAccessible", runtime.ParamLocationQuery, *params.ListAccessible); err != nil {
@@ -2570,6 +2714,22 @@ func NewGetOrganizationDatabasesRequest(server string, organization string, para
 		if params.LabelFilter != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "labelFilter", runtime.ParamLocationQuery, *params.LabelFilter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FieldFilter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "fieldFilter", runtime.ParamLocationQuery, *params.FieldFilter); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -2713,6 +2873,22 @@ func NewGetDatabasesRequest(server string, organization string, project string, 
 		if params.LabelFilter != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "labelFilter", runtime.ParamLocationQuery, *params.LabelFilter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FieldFilter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "fieldFilter", runtime.ParamLocationQuery, *params.FieldFilter); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -3178,6 +3354,22 @@ func NewGetAllProjectsRequest(server string, params *GetAllProjectsParams) (*htt
 
 		}
 
+		if params.FieldFilter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "fieldFilter", runtime.ParamLocationQuery, *params.FieldFilter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.ListAccessible != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "listAccessible", runtime.ParamLocationQuery, *params.ListAccessible); err != nil {
@@ -3301,6 +3493,22 @@ func NewGetProjectsRequest(server string, organization string, params *GetProjec
 		if params.LabelFilter != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "labelFilter", runtime.ParamLocationQuery, *params.LabelFilter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.FieldFilter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "fieldFilter", runtime.ParamLocationQuery, *params.FieldFilter); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
