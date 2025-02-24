@@ -17,7 +17,7 @@ terraform {
   required_providers {
     nuodbaas = {
       source  = "registry.terraform.io/nuodb/nuodbaas"
-      version = "1.4.0"
+      version = "1.5.0"
     }
   }
 }
