@@ -36,7 +36,7 @@ var (
 	// enable scraping of the version.
 	//
 	// For more information on GoReleaser, see https://goreleaser.com/cookbooks/using-main.version/
-	version string = "1.4.0" // {{version}}
+	version string = "1.5.0" // {{version}}
 )
 
 func main() {
