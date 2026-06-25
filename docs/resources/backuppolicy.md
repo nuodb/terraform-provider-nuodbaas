@@ -129,6 +129,7 @@ Optional:
 
 Read-Only:
 
+- `creation_time` (String) The time that the backup policy was created
 - `last_missed_backups` (Attributes List) The last database backups that were not scheduled by this policy (see [below for nested schema](#nestedatt--status--last_missed_backups))
 - `last_missed_schedule_time` (String) The time that backups were last missed by this policy
 - `last_schedule_time` (String) The time that backups were last taken by this policy
@@ -147,6 +148,8 @@ Read-Only:
 ## Import
 
 Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
 # An existing backup policy can be imported by specifying the organization

@@ -52,10 +52,79 @@ Read-Only:
 
 Read-Only:
 
+- `archive_disk_auto_resize` (Attributes) Resize the archive volumes automatically when a threshold is reached. (see [below for nested schema](#nestedatt--properties--archive_disk_auto_resize))
 - `archive_disk_size` (String) The size of the archive volumes for the database. Can be only updated to increase the volume size.
+- `journal_disk_auto_resize` (Attributes) Resize the journal volumes automatically when a threshold is reached. (see [below for nested schema](#nestedatt--properties--journal_disk_auto_resize))
 - `journal_disk_size` (String) The size of the journal volumes for the database. Can be only updated to increase the volume size.
 - `product_version` (String) The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb/tags. If omitted, the database version will be inherited from the project.
+- `product_version_selector` (Attributes) (see [below for nested schema](#nestedatt--properties--product_version_selector))
 - `tier_parameters` (Map of String) Opaque parameters supplied to database service tier.
+
+<a id="nestedatt--properties--archive_disk_auto_resize"></a>
+### Nested Schema for `properties.archive_disk_auto_resize`
+
+Read-Only:
+
+- `growth` (Attributes) Determines the new size of the volume. By default the volume size will be increased by 20% (or minimum of 1Gi). If maxSize is set, then the new volume size will be evaluated as the minimum of maxSize and result of applying the growth configuration. (see [below for nested schema](#nestedatt--properties--archive_disk_auto_resize--growth))
+- `initial_size` (String) The initial volume size.
+- `max_size` (String) The maximum volume size.
+- `threshold` (Attributes) The threshold at which the volume will be expanded. (see [below for nested schema](#nestedatt--properties--archive_disk_auto_resize--threshold))
+
+<a id="nestedatt--properties--archive_disk_auto_resize--growth"></a>
+### Nested Schema for `properties.archive_disk_auto_resize.growth`
+
+Read-Only:
+
+- `increment` (String) Increase the volume size by a constant number of bytes. Minimum accepted increment is 1Gi.
+- `scale` (String) Increase the volume size by a factor of the current size.
+
+
+<a id="nestedatt--properties--archive_disk_auto_resize--threshold"></a>
+### Nested Schema for `properties.archive_disk_auto_resize.threshold`
+
+Read-Only:
+
+- `bytes_available` (String) Threshold in number of available bytes at which volume expansion is performed.
+- `percentage_available` (Number) Threshold in percentage of available disk space at which volume expansion is performed.
+
+
+
+<a id="nestedatt--properties--journal_disk_auto_resize"></a>
+### Nested Schema for `properties.journal_disk_auto_resize`
+
+Read-Only:
+
+- `growth` (Attributes) Determines the new size of the volume. By default the volume size will be increased by 20% (or minimum of 1Gi). If maxSize is set, then the new volume size will be evaluated as the minimum of maxSize and result of applying the growth configuration. (see [below for nested schema](#nestedatt--properties--journal_disk_auto_resize--growth))
+- `initial_size` (String) The initial volume size.
+- `max_size` (String) The maximum volume size.
+- `threshold` (Attributes) The threshold at which the volume will be expanded. (see [below for nested schema](#nestedatt--properties--journal_disk_auto_resize--threshold))
+
+<a id="nestedatt--properties--journal_disk_auto_resize--growth"></a>
+### Nested Schema for `properties.journal_disk_auto_resize.growth`
+
+Read-Only:
+
+- `increment` (String) Increase the volume size by a constant number of bytes. Minimum accepted increment is 1Gi.
+- `scale` (String) Increase the volume size by a factor of the current size.
+
+
+<a id="nestedatt--properties--journal_disk_auto_resize--threshold"></a>
+### Nested Schema for `properties.journal_disk_auto_resize.threshold`
+
+Read-Only:
+
+- `bytes_available` (String) Threshold in number of available bytes at which volume expansion is performed.
+- `percentage_available` (Number) Threshold in percentage of available disk space at which volume expansion is performed.
+
+
+
+<a id="nestedatt--properties--product_version_selector"></a>
+### Nested Schema for `properties.product_version_selector`
+
+Read-Only:
+
+- `matches_tag` (String) The version metadata tag to match.
+
 
 
 <a id="nestedatt--restore_from"></a>
@@ -72,6 +141,8 @@ Read-Only:
 Read-Only:
 
 - `ca_pem` (String) The PEM-encoded certificate for SQL clients to verify database servers
+- `creation_time` (String) The time that the database was created
+- `last_state_transition_time` (String) The time that the last state transition occurred
 - `message` (String) Message summarizing the state of the database
 - `ready` (Boolean) Whether the database is ready
 - `shutdown` (Boolean) Whether the database has shutdown
@@ -87,3 +158,4 @@ Read-Only:
   * `Deleting` - The database has been marked for deletion, which is in progress
   * `Restoring` - Restore from backup is in progress for this database
   * `RotatingCertificates` - TLS certificates rotation is in progress for this database
+  * `Upgrading` - Database version upgrade is in progress

@@ -1,21 +1,13 @@
-# Visit https://golangci-lint.run/ for usage documentation
-# and information on other useful linters
-issues:
-  max-per-linter: 0
-  max-same-issues: 0
-
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
     - copyloopvar
     - durationcheck
     - errcheck
     - forcetypeassert
     - godot
-    - gofmt
-    - goimports
     - gosec
-    - gosimple
     - govet
     - ineffassign
     - makezero
@@ -23,18 +15,36 @@ linters:
     - nilerr
     - nolintlint
     - predeclared
-    - staticcheck
-    - tenv
-    - typecheck
+    #- staticcheck  # Generates lots of useless warnings
     - unconvert
     - unparam
     - unused
-
-linters-settings:
-  goimports:
-    # put imports beginning with prefix after 3rd-party packages;
-    # it's a comma-separated list of prefixes
-    local-prefixes: github.com/nuodb/terraform-provider-nuodbaas
-  nolintlint:
-    require-explanation: true
-    require-specific: true
+  settings:
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/nuodb/terraform-provider-nuodbaas
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

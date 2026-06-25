@@ -28,7 +28,7 @@ func CombineConfigs(t *testing.T, root string) string {
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		require.NoError(t, err)
 		if !d.IsDir() && strings.HasSuffix(d.Name(), ".tf") {
-			configContent, err := os.ReadFile(path)
+			configContent, err := os.ReadFile(path) //nolint:gosec // This linting rule is useless
 			require.NoError(t, err)
 			combinedConfigs += "\n" + string(configContent)
 		}

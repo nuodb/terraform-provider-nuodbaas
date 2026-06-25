@@ -59,6 +59,7 @@ Read-Only:
 - `database_product_version` (String) The product version of the database that the backup belongs to
 - `message` (String) Message summarizing the state of the backup
 - `ready_to_use` (Boolean) Whether the backup is ready to be used to restore a database
+- `requested_time` (String) The time that the backup was requested
 - `retained_as` (List of String) The matching retention cycles by this backup
 - `state` (String) The state of the backup:
   * `Pending` - The backup is pending completion

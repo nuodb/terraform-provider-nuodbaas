@@ -32,7 +32,7 @@ resource "nuodbaas_project" "proj" {
     flavor = "mild"
   }
   properties = {
-    product_version = "5.1"
+    product_version = "8.0"
     tier_parameters = {
       zone  = "us-east"
       group = "dev"
@@ -75,7 +75,16 @@ Optional:
 Optional:
 
 - `product_version` (String) The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb/tags. If omitted, the project version will be resolved based on the SLA and cluster configuration.
+- `product_version_selector` (Attributes) (see [below for nested schema](#nestedatt--properties--product_version_selector))
 - `tier_parameters` (Map of String) Opaque parameters supplied to project service tier.
+
+<a id="nestedatt--properties--product_version_selector"></a>
+### Nested Schema for `properties.product_version_selector`
+
+Optional:
+
+- `matches_tag` (String) The version metadata tag to match.
+
 
 
 <a id="nestedatt--status"></a>
@@ -84,6 +93,8 @@ Optional:
 Read-Only:
 
 - `ca_pem` (String) The PEM-encoded certificate for SQL clients to verify database servers within the project
+- `creation_time` (String) The time that the project was created
+- `last_state_transition_time` (String) The time that the last state transition occurred
 - `message` (String) Message summarizing the state of the project
 - `ready` (Boolean) Whether the project is ready
 - `shutdown` (Boolean) Whether the project and all of its databases have shutdown
@@ -97,10 +108,13 @@ Read-Only:
   * `Failed` - The project has failed to achieve a usable state
   * `Deleting` - The project has been marked for deletion, which is in progress
   * `RotatingCertificates` - TLS certificates rotation is in progress for this domain
+  * `Upgrading` - Project version upgrade is in progress
 
 ## Import
 
 Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
 # An existing project can be imported by specifying the organization
