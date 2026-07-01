@@ -17,7 +17,7 @@ resource "nuodbaas_project" "proj" {
     flavor = "mild"
   }
   properties = {
-    product_version = "5.1"
+    product_version = "8.0"
     tier_parameters = {
       zone  = "us-east"
       group = "dev"

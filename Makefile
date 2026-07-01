@@ -8,13 +8,14 @@ export OUTPUT_DIR ?= $(TMP_DIR)/test-artifacts
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 
-TERRAFORM_VERSION ?= 1.9.6
-TOFU_VERSION ?= 1.8.2
-KUBECTL_VERSION ?= 1.31.1
-KWOKCTL_VERSION ?= 0.6.0
-HELM_VERSION ?= 3.16.1
-MINIKUBE_VERSION ?= 1.34.0
-NUODB_CP_VERSION ?= 2.8.0
+TERRAFORM_VERSION ?= 1.15.7
+TOFU_VERSION ?= 1.12.3
+KUBECTL_VERSION ?= 1.36.2
+KWOKCTL_VERSION ?= 0.8.0
+HELM_VERSION ?= 4.2.2
+MINIKUBE_VERSION ?= 1.38.1
+GOLANGCI_LINT_VERSION ?= 2.12.2
+NUODB_CP_VERSION ?= 2.12.2
 
 GOTESTSUM := bin/gotestsum
 TFPLUGINDOCS := bin/tfplugindocs
@@ -87,6 +88,12 @@ $(MINIKUBE):
 	curl -L -s https://storage.googleapis.com/minikube/releases/v$(MINIKUBE_VERSION)/minikube-$(OS)-$(ARCH) -o $(MINIKUBE)
 	chmod +x $(MINIKUBE)
 
+$(GOLANGCI_LINT):
+	mkdir -p bin
+	curl -L -s https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_LINT_VERSION)/golangci-lint-$(GOLANGCI_LINT_VERSION)-$(OS)-$(ARCH).tar.gz \
+		| tar -xzf - -O golangci-lint-$(GOLANGCI_LINT_VERSION)-$(OS)-$(ARCH)/golangci-lint > $(GOLANGCI_LINT)
+	chmod +x $(GOLANGCI_LINT)
+
 $(NUODB_CP):
 	mkdir -p bin
 	curl -L -s https://github.com/nuodb/nuodb-cp-releases/releases/download/v$(NUODB_CP_VERSION)/nuodb-cp -o $(NUODB_CP)
@@ -95,10 +102,23 @@ $(NUODB_CP):
 bin/%:
 	$(MAKE) install-tools
 
+TOOLS := \
+	github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.7.1 \
+	github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.25.0 \
+	gotest.tools/gotestsum@v1.13.0
+
 .PHONY: install-tools
-install-tools: ## Install tools declared as dependencies in tools.go
-	@echo "Installing build tools declared in tools.go..."
-	@go list -e -f '{{range .Imports}}{{.}} {{end}}' tools.go | GOBIN=$(BIN_DIR) xargs go install
+install-tools: ## Install build tools
+	@for tool in $(TOOLS); do GOBIN=$(BIN_DIR) go install $$tool; done
+
+.PHONY: latest-tool-versions
+latest-tool-versions: ## Show latest versions for build tools
+	@for tool in $(TOOLS); do echo $${tool%@*} | sed 's|/cmd/.*||' | xargs go list -m -versions | sed "s|.* |$${tool%@*}@|"; done
+
+.PHONY: update-dependencies
+update-dependencies: ## Update dependency versions
+	go list -m -f "{{if and .Version (not .Indirect)}}{{.Path}}{{end}}" all | xargs go get -u
+	go mod tidy
 
 ##@ Development
 

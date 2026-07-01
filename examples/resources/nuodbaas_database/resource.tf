@@ -18,10 +18,16 @@ resource "nuodbaas_database" "db" {
     flavor = "bold"
   }
   properties = {
-    archive_disk_size = "10Gi"
+    journal_disk_size = "1Gi"
     tier_parameters = {
       zones        = jsonencode(["us-east-2a", "us-east-2c"])
       capacityType = "spot"
+    }
+    archive_disk_auto_resize = {
+      max_size = "500Gi"
+      threshold = {
+        percentage_available = 5
+      }
     }
   }
 }

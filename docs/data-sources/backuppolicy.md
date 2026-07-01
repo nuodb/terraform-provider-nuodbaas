@@ -89,6 +89,7 @@ Read-Only:
 
 Read-Only:
 
+- `creation_time` (String) The time that the backup policy was created
 - `last_missed_backups` (Attributes List) The last database backups that were not scheduled by this policy (see [below for nested schema](#nestedatt--status--last_missed_backups))
 - `last_missed_schedule_time` (String) The time that backups were last missed by this policy
 - `last_schedule_time` (String) The time that backups were last taken by this policy

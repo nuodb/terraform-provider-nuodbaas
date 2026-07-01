@@ -111,7 +111,7 @@ resource "nuodbaas_database" "db" {
     organization = "org"
     project      = "proj"
     properties   = {
-        product_version = "5.0"
+        product_version = "8.0"
         tier_parameters = {}
     }
     status       = {

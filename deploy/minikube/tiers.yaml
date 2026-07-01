@@ -5,6 +5,9 @@ metadata:
 spec:
   values:
     admin:
+      license:
+        secret: nuodb-license
+        key: nuodb.lic
       replicas: 1
       resources:
         limits:

@@ -4,7 +4,7 @@ executors:
   go:
     # Check https://circleci.com/developer/images/image/cimg/go for more details
     docker:
-      - image: cimg/go:1.23.1
+      - image: cimg/go:1.26.4
     resource_class: << parameters.resource_class >>
     parameters:
       resource_class:
@@ -14,7 +14,7 @@ executors:
 
   ubuntu_vm:
     machine:
-      image: ubuntu-2404:2024.05.1
+      image: ubuntu-2604:2026.05.1
     resource_class: << parameters.resource_class >>
     parameters:
       resource_class:
@@ -73,7 +73,7 @@ jobs:
         description: |
           The version of the NuoDB Control Plane to test against.
         type: string
-        default: 2.7.0
+        default: 2.12.2
       executor-name:
         description: |
           The name of the executor.
@@ -116,7 +116,7 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints:
-            - "SHA256:b6Diu+dTKXL7N/Y8u3PElZ0sZxk4M+vK9Vb96O6X6ZM"
+            - "SHA256:RT4PUqCZMR0/ApbDzMDLKh5NBjilI3+DdCP/SaXt22k"
       - run:
           name: "Checkout NuoDB Control Plane repo and build image"
           command: |
@@ -174,14 +174,18 @@ workflows:
       - functional_tests:
           name: Functional tests (Minikube)
           test-driver: minikube
+          context:
+            - common-config
       - functional_tests:
-          name: Functional tests (KWOK, 2.6.1)
+          name: Functional tests (KWOK, 2.10.0)
           test-driver: kwok
-          nuodb-cp-version: 2.6.1
+          nuodb-cp-version: 2.10.0
       - functional_tests:
-          name: Functional tests (Minikube, 2.7.0)
+          name: Functional tests (Minikube, 2.11.2)
           test-driver: minikube
-          nuodb-cp-version: 2.7.0
+          nuodb-cp-version: 2.11.2
+          context:
+            - common-config
       - functional_tests:
           name: Functional tests (External DBaaS)
           test-driver: external

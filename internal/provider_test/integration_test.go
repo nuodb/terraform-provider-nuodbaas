@@ -286,7 +286,7 @@ func TestFullLifecycle(t *testing.T) {
 	vars.database.Labels = &map[string]string{
 		"priority": "high",
 	}
-	productVersion := "5.1"
+	productVersion := "8.0"
 	var expectedProductVersion string
 	// Avoid triggering rolling upgrade if real processes are being started,
 	// since this will result in the database transitioning back and forth
