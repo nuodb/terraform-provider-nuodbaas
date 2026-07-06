@@ -57,7 +57,6 @@ Read-Only:
 - `journal_disk_auto_resize` (Attributes) Resize the journal volumes automatically when a threshold is reached. (see [below for nested schema](#nestedatt--properties--journal_disk_auto_resize))
 - `journal_disk_size` (String) The size of the journal volumes for the database. Can be only updated to increase the volume size.
 - `product_version` (String) The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb/tags. If omitted, the database version will be inherited from the project.
-- `product_version_selector` (Attributes) (see [below for nested schema](#nestedatt--properties--product_version_selector))
 - `tier_parameters` (Map of String) Opaque parameters supplied to database service tier.
 
 <a id="nestedatt--properties--archive_disk_auto_resize"></a>
@@ -116,14 +115,6 @@ Read-Only:
 - `bytes_available` (String) Threshold in number of available bytes at which volume expansion is performed.
 - `percentage_available` (Number) Threshold in percentage of available disk space at which volume expansion is performed.
 
-
-
-<a id="nestedatt--properties--product_version_selector"></a>
-### Nested Schema for `properties.product_version_selector`
-
-Read-Only:
-
-- `matches_tag` (String) The version metadata tag to match.
 
 
 

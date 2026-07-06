@@ -51,16 +51,7 @@ Read-Only:
 Read-Only:
 
 - `product_version` (String) The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb/tags. If omitted, the project version will be resolved based on the SLA and cluster configuration.
-- `product_version_selector` (Attributes) (see [below for nested schema](#nestedatt--properties--product_version_selector))
 - `tier_parameters` (Map of String) Opaque parameters supplied to project service tier.
-
-<a id="nestedatt--properties--product_version_selector"></a>
-### Nested Schema for `properties.product_version_selector`
-
-Read-Only:
-
-- `matches_tag` (String) The version metadata tag to match.
-
 
 
 <a id="nestedatt--status"></a>

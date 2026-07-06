@@ -11374,17 +11374,9 @@ components:
           pattern: "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$"
           type: string
           description: The version metadata tag to match.
-          x-tf-name: matches_tag
-          x-oapi-codegen-extra-tags:
-            cty: matches_tag
-            hcl: matches_tag
-            tfsdk: matches_tag
           x-order: 0
-      x-tf-name: product_version_selector
       x-oapi-codegen-extra-tags:
-        cty: product_version_selector
-        hcl: product_version_selector
-        tfsdk: product_version_selector
+        tfsdk: "-"
     DatabaseCreateUpdateModel:
       required:
       - name

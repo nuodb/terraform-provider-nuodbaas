@@ -24,7 +24,8 @@ resource "nuodbaas_database" "db" {
       capacityType = "spot"
     }
     archive_disk_auto_resize = {
-      max_size = "500Gi"
+      initial_size = "20Gi"
+      max_size     = "500Gi"
       threshold = {
         percentage_available = 5
       }

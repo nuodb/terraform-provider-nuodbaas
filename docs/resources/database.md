@@ -39,7 +39,8 @@ resource "nuodbaas_database" "db" {
       capacityType = "spot"
     }
     archive_disk_auto_resize = {
-      max_size = "500Gi"
+      initial_size = "20Gi"
+      max_size     = "500Gi"
       threshold = {
         percentage_available = 5
       }
@@ -88,7 +89,6 @@ Optional:
 - `journal_disk_auto_resize` (Attributes) Resize the journal volumes automatically when a threshold is reached. (see [below for nested schema](#nestedatt--properties--journal_disk_auto_resize))
 - `journal_disk_size` (String) The size of the journal volumes for the database. Can be only updated to increase the volume size.
 - `product_version` (String) The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb/tags. If omitted, the database version will be inherited from the project.
-- `product_version_selector` (Attributes) (see [below for nested schema](#nestedatt--properties--product_version_selector))
 - `tier_parameters` (Map of String) Opaque parameters supplied to database service tier.
 
 <a id="nestedatt--properties--archive_disk_auto_resize"></a>
@@ -153,14 +153,6 @@ Optional:
 - `increment` (String) Increase the volume size by a constant number of bytes. Minimum accepted increment is 1Gi.
 - `scale` (String) Increase the volume size by a factor of the current size.
 
-
-
-<a id="nestedatt--properties--product_version_selector"></a>
-### Nested Schema for `properties.product_version_selector`
-
-Optional:
-
-- `matches_tag` (String) The version metadata tag to match.
 
 
 
