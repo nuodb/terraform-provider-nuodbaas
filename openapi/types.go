@@ -527,7 +527,7 @@ type DatabasePropertiesModel struct {
 
 	// JournalDiskAutoResize Resize the journal volumes automatically when a threshold is reached.
 	JournalDiskAutoResize  *JournalDiskAutoResizeModel `cty:"journal_disk_auto_resize" hcl:"journal_disk_auto_resize" json:"journalDiskAutoResize,omitempty" tfsdk:"journal_disk_auto_resize"`
-	ProductVersionSelector *VersionSelectorModel       `cty:"product_version_selector" hcl:"product_version_selector" json:"productVersionSelector,omitempty" tfsdk:"product_version_selector"`
+	ProductVersionSelector *VersionSelectorModel       `json:"productVersionSelector,omitempty" tfsdk:"-"`
 }
 
 // DatabaseStatusModel defines model for DatabaseStatusModel.
@@ -751,7 +751,7 @@ type ProjectPropertiesModel struct {
 
 	// ProductVersion The version/tag of the NuoDB image to use. For available tags, see https://hub.docker.com/r/nuodb/nuodb/tags. If omitted, the project version will be resolved based on the SLA and cluster configuration.
 	ProductVersion         *string               `cty:"product_version" hcl:"product_version" json:"productVersion,omitempty" tfsdk:"product_version"`
-	ProductVersionSelector *VersionSelectorModel `cty:"product_version_selector" hcl:"product_version_selector" json:"productVersionSelector,omitempty" tfsdk:"product_version_selector"`
+	ProductVersionSelector *VersionSelectorModel `json:"productVersionSelector,omitempty" tfsdk:"-"`
 }
 
 // ProjectStatusModel defines model for ProjectStatusModel.
@@ -883,7 +883,7 @@ type UpdateDbaPasswordModel struct {
 // VersionSelectorModel defines model for VersionSelectorModel.
 type VersionSelectorModel struct {
 	// MatchesTag The version metadata tag to match.
-	MatchesTag *string `cty:"matches_tag" hcl:"matches_tag" json:"matchesTag,omitempty" tfsdk:"matches_tag"`
+	MatchesTag *string `json:"matchesTag,omitempty"`
 }
 
 // basicAuthContextKey is the context key for basicAuth security scheme
