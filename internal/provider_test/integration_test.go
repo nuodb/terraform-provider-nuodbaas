@@ -134,6 +134,10 @@ func getTestServiceTier() string {
 	return getEnvOrDefault("E2E_TEST_TIER", "n0.nano")
 }
 
+func getTestServiceTierUp() string {
+	return getEnvOrDefault("E2E_TEST_TIER_UP", "n0.small")
+}
+
 type testVars struct {
 	providerCfg NuoDbaasProviderModel
 	project     ProjectResourceModel
@@ -293,7 +297,7 @@ func TestFullLifecycle(t *testing.T) {
 
 	// Update database config attributes (tier, labels, and product_version)
 	// and execute `terraform apply`
-	tier := "n0.small"
+	tier := getTestServiceTierUp()
 	vars.database.Tier = &tier
 	vars.database.Labels = &map[string]string{
 		"priority": "high",
