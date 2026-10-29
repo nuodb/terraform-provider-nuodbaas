@@ -606,12 +606,13 @@ func TestBackupPolicy(t *testing.T) {
 		HasAttributeValue("policies", nil)
 
 	// Update backup policy resource
+	tier := getTestServiceTier()
 	policy.Labels = &map[string]string{
 		"rpo":     "1h",
 		"purpose": "test",
 	}
 	policy.Selector.Slas = &[]string{"dev", "qa", "prod"}
-	policy.Selector.Tiers = &[]string{"n0.nano", "n0.small", "n1.small"}
+	policy.Selector.Tiers = &[]string{tier}
 	policy.Selector.Labels = &map[string]string{
 		"backup-schedule": "hourly",
 	}
@@ -637,7 +638,7 @@ func TestBackupPolicy(t *testing.T) {
 		HasAttributeValue("frequency", policy.Frequency).
 		HasAttributeValue("selector.scope", policy.Selector.Scope).
 		HasAttributeValue("selector.slas", []any{"dev", "qa", "prod"}).
-		HasAttributeValue("selector.tiers", []any{"n0.nano", "n0.small", "n1.small"}).
+		HasAttributeValue("selector.tiers", []any{tier}).
 		HasAttributeValue("selector.labels", map[string]any{"backup-schedule": "hourly"}).
 		HasAttributeValue("retention.hourly", float64(24)).
 		HasAttributeValue("retention.daily", float64(7)).
@@ -653,7 +654,7 @@ func TestBackupPolicy(t *testing.T) {
 		HasAttributeValue("frequency", policy.Frequency).
 		HasAttributeValue("selector.scope", policy.Selector.Scope).
 		HasAttributeValue("selector.slas", []any{"dev", "qa", "prod"}).
-		HasAttributeValue("selector.tiers", []any{"n0.nano", "n0.small", "n1.small"}).
+		HasAttributeValue("selector.tiers", []any{tier}).
 		HasAttributeValue("selector.labels", map[string]any{"backup-schedule": "hourly"}).
 		HasAttributeValue("retention.hourly", float64(24)).
 		HasAttributeValue("retention.daily", float64(7)).
