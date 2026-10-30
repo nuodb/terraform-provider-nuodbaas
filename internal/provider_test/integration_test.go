@@ -122,6 +122,22 @@ func setDefaultResourceTimeouts(providerCfg *NuoDbaasProviderModel) {
 	}
 }
 
+func getEnvOrDefault(key, defaultValue string) string {
+	value, ok := os.LookupEnv(key)
+	if !ok || len(value) == 0 {
+		return defaultValue
+	}
+	return value
+}
+
+func getTestServiceTier() string {
+	return getEnvOrDefault("E2E_TEST_TIER", "n0.nano")
+}
+
+func getTestServiceTierUp() string {
+	return getEnvOrDefault("E2E_TEST_TIER_UP", "n0.small")
+}
+
 type testVars struct {
 	providerCfg NuoDbaasProviderModel
 	project     ProjectResourceModel
@@ -141,7 +157,7 @@ func (vars *testVars) resetVars() {
 		Organization: orgName,
 		Name:         projectName,
 		Sla:          "dev",
-		Tier:         "n0.nano",
+		Tier:         getTestServiceTier(),
 	}
 	vars.database = DatabaseResourceModel{
 		Organization: orgName,
@@ -216,7 +232,7 @@ func TestFullLifecycle(t *testing.T) {
 	require.Equal(t, vars.project.Organization, actualProject.Organization)
 	require.Equal(t, vars.project.Name, actualProject.Name)
 	require.Equal(t, "dev", actualProject.Sla)
-	require.Equal(t, "n0.nano", actualProject.Tier)
+	require.Equal(t, getTestServiceTier(), actualProject.Tier)
 	require.NotNil(t, actualProject.Status)
 	require.NotNil(t, actualProject.Status.CaPem)
 	require.NotNil(t, actualProject.Status.State)
@@ -229,7 +245,7 @@ func TestFullLifecycle(t *testing.T) {
 	require.Equal(t, vars.project.Name, actualDatabase.Project)
 	require.Equal(t, "db", actualDatabase.Name)
 	require.NotNil(t, actualDatabase.Tier)
-	require.Equal(t, "n0.nano", *actualDatabase.Tier)
+	require.Equal(t, getTestServiceTier(), *actualDatabase.Tier)
 	require.NotNil(t, actualDatabase.Status)
 	require.NotNil(t, actualDatabase.Status.CaPem)
 	require.NotNil(t, actualDatabase.Status.State)
@@ -255,7 +271,7 @@ func TestFullLifecycle(t *testing.T) {
 		HasAttributeValue("project", vars.project.Name).
 		HasAttributeValue("name", "db").
 		HasAttributeValue("labels", map[string]any{}).
-		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("tier", getTestServiceTier()).
 		HasAttribute("properties.product_version").
 		HasAttribute("status.sql_endpoint").
 		HasAttributeValue("status.state", string(openapi.DatabaseStatusModelStateAvailable)).
@@ -281,7 +297,7 @@ func TestFullLifecycle(t *testing.T) {
 
 	// Update database config attributes (tier, labels, and product_version)
 	// and execute `terraform apply`
-	tier := "n0.small"
+	tier := getTestServiceTierUp()
 	vars.database.Tier = &tier
 	vars.database.Labels = &map[string]string{
 		"priority": "high",
@@ -457,12 +473,14 @@ func TestAttributeSerialization(t *testing.T) {
 	_, err = tf.Apply()
 	require.NoError(t, err)
 
+	tier := getTestServiceTier()
+
 	// Check attributes in project resource and data source
 	checkResourceAndDataSource(t, "nuodbaas_project.proj", tf, func(ac *AttributeChecker) {
 		ac.HasAttributeValue("organization", vars.project.Organization).
 			HasAttributeValue("name", vars.project.Name).
 			HasAttributeValue("sla", "dev").
-			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("tier", tier).
 			HasAttributeValue("labels", map[string]any{}).
 			HasAttribute("properties.product_version").
 			DoesNotHaveAttribute("maintenance").
@@ -475,7 +493,7 @@ func TestAttributeSerialization(t *testing.T) {
 		ac.HasAttributeValue("organization", vars.project.Organization).
 			HasAttributeValue("project", vars.project.Name).
 			HasAttributeValue("name", "db").
-			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("tier", tier).
 			HasAttributeValue("labels", map[string]any{}).
 			HasAttribute("properties.product_version").
 			DoesNotHaveAttribute("maintenance").
@@ -532,7 +550,7 @@ func TestAttributeSerialization(t *testing.T) {
 		ac.HasAttributeValue("organization", vars.project.Organization).
 			HasAttributeValue("name", vars.project.Name).
 			HasAttributeValue("sla", "dev").
-			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("tier", tier).
 			HasAttributeValue("labels", map[string]any{"one": "1", "two": "2"}).
 			HasAttributeValue("properties.tier_parameters.zones", `["us-east-1", "us-east-2"]`).
 			HasAttributeValue("properties.tier_parameters.adminReplicas", "3").
@@ -547,7 +565,7 @@ func TestAttributeSerialization(t *testing.T) {
 		ac.HasAttributeValue("organization", vars.project.Organization).
 			HasAttributeValue("project", vars.project.Name).
 			HasAttributeValue("name", "db").
-			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("tier", tier).
 			HasAttributeValue("labels", map[string]any{"one": "1", "two": "2"}).
 			HasAttributeValue("properties.archive_disk_size", "100Gi").
 			HasAttributeValue("properties.journal_disk_size", "10Gi").
@@ -576,7 +594,7 @@ func TestAttributeSerialization(t *testing.T) {
 		ac.HasAttributeValue("organization", vars.project.Organization).
 			HasAttributeValue("name", vars.project.Name).
 			HasAttributeValue("sla", "dev").
-			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("tier", tier).
 			HasAttributeValue("labels", map[string]any{"one": "1", "two": "2"}).
 			HasAttributeValue("properties.tier_parameters.zones", `["us-east-1", "us-east-2"]`).
 			HasAttributeValue("properties.tier_parameters.adminReplicas", "3").
@@ -591,7 +609,7 @@ func TestAttributeSerialization(t *testing.T) {
 		ac.HasAttributeValue("organization", vars.project.Organization).
 			HasAttributeValue("project", vars.project.Name).
 			HasAttributeValue("name", "db").
-			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("tier", tier).
 			HasAttributeValue("labels", map[string]any{"one": "1", "two": "2"}).
 			HasAttributeValue("properties.archive_disk_size", "100Gi").
 			HasAttributeValue("properties.journal_disk_size", "10Gi").
@@ -620,7 +638,7 @@ func TestAttributeSerialization(t *testing.T) {
 		ac.HasAttributeValue("organization", vars.project.Organization).
 			HasAttributeValue("name", vars.project.Name).
 			HasAttributeValue("sla", "dev").
-			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("tier", tier).
 			HasAttributeValue("labels", map[string]any{}).
 			HasAttributeValue("properties.tier_parameters", map[string]any{}).
 			HasAttributeValue("properties.product_version", "6.0").
@@ -634,7 +652,7 @@ func TestAttributeSerialization(t *testing.T) {
 		ac.HasAttributeValue("organization", vars.project.Organization).
 			HasAttributeValue("project", vars.project.Name).
 			HasAttributeValue("name", "db").
-			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("tier", tier).
 			HasAttributeValue("labels", map[string]any{}).
 			HasAttributeValue("properties.archive_disk_size", "100Gi").
 			HasAttributeValue("properties.journal_disk_size", "10Gi").
@@ -901,6 +919,7 @@ func TestNegative(t *testing.T) {
 	require.Contains(t, string(out), "Unable to create project")
 	require.Contains(t, string(out), "409 Conflict")
 	vars.builder.WithoutProjectResource("dup")
+	tier := getTestServiceTier()
 
 	// Run `terraform apply` on valid config to create resources
 	tf.WriteConfigT(t, vars.builder.Build())
@@ -908,23 +927,23 @@ func TestNegative(t *testing.T) {
 	require.NoError(t, err)
 	// Sample some values in state file to validate
 	tf.CheckStateResource(t, "nuodbaas_database.db").
-		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("tier", tier).
 		HasAttribute("status.ca_pem").
 		HasAttribute("status.state").
 		HasAttribute("status.ready")
 	tf.CheckStateResource(t, "data.nuodbaas_database.db").
-		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("tier", tier).
 		HasAttribute("status.ca_pem").
 		HasAttribute("status.state").
 		HasAttribute("status.ready")
 	tf.CheckStateResource(t, "nuodbaas_project.proj").
 		HasAttributeValue("sla", "dev").
-		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("tier", tier).
 		HasAttribute("status.state").
 		HasAttribute("status.ready")
 	tf.CheckStateResource(t, "data.nuodbaas_project.proj").
 		HasAttributeValue("sla", "dev").
-		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("tier", tier).
 		HasAttribute("status.state").
 		HasAttribute("status.ready")
 
@@ -1014,7 +1033,7 @@ func TestNegative(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, string(out), "Unable to update project")
 	require.Contains(t, string(out), "400 Bad Request")
-	vars.project.Tier = "n0.nano"
+	vars.project.Tier = getTestServiceTier()
 
 	t.Run("deleteProjectWithDatabase", func(t *testing.T) {
 		client, err := vars.providerCfg.CreateClient()
@@ -1059,7 +1078,7 @@ func TestNegative(t *testing.T) {
 			require.Contains(t, string(out), fmt.Sprintf("Project %s/%s failed: ", vars.project.Organization, vars.project.Name))
 
 			// Specify non-existent database tier and check that it goes into failed state
-			vars.project.Tier = "n0.nano"
+			vars.project.Tier = getTestServiceTier()
 			vars.database.Tier = ptr("n5.huge")
 			tf.WriteConfigT(t, vars.builder.Build())
 			out, err = tf.Apply()
@@ -1098,25 +1117,26 @@ func TestImmutableAttributeChange(t *testing.T) {
 	tf.WriteConfigT(t, vars.builder.Build())
 	_, err = tf.Apply()
 	require.NoError(t, err)
+	tier := getTestServiceTier()
 	// Sample some values in state file to validate
 	tf.CheckStateResource(t, "nuodbaas_database.db").
-		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("tier", tier).
 		HasAttribute("status.ca_pem").
 		HasAttribute("status.state").
 		HasAttribute("status.ready")
 	tf.CheckStateResource(t, "data.nuodbaas_database.db").
-		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("tier", tier).
 		HasAttribute("status.ca_pem").
 		HasAttribute("status.state").
 		HasAttribute("status.ready")
 	tf.CheckStateResource(t, "nuodbaas_project.proj").
 		HasAttributeValue("sla", "dev").
-		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("tier", tier).
 		HasAttribute("status.state").
 		HasAttribute("status.ready")
 	tf.CheckStateResource(t, "data.nuodbaas_project.proj").
 		HasAttributeValue("sla", "dev").
-		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("tier", tier).
 		HasAttribute("status.state").
 		HasAttribute("status.ready")
 
@@ -1248,21 +1268,21 @@ func TestImmutableAttributeChange(t *testing.T) {
 
 		// Validate Terraform state and check that project has updated SLA value
 		tf.CheckStateResource(t, "nuodbaas_database.db").
-			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("tier", tier).
 			HasAttribute("status.state").
 			HasAttribute("status.ready")
 		tf.CheckStateResource(t, "data.nuodbaas_database.db").
-			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("tier", tier).
 			HasAttribute("status.state").
 			HasAttribute("status.ready")
 		tf.CheckStateResource(t, "nuodbaas_project.proj").
 			HasAttributeValue("sla", "qa").
-			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("tier", tier).
 			HasAttribute("status.state").
 			HasAttribute("status.ready")
 		tf.CheckStateResource(t, "data.nuodbaas_project.proj").
 			HasAttributeValue("sla", "qa").
-			HasAttributeValue("tier", "n0.nano").
+			HasAttributeValue("tier", tier).
 			HasAttribute("status.state").
 			HasAttribute("status.ready")
 	})
@@ -1280,7 +1300,7 @@ func TestImport(t *testing.T) {
 		Organization: vars.project.Organization,
 		Name:         vars.project.Name,
 		Sla:          "dev",
-		Tier:         "n0.nano",
+		Tier:         getTestServiceTier(),
 	}
 	ctx := context.Background()
 	err = project.Create(ctx, client)
@@ -1345,17 +1365,18 @@ func TestImport(t *testing.T) {
 	out, err = tf.Run("import", "nuodbaas_database.db", vars.project.Organization+"/"+vars.project.Name+"/db")
 	require.NoError(t, err)
 	require.Contains(t, string(out), "Import successful!")
+	tier := getTestServiceTier()
 
 	// Verify that project and database are in state
 	tf.CheckStateResource(t, "nuodbaas_project.proj").
 		HasAttributeValue("organization", vars.project.Organization).
 		HasAttributeValue("name", vars.project.Name).
-		HasAttributeValue("tier", "n0.nano")
+		HasAttributeValue("tier", tier)
 	tf.CheckStateResource(t, "nuodbaas_database.db").
 		HasAttributeValue("organization", vars.project.Organization).
 		HasAttributeValue("project", vars.project.Name).
 		HasAttributeValue("name", "db").
-		HasAttributeValue("tier", "n0.nano").
+		HasAttributeValue("tier", tier).
 		HasAttributeValue("labels", map[string]any{"color": "blue"})
 
 	// Run `terraform apply` and verify that it fails due to the DBA
@@ -1413,7 +1434,7 @@ func TestDataSourceFiltering(t *testing.T) {
 			Organization: "unmanaged",
 			Name:         projectName,
 			Sla:          "dev",
-			Tier:         "n0.nano",
+			Tier:         getTestServiceTier(),
 			Labels: &map[string]string{
 				"type": "unmanaged",
 				"name": projectName,
